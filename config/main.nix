@@ -13,5 +13,9 @@
     rofi.enable = true;
   };
   
+  services = {
+    picom.enable = true;
+  };
+
   xsession.enable = true;
 }

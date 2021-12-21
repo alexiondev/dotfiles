@@ -76,8 +76,14 @@ in {
           notification = false;
         }
         {
-          command = "--no-startup-id ${spotify}";
+          command = "${spotify}";
           always = false;
+          notification = false;
+        }
+        {
+          command = "systemctl --user restart picom.service";
+          always = true;
+          notification = false;
         }
       ];
 
