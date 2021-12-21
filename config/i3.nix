@@ -48,7 +48,7 @@ in {
 
     config = rec {
       modifier = "${mod}";
-
+      
       bars = [];
 
       window.commands = [
@@ -71,9 +71,11 @@ in {
 
       startup = [
         {
-          command = "${exec} i3-msg workspace ${workspaces.ws1}";
+          command = "exec i3-msg workspace ${workspaces.ws1}";
           always = false;
-        }{
+          notification = false;
+        }
+        {
           command = "--no-startup-id ${spotify}";
           always = false;
         }
@@ -83,6 +85,7 @@ in {
         # i3 state
         "${mod}+Shift+c" = "reload";
         "${mod}+Shift+r" = "restart";
+        "${mod}+x" = "${exec} rofi_run";
 
         # Applications
         "${mod}+Return" = "${exec} ${terminal}";

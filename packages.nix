@@ -1,6 +1,8 @@
 { pkgs, ...}:
 
-{
+let
+    scripts = import ./scripts.nix { inherit pkgs; };
+in {
   home.packages = with pkgs; [
     alacritty
     light
@@ -11,5 +13,7 @@
     spotify
     xclip
     xdotool
+
+    scripts.rofi_run
   ];
 }
