@@ -1,0 +1,74 @@
+#####################################################
+###############     Variables      ##################
+#####################################################
+
+set $exea exec_always --no-startup-id
+
+set $scrot exec --no-startup-id exec scrot
+set $xclip 'xclip -selection c -t image/png < $f'
+
+set $browser firefox-developer-edition
+
+set $normal_font pango:System San Francisco Display 10
+set $monospace_font pango:Hack 10
+
+set $screenshot ~/pic/screenshots/$(date +'screenshot_%Y-%m-%d-%H:%M:%S.png')
+
+set $default mode "default"
+
+# Xresources      var       value       fallback
+set_from_resource $bg       background  #19043C
+set_from_resource $fg       foreground  #F1F1F1
+set_from_resource $black    color0      #19043C
+set_from_resource $red      color1      #EE79A9
+set_from_resource $green    color2      #8C9440
+set_from_resource $yellow   color3      #DE935F
+set_from_resource $blue     color4      #05C6F1
+set_from_resource $purple   color5      #85678F
+set_from_resource $cyan     color6      #5E8D87
+set_from_resource $grey     color7      #969CD3
+
+#################################################
+###############    Panic       ##################
+#################################################
+
+$super+x $exe rofi_run -l
+
+###################################################
+###############     Visuals      ##################
+###################################################
+
+# class                 bd    bg  txt    ind   child_bd
+client.focused          $grey $bg $fg    $blue $grey
+client.unfocused        $grey $bg $black $bg   $bg
+client.focused_inactive $grey $bg $black $bg   $bg
+client.urgent           $red  $bg $red   $red  $red
+client.placeholder      $grey $bg $bg    $bg   $bg
+client.background       $bg
+
+font $normal_font
+
+default_orientation horizontal
+
+popup_during_fullscreen smart
+
+####################################################
+###############     Keybinds      ##################
+####################################################
+
+# Screenshots
+bindsym --release Print $scrot -s $screenshot -e $xclip
+bindsym --release Ctrl+Print $scrot $screenshot -e $xclip
+bindsym --release Shift+Print $scrot -u $screenshot -e $xclip
+
+#####################################################
+###############     Autostart      ##################
+#####################################################
+
+$exea killall compton ; compton
+
+$exea i3listen
+$exea xrdb -merge $HOME/.Xresources
+$exea light -N 0.5
+$exea sleep 0.5 && polybar_launch
+$exea setxkbmap -option caps:swapescape
