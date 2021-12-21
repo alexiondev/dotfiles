@@ -28,6 +28,19 @@ let
     ws9  = "9";
     ws10 = "10";
   };
+
+  # Programs
+  audioctrl   = "${pkgs.pulseaudio}/bin/pactl";
+  launcher    = "${pkgs.rofi}/bin/rofi";
+  lightctrl   = "${pkgs.light}/bin/light";
+  mediactrl   = "${pkgs.playerctl}/bin/playerctl";
+  screenshot  = "${pkgs.maim}/bin/maim";
+  spotify     = "${pkgs.spotify}/bin/spotify";
+  terminal    = "${pkgs.alacritty}/bin/alacritty";
+
+  screenshotFile  = "pic/$(date +'screenshot_%Y%m%d-%H%M%S.png')";
+  xclip           = "${pkgs.xclip}/bin/xclip -selection c -t image/png";
+  activeWindow    = "$(${pkgs.xdotool}/bin/xdotool getactivewindow)";
 in {
   xsession.windowManager.i3 = {
     enable = true;
@@ -61,7 +74,7 @@ in {
           command = "${exec} i3-msg workspace ${workspaces.ws1}";
           always = false;
         }{
-          command = "--no-startup-id ${pkgs.spotify}/bin/spotify";
+          command = "--no-startup-id ${spotify}";
           always = false;
         }
       ];
@@ -72,8 +85,8 @@ in {
         "${mod}+Shift+r" = "restart";
 
         # Applications
-        "${mod}+Return" = "${exec} ${pkgs.alacritty}/bin/alacritty";
-        "${mod}+r"      = "${exec} ${pkgs.rofi}/bin/rofi -modi drun -show drun";
+        "${mod}+Return" = "${exec} ${terminal}";
+        "${mod}+r"      = "${exec} ${launcher} -modi drun -show drun";
         
         # Windows
         "${mod}+Shift+q" = "kill";
@@ -101,17 +114,22 @@ in {
         "${mod}+Shift+space"  = "floating toggle";
 
         # Media
-        "XF86AudioMute"         = "${exec} ${pkgs.pulseaudio}/bin/pactl set-sink-mute 0 toggle";
-        "XF86AudioLowerVolume"  = "${exec} ${pkgs.pulseaudio}/bin/pactl set-sink-volume 0 -5%";
-        "XF86AudioRaiseVolume"  = "${exec} ${pkgs.pulseaudio}/bin/pactl set-sink-volume 0 +5%";
+        "XF86AudioMute"         = "${exec} ${audioctrl} set-sink-mute 0 toggle";
+        "XF86AudioLowerVolume"  = "${exec} ${audioctrl} set-sink-volume 0 -5%";
+        "XF86AudioRaiseVolume"  = "${exec} ${audioctrl} set-sink-volume 0 +5%";
 
-        "XF86AudioPlay"         = "${exec} ${pkgs.playerctl}/bin/playerctl play-pause";
-        "XF86AudioPrev"         = "${exec} ${pkgs.playerctl}/bin/playerctl previous";
-        "XF86AudioNext"         = "${exec} ${pkgs.playerctl}/bin/playerctl next";
+        "XF86AudioPlay"         = "${exec} ${mediactrl} play-pause";
+        "XF86AudioPrev"         = "${exec} ${mediactrl} previous";
+        "XF86AudioNext"         = "${exec} ${mediactrl} next";
 
         # Screen Brightness
-        "XF86MonBrightnessDown" = "${exec} ${pkgs.light}/bin/light -U 5";
-        "XF86MonBrightnessUp"   = "${exec} ${pkgs.light}/bin/light -A 5";
+        "XF86MonBrightnessDown" = "${exec} ${lightctrl} -U 5";
+        "XF86MonBrightnessUp"   = "${exec} ${lightctrl} -A 5";
+
+        # Screenshots
+        "--release Print"       = "${exec} ${screenshot} -s | tee ${screenshotFile} | ${xclip}";
+        "--release Ctrl+Print"  = "${exec} ${screenshot} | tee ${screenshotFile} | ${xclip}";
+        "--release Shift+Print" = "${exec} ${screenshot} -i ${activeWindow} | tee ${screenshotFile} | ${xclip}";
 
         # Workspaces
         "${mod}+1"        = "workspace ${workspaces.ws1}";

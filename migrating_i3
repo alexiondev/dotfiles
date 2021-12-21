@@ -2,19 +2,8 @@
 ###############     Variables      ##################
 #####################################################
 
-set $exea exec_always --no-startup-id
-
-set $scrot exec --no-startup-id exec scrot
-set $xclip 'xclip -selection c -t image/png < $f'
-
-set $browser firefox-developer-edition
-
 set $normal_font pango:System San Francisco Display 10
 set $monospace_font pango:Hack 10
-
-set $screenshot ~/pic/screenshots/$(date +'screenshot_%Y-%m-%d-%H:%M:%S.png')
-
-set $default mode "default"
 
 # Xresources      var       value       fallback
 set_from_resource $bg       background  #19043C
@@ -51,15 +40,6 @@ font $normal_font
 default_orientation horizontal
 
 popup_during_fullscreen smart
-
-####################################################
-###############     Keybinds      ##################
-####################################################
-
-# Screenshots
-bindsym --release Print $scrot -s $screenshot -e $xclip
-bindsym --release Ctrl+Print $scrot $screenshot -e $xclip
-bindsym --release Shift+Print $scrot -u $screenshot -e $xclip
 
 #####################################################
 ###############     Autostart      ##################
