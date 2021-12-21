@@ -35,7 +35,8 @@ in {
 
     config = rec {
       modifier = "${mod}";
-      terminal = "alacritty";
+
+      bars = [];
 
       window.commands = [
         {   criteria.class = "^.*"; 
@@ -56,7 +57,13 @@ in {
       gaps.inner = 5;
 
       startup = [
-        { command = "--no-startup-id spotify"; always = false; }
+        {
+          command = "${exec} i3-msg workspace ${workspaces.ws1}";
+          always = false;
+        }{
+          command = "--no-startup-id ${pkgs.spotify}/bin/spotify";
+          always = false;
+        }
       ];
 
       keybindings = {
@@ -65,8 +72,8 @@ in {
         "${mod}+Shift+r" = "restart";
 
         # Applications
-        "${mod}+Return" = "${exec} ${terminal}";
-        "${mod}+r"      = "${exec} rofi -modi drun -show drun";
+        "${mod}+Return" = "${exec} ${pkgs.alacritty}/bin/alacritty";
+        "${mod}+r"      = "${exec} ${pkgs.rofi}/bin/rofi -modi drun -show drun";
         
         # Windows
         "${mod}+Shift+q" = "kill";
@@ -94,17 +101,17 @@ in {
         "${mod}+Shift+space"  = "floating toggle";
 
         # Media
-        "XF86AudioMute"         = "${exec} pactl set-sink-mute 0 toggle";
-        "XF86AudioLowerVolume"  = "${exec} pactl set-sink-volume 0 -5%";
-        "XF86AudioRaiseVolume"  = "${exec} pactl set-sink-volume 0 +5%";
+        "XF86AudioMute"         = "${exec} ${pkgs.pulseaudio}/bin/pactl set-sink-mute 0 toggle";
+        "XF86AudioLowerVolume"  = "${exec} ${pkgs.pulseaudio}/bin/pactl set-sink-volume 0 -5%";
+        "XF86AudioRaiseVolume"  = "${exec} ${pkgs.pulseaudio}/bin/pactl set-sink-volume 0 +5%";
 
-        "XF86AudioPlay"         = "${exec} playerctl play-pause";
-        "XF86AudioPrev"         = "${exec} playerctl previous";
-        "XF86AudioNext"         = "${exec} playerctl next";
+        "XF86AudioPlay"         = "${exec} ${pkgs.playerctl}/bin/playerctl play-pause";
+        "XF86AudioPrev"         = "${exec} ${pkgs.playerctl}/bin/playerctl previous";
+        "XF86AudioNext"         = "${exec} ${pkgs.playerctl}/bin/playerctl next";
 
         # Screen Brightness
-        "XF86MonBrightnessDown" = "${exec} light -U 5";
-        "XF86MonBrightnessUp"   = "${exec} light -A 5";
+        "XF86MonBrightnessDown" = "${exec} ${pkgs.light}/bin/light -U 5";
+        "XF86MonBrightnessUp"   = "${exec} ${pkgs.light}/bin/light -A 5";
 
         # Workspaces
         "${mod}+1"        = "workspace ${workspaces.ws1}";
@@ -129,9 +136,6 @@ in {
         "${mod}+Shift+9"  = "move container to workspace ${workspaces.ws9}";
         "${mod}+Shift+0"  = "move container to workspace ${workspaces.ws10}";
       };
-
-
     };
-
   };
 }

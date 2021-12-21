@@ -1,17 +1,15 @@
 { config, pkgs, lib, ... }:
 
 {
-  imports = [ ./config/main.nix ];
+  imports = [ 
+    ./config/main.nix 
+    ./packages.nix
+  ];
 
   # Home Manager needs a bit of information about you and the
   # paths it should manage.
   home.username = "alexion";
   home.homeDirectory = "/home/alexion";
-
-  home.packages = with pkgs; [
-    playerctl
-    spotify
-  ];
 
   # This value determines the Home Manager release that your
   # configuration is compatible with. This helps avoid breakage
