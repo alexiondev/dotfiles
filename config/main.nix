@@ -2,6 +2,7 @@
 
 {
   imports = [
+    ./bash.nix
     ./i3.nix
     ./polybar.nix
     ./vscode.nix
