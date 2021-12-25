@@ -52,9 +52,9 @@ in {
       bars = [];
 
       window.commands = [
-        {   criteria.class = "^.*"; 
-            command = "border pixel 0"; 
-        }{  criteria.class = "Spotify";
+        { criteria.class = "^.*"; 
+          command = "border pixel 0"; }
+        {  criteria.class = "Spotify";
             command = "move container to workspace ${workspaces.ws10}";
         }{  criteria.title="(?i)(?:copying/deleting/moving)";
             command = "floating enable";
@@ -70,20 +70,19 @@ in {
       gaps.inner = 5;
 
       startup = [
-        {
-          command = "exec i3-msg workspace ${workspaces.ws1}";
-          always = false;
-          notification = false;
-        }
-        {
-          command = "${spotify}";
-          always = false;
-          notification = false;
-        }
-        {
-          command = "systemctl --user restart picom.service";
-          always = true;
-          notification = false;
+        {   command = "exec i3-msg workspace ${workspaces.ws1}";
+            always = false;
+            notification = false;
+        }{  command = "${spotify}";
+            always = false;
+            notification = false;
+        }{  command = "systemctl --user restart picom.service";
+            always = true;
+            notification = false;
+        }{
+            command = "systemctl --user restart polybar.service";
+            always = true;
+            notification = false;
         }
       ];
 

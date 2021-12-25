@@ -15,5 +15,8 @@ in {
     xdotool
 
     scripts.rofi_run
+
+    font-awesome
+    hack-font
   ];
 }
