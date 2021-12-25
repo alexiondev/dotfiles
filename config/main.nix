@@ -34,6 +34,6 @@
       videos      = "$HOME/.hideme";
     };
   };
-  
+
   xsession.enable = true;
 }

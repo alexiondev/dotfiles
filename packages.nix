@@ -7,6 +7,7 @@ in {
     alacritty
     light
     nix-index
+    pavucontrol
     playerctl
     pulseaudio
     rofi
