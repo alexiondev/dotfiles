@@ -1,11 +1,10 @@
-{ inputs, config, lib, pkgs, ... }:
-let
-  inherit (lib) mkDefault;
-in {
+{ config, inputs, lib, pkgs, ... }:
+
+with lib.my;
+{
   imports = [
     inputs.home-manager.nixosModules.home-manager
-  ];
-  # TODO: Add personal modules
+  ] ++ (findModules ./modules);
 
   # nix and nixpkgs
   nix = {
@@ -21,7 +20,7 @@ in {
   boot.loader = {
     efi.canTouchEfiVariables = true;
 
-    systemd-boot.enable = mkDefault true;
+    systemd-boot.enable = true;
     systemd-boot.configurationLimit = 10;
   };
 

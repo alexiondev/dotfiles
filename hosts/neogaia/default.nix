@@ -4,4 +4,6 @@
   imports = [
     ./hardware-configuration.nix
   ];
+
+  modules.locale.timezone = "Europe/Dublin";
 }

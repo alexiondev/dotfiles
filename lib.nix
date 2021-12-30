@@ -10,27 +10,46 @@
 let
   sys = "x86_64-linux";
 in rec {
-  # Recursively loads a path, importing any folders with a default.nix or any .nix files
-  # loadDir :: Path -> (String -> Any -> { name = String; value = String; }) -> AttrSet
-  loadDir = dir: fn:
-    let
-      f = n: v:
-        let path = "${toString dir}/${n}"; in
-
-        if v == "directory" && builtins.pathExists "${path}/default.nix" 
-          then lib.nameValuePair n (fn path) 
-        else if v == "directory"
-          then lib.nameValuePair n (loadDir path fn)
-        else if v == "regular" && n != "default.nix" && lib.hasSuffix ".nix" n
-          then lib.nameValuePair (lib.removeSuffix ".nix" n) (fn path)
-        else
-          lib.nameValuePair "" null;
+  # Maps a function recursively over a directory.
+  # mapDir :: Path -> (str -> Any -> Any) -> AttrSet
+  mapDir = dir: fn:
+    let f = n: v:
+      let path = "${toString dir}/${n}"; in
+      
+      if v == "directory" && builtins.pathExists "${path}/default.nix"
+        then fn n path
+      else if v == "directory"
+        then fn n (mapDir path fn)
+      else if v == "regular" && n != "default.nix" && lib.hasSuffix ".nix" n
+        then fn (lib.removeSuffix ".nix" n) path
+      else 
+        fn "" null;
     in lib.mapAttrs' f (builtins.readDir dir);
-  
+
   # loadModules :: Path -> nixosModules
   loadModules = dir:
-    loadDir dir import;
+    mapDir dir (n: path: lib.nameValuePair n (import path));
   
+  # findModules :: Path -> [Path]
+  findModules = dir:
+    let dirs = mapDir dir lib.nameValuePair;
+    in lib.flatten (getPaths dirs);
+  
+  # getPaths :: AttrSet -> [str]
+  getPaths = dirs:
+    let getPath = _: v: if lib.isString v then v else getPaths v;
+    in lib.mapAttrsToList getPath dirs;
+  
+  # # loadModules' :: Path -> [str]
+  # # loadModules' = dir:
+  # #   let
+  # #     dirs = mapDir dir (_: path: path);
+  # #     files
+  # loadModules' = dir:
+  #   let
+  #     dirs = mapDir dir lib.nameValuePair;
+  #   in 
+
   # Creates a nixosSystem configuration from the path.
   # mkHost :: Path -> AttrSet -> nixosSystem
   mkHost = path: args@{system ? sys, ...}:
@@ -49,5 +68,16 @@ in rec {
   
   # loadHosts :: Path -> AttrSet -> nixosConfigurations
   loadHosts = dir: args:
-    loadDir dir (path: mkHost path args);
+    mapDir dir (n: path: lib.nameValuePair n (mkHost path args));
+  
+  # mkOpt :: Any a -> Any a -> Option a
+  mkOpt = type: default: lib.mkOption {
+    inherit type default;
+  };
+
+  # mkStr :: String -> Option
+  mkStr = default: mkOpt lib.types.str default;
+
+  # mbBool :: Bool -> Option
+  mkBool = default: mkOpt lib.types.bool default;
 }

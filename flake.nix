@@ -19,14 +19,16 @@
 
   outputs = inputs @ { self, nixpkgs, unstable, ...}:
   let
-    inherit (mylib) loadHosts loadModules;
-    mylib = import ./lib.nix { inherit pkgs inputs; lib = nixpkgs.lib; };
+    inherit (lib.my) loadHosts loadModules;
 
     pkgs = import nixpkgs { system = "x86_64-linux"; };
+
+    lib = nixpkgs.lib.extend
+      (self: super: {my = import ./lib.nix { inherit pkgs inputs; lib = self; };});
   in {
-    inherit mylib;
+    lib = lib;
     
-    nixosModules =  loadModules ./modules; 
+    nixosModules = loadModules ./modules; 
     nixosConfigurations = loadHosts ./hosts {};
   };
 }

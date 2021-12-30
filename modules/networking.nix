@@ -1,9 +1,10 @@
-{ config, lib, mylib, options, ...}:
+{config, lib, pkgs, ...}:
 
+with lib.my;
 let cfg = config.modules.networking;
 in {
   options.modules.networking = {
-    enable = mylib.mkBool true;
+    enable = mkBool true;
   };
 
   config = lib.mkIf cfg.enable {
