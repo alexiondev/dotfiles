@@ -32,7 +32,8 @@ in rec {
   # findModules :: Path -> [Path]
   findModules = dir:
     let dirs = mapDir dir lib.nameValuePair;
-    in lib.flatten (getPaths dirs);
+        dirs' = lib.filterAttrs (_: v: v != null) dirs;
+    in lib.flatten (getPaths dirs');
   
   # getPaths :: AttrSet -> [str]
   getPaths = dirs:

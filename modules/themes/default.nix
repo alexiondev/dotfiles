@@ -3,10 +3,12 @@
 with lib.my;
 let cfg = config.modules.theme;
 in {
+  imports = findModules ./.;
+  
   options.modules.theme = with lib.types; {
     active = mkOpt (nullOr str) null;
 
-    fonts = mkOpt (listOf str) [];
+    fonts = mkOpt (listOf package) [];
   };
 
   config = lib.mkIf (cfg.active != null) {
