@@ -8,7 +8,7 @@ lock="  Lock"
 
 options="$logout|$reboot|$poweroff"
 
-ANS = "$(rofi -sep "|" -dmenu -i -p 'System' \
+ANS="$(rofi -sep "|" -dmenu -i -p 'System' \
           -hide-scrollbar -lines 4 <<< $options)"
           
 case $ANS in
