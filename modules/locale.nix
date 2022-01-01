@@ -6,7 +6,6 @@ in {
   options.modules.locale = {
     timezone  = mkStr "America/New_York";
     locale    = mkStr "en_US.UTF-8";
-    keymap    = mkStr "us";
   };
 
   config = lib.mkIf (cfg.timezone != null) {

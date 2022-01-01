@@ -1,9 +1,9 @@
 { config, lib, pkgs, ... }:
 
 with lib.my;
-let cfg = config.modules.desktop.wm.i3;
+let cfg = config.modules.desktop.i3;
 in {
-  options.modules.desktop.wm.i3 = {
+  options.modules.desktop.i3 = {
     enable = mkBool false;
   };
 
@@ -83,7 +83,7 @@ in {
           }{  command = "${spotify}";
               always = false;
               notification = false;
-          }{  command = "systemctl --user restart picom.service";
+          }{  command = "picom";
               always = true;
               notification = false;
           }{  command = "systemctl --user restart polybar.service";

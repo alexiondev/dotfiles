@@ -13,7 +13,7 @@ in {
       services.polybar = {
         enable = true;
         package = pkgs.polybar.override {
-          i3GapsSupport = config.modules.desktop.wm.i3.enable;
+          i3GapsSupport = config.modules.desktop.i3.enable;
           pulseSupport = true;
         };
 
@@ -158,7 +158,7 @@ in {
             type = "internal/date";
             interval = 1;
             time = "%H:%M:%S";
-            format = "<label>";
+            format = " <label>";
             label = "%time%";
           };
 

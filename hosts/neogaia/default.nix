@@ -17,10 +17,11 @@
       term.alacritty.enable = true;
       util = {
         brightness.enable = true;
+        compositor.enable = true;
         polybar.enable = true;
         rofi.enable = true;
       };
-      wm.i3.enable = true;
+      i3.enable = true;
     };
     editors = {
       nvim.enable = true;

@@ -5,9 +5,9 @@ with lib.types;
 let cfg = config.modules.desktop.util.screenshot;
 in {
   options.modules.desktop.util.screenshot =
-  let file = "pic/$(date +'screen_%Y%m%d-%H%M%S.png')";
+  let file = "pic/screenshots/$(date +'screenshot_%Y%m%d-%H%M%S.png')";
       clip = "xclip -selection c -t image/png";
-      window = "xdotool getactivewindow";
+      window = "$(xdotool getactivewindow)";
   in {
     select = mkStr "maim -s | tee ${file} | ${clip}";
     window = mkStr "maim -i ${window} | tee ${file} | ${clip}";
