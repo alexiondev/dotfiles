@@ -22,5 +22,13 @@ with lib.my;
     systemd-boot.configurationLimit = 10;
   };
 
+  modules.shell.aliases = {
+    ".."  = "cd ..";
+    "..." = "cd ../..";
+    ls    = "ls --color=auto";
+    la    = "ls --color=auto -a";
+    lla   = "ls --color=auto -la";
+  };
+  
   system.stateVersion = "21.11";
 }

@@ -6,14 +6,7 @@ in {
   options.modules.shell = with lib.types; {
     active = mkStr "bash";
 
-    aliases = mkOpt attrs {
-      ".."  = "cd ..";
-      "..." = "cd ../..";
-
-      ls    = "ls --color=auto";
-      la    = "ls --color=auto -a";
-      lla   = "ls --color=auto -la";
-    };
+    aliases = mkOpt (attrsOf (either str path)) {};
 
     variables = mkOpt attrs {};
   };
