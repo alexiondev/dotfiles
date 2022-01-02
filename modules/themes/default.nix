@@ -1,6 +1,7 @@
 { config, lib, options, pkgs, ... }:
 
 with lib.my;
+with lib.types;
 let cfg = config.modules.theme;
 in {
   imports = findModules ./.;
@@ -8,12 +9,26 @@ in {
   options.modules.theme = with lib.types; {
     active = mkOpt (nullOr str) null;
 
-    fonts = mkOpt (listOf package) [];
+    fonts = {
+      packages = mkOpt (listOf package) [
+        pkgs.fira-code
+        pkgs.fira-code-symbols
+        pkgs.font-awesome-ttf
+      ];
+
+      default  = {
+        emoji     = mkOpt (listOf str) [];
+        monospace = mkOpt (listOf str) ["Fira Code"];
+        sansSerif = mkOpt (listOf str) ["Fira Sans"];
+        serif     = mkOpt (listOf str) [];
+      };
+    };
   };
 
   config = lib.mkIf (cfg.active != null) {
-    home-manager.users.${config.user.name} = {
-      home.packages = cfg.fonts;
+    fonts = {
+      fonts = cfg.fonts.packages;
+      fontconfig.defaultFonts = cfg.fonts.default;
     };
   };
 }
