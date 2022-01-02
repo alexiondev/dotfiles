@@ -24,6 +24,7 @@ with lib.my;
     users.users.root.initialPassword = "";
     
     home-manager = {
+      backupFileExtension = "__old";
       useUserPackages = true;
 
       users.${config.user.name} = {
