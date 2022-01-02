@@ -10,6 +10,7 @@ in {
   config = lib.mkIf (cfg.enable) {
     home-manager.users.${config.user.name}.programs.vscode = {
       enable = true;
+      package = pkgs.unstable.vscode;
       userSettings = let
         fonts = config.modules.theme.fonts.default.monospace ++ fa;
         fa = ["Font Awesome 5 Brands" "Font Awesome 5 Free" "Font Awesome 5 Free Solid"];
