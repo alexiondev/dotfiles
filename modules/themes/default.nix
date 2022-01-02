@@ -28,7 +28,10 @@ in {
   config = lib.mkIf (cfg.active != null) {
     fonts = {
       fonts = cfg.fonts.packages;
-      fontconfig.defaultFonts = cfg.fonts.default;
+      fontconfig = {
+        enable = true;
+        defaultFonts = cfg.fonts.default;
+      };
     };
   };
 }
