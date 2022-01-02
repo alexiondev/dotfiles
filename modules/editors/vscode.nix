@@ -14,6 +14,11 @@ in {
         fonts = config.modules.theme.fonts.default.monospace ++ fa;
         fa = ["Font Awesome 5 Brands" "Font Awesome 5 Free" "Font Awesome 5 Free Solid"];
       in {
+        "editor.bracketPairColorization.enabled" = true;
+        "editor.guides.bracketPairs" = true;
+        "editor.copyWithSyntaxHighlighting" = false;
+        "editor.rulers" = [80 120];
+        "editor.smoothScrolling" = true;
         "editor.fontFamily" = lib.concatStringsSep "," (map (x: "'${x}'") fonts);
         "editor.fontLigatures" = true;
       };
