@@ -19,6 +19,7 @@
         brightness.enable = true;
         compositor.enable = true;
         polybar.enable = true;
+        redshift.enable = true;
         rofi.enable = true;
       };
       i3.enable = true;
