@@ -6,7 +6,7 @@
 #
 # A collection of helper functions used throughout the dotfiles.
 
-{ inputs, lib, pkgs, ...} : 
+{ inputs, lib, pkgs, ...} :
 let sys = "x86_64-linux";
 in rec {
   # Maps a function recursively over a directory.
@@ -14,27 +14,27 @@ in rec {
   mapDir = dir: fn:
     let f = n: v:
       let path = "${toString dir}/${n}"; in
-      
+
       if v == "directory" && builtins.pathExists "${path}/default.nix"
         then fn n path
       else if v == "directory"
         then fn n (mapDir path fn)
       else if v == "regular" && n != "default.nix" && lib.hasSuffix ".nix" n
         then fn (lib.removeSuffix ".nix" n) path
-      else 
+      else
         fn "" null;
     in lib.mapAttrs' f (builtins.readDir dir);
 
   # loadModules :: Path -> nixosModules
   loadModules = dir:
     mapDir dir (n: path: lib.nameValuePair n (import path));
-  
+
   # findModules :: Path -> [Path]
   findModules = dir:
     let dirs = mapDir dir lib.nameValuePair;
         dirs' = lib.filterAttrs (_: v: v != null) dirs;
     in lib.flatten (getPaths dirs');
-  
+
   # getPaths :: AttrSet -> [str]
   getPaths = dirs:
     let getPath = _: v: if lib.isString v then v else getPaths v;
@@ -57,15 +57,15 @@ in rec {
           nixpkgs.config.allowUnfree = true;
           networking.hostName = lib.mkDefault (baseNameOf path);
         }
-        (import ./common.nix) # Common config for all NixOS systems
+        (import ./.) # Common config for all NixOS systems
         (import path)
       ];
     };
-  
+
   # loadHosts :: Path -> AttrSet -> nixosConfigurations
   loadHosts = dir: args:
     mapDir dir (n: path: lib.nameValuePair n (mkHost path args));
-  
+
   # mkOpt :: Any a -> Any a -> Option a
   mkOpt = type: default: lib.mkOption {
     inherit type default;
