@@ -3,12 +3,13 @@
 with lib.my;
 with lib.types;
 let cfg = config.modules.desktop.util.rofi;
-in {
+in
+{
   options.modules.desktop.util.rofi = {
     enable = mkBool false;
-    
+
     cmd = mkStr "rofi -modi drun -show drun";
-    
+
     menu = mkOpt attrs {
       power = ./power_menu.sh;
     };

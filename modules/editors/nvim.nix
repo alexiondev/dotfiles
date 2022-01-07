@@ -2,7 +2,8 @@
 
 with lib.my;
 let cfg = config.modules.editors.nvim;
-in {
+in
+{
   options.modules.editors.nvim = {
     enable = mkBool true;
   };
@@ -13,9 +14,9 @@ in {
     };
 
     modules.shell = {
-      aliases = { 
-        v   = "nvim";
-        vi  = "nvim";
+      aliases = {
+        v = "nvim";
+        vi = "nvim";
         vim = "nvim";
       };
 

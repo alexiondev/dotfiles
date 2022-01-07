@@ -24,13 +24,13 @@ with lib.my;
 
   modules.shell = {
     aliases = {
-      ".."  = "cd ..";
+      ".." = "cd ..";
       "..." = "cd ../..";
-      ls    = "ls --color=auto";
-      la    = "ls --color=auto -a";
-      lla   = "ls --color=auto -la";
+      ls = "ls --color=auto";
+      la = "ls --color=auto -a";
+      lla = "ls --color=auto -la";
     };
   };
-  
+
   system.stateVersion = "21.11";
 }

@@ -19,9 +19,10 @@
   };
 
   outputs = inputs @ { self, nixpkgs, nixpkgs-unstable, nur, ... }:
-  let inherit (lib.my) loadHosts loadModules;
+    let
+      inherit (lib.my) loadHosts loadModules;
       lib = nixpkgs.lib.extend
-        (self: super: {my = import ./lib.nix { inherit pkgs inputs; lib = self; };});
+        (self: super: { my = import ./lib.nix { inherit pkgs inputs; lib = self; }; });
 
       mkPkgs = pkgs: extraOverlays: import pkgs {
         system = "x86_64-linux";
@@ -29,17 +30,18 @@
         overlays = extraOverlays;
       };
 
-      pkgs  = mkPkgs nixpkgs [ self.overlay nur.overlay ];
-      pkgs' = mkPkgs nixpkgs-unstable [];
-  in {
-    lib = lib;
-    packs = pkgs;
+      pkgs = mkPkgs nixpkgs [ self.overlay nur.overlay ];
+      pkgs' = mkPkgs nixpkgs-unstable [ ];
+    in
+    {
+      lib = lib;
+      packs = pkgs;
 
-    overlay = final: prev: {
-      unstable = pkgs';
+      overlay = final: prev: {
+        unstable = pkgs';
+      };
+
+      nixosModules = loadModules ./modules;
+      nixosConfigurations = loadHosts ./hosts { };
     };
-
-    nixosModules = loadModules ./modules;
-    nixosConfigurations = loadHosts ./hosts {};
-  };
 }

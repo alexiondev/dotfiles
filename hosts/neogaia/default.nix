@@ -1,4 +1,4 @@
-{ config, pkgs, lib, modulesPath, inputs, ...}:
+{ config, pkgs, lib, modulesPath, inputs, ... }:
 
 {
   imports = [

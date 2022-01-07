@@ -2,7 +2,8 @@
 
 with lib.my;
 let cfg = config.modules.desktop.util.redshift;
-in {
+in
+{
   options.modules.desktop.util.redshift = {
     enable = mkBool false;
   };

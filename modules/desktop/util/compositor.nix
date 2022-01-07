@@ -2,7 +2,8 @@
 
 with lib.my;
 let cfg = config.modules.desktop.util.compositor;
-in {
+in
+{
   options.modules.desktop.util.compositor = {
     enable = mkBool false;
   };

@@ -2,7 +2,8 @@
 
 with lib.my;
 let cfg = config.modules.desktop.startx;
-in {
+in
+{
   options.modules.desktop.startx = {
     enable = mkBool false;
   };

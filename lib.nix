@@ -6,9 +6,10 @@
 #
 # A collection of helper functions used throughout the dotfiles.
 
-{ inputs, lib, pkgs, ...} :
+{ inputs, lib, pkgs, ... }:
 let sys = "x86_64-linux";
-in rec {
+in
+rec {
   # Maps a function recursively over a directory.
   # mapDir :: Path -> (str -> Any -> Any) -> AttrSet
   mapDir = dir: fn:
@@ -16,11 +17,11 @@ in rec {
       let path = "${toString dir}/${n}"; in
 
       if v == "directory" && builtins.pathExists "${path}/default.nix"
-        then fn n path
+      then fn n path
       else if v == "directory"
-        then fn n (mapDir path fn)
+      then fn n (mapDir path fn)
       else if v == "regular" && n != "default.nix" && lib.hasSuffix ".nix" n
-        then fn (lib.removeSuffix ".nix" n) path
+      then fn (lib.removeSuffix ".nix" n) path
       else
         fn "" null;
     in lib.mapAttrs' f (builtins.readDir dir);
@@ -31,9 +32,11 @@ in rec {
 
   # findModules :: Path -> [Path]
   findModules = dir:
-    let dirs = mapDir dir lib.nameValuePair;
-        dirs' = lib.filterAttrs (_: v: v != null) dirs;
-    in lib.flatten (getPaths dirs');
+    let
+      dirs = mapDir dir lib.nameValuePair;
+      dirs' = lib.filterAttrs (_: v: v != null) dirs;
+    in
+    lib.flatten (getPaths dirs');
 
   # getPaths :: AttrSet -> [str]
   getPaths = dirs:
@@ -47,7 +50,7 @@ in rec {
 
   # Creates a nixosSystem configuration from the path.
   # mkHost :: Path -> AttrSet -> nixosSystem
-  mkHost = path: args@{system ? sys, ...}:
+  mkHost = path: args@{ system ? sys, ... }:
     lib.nixosSystem {
       inherit system;
       specialArgs = { inherit inputs lib system; };

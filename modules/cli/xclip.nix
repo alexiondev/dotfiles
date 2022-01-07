@@ -2,7 +2,8 @@
 
 with lib.my;
 let cfg = config.modules.cli.xclip;
-in {
+in
+{
   options.modules.cli.xclip = {
     enable = mkBool false;
   };

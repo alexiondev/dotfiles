@@ -2,7 +2,8 @@
 
 with lib.my;
 let cfg = config.modules.desktop.term.alacritty;
-in {
+in
+{
   options.modules.desktop.term.alacritty = {
     enable = mkBool false;
   };
@@ -14,7 +15,7 @@ in {
         font = {
           normal = {
             family = builtins.head config.modules.theme.fonts.default.monospace;
-            style  = "Regular";
+            style = "Regular";
           };
           size = 8;
         };

@@ -2,10 +2,11 @@
 
 with lib.my;
 let cfg = config.modules.locale;
-in {
+in
+{
   options.modules.locale = {
-    timezone  = mkStr "America/New_York";
-    locale    = mkStr "en_US.UTF-8";
+    timezone = mkStr "America/New_York";
+    locale = mkStr "en_US.UTF-8";
   };
 
   config = lib.mkIf (cfg.timezone != null) {

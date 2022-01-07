@@ -2,7 +2,8 @@
 
 with lib.my;
 let cfg = config.modules.hardware.sound;
-in {
+in
+{
   options.modules.hardware.sound = {
     enable = mkBool false;
   };
@@ -12,8 +13,8 @@ in {
     hardware.pulseaudio.enable = true;
 
     home-manager.users.${config.user.name}.home.packages =
-      if config.services.xserver.enable 
+      if config.services.xserver.enable
       then [ pkgs.pavucontrol pkgs.playerctl ]
-      else [];
+      else [ ];
   };
 }

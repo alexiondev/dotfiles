@@ -3,9 +3,10 @@
 with lib.my;
 with lib.types;
 let cfg = config.modules.theme;
-in {
+in
+{
   imports = findModules ./.;
-  
+
   options.modules.theme = with lib.types; {
     active = mkOpt (nullOr str) null;
 
@@ -16,11 +17,11 @@ in {
         pkgs.font-awesome-ttf
       ];
 
-      default  = {
-        emoji     = mkOpt (listOf str) [];
-        monospace = mkOpt (listOf str) ["Fira Code"];
-        sansSerif = mkOpt (listOf str) ["Fira Sans"];
-        serif     = mkOpt (listOf str) [];
+      default = {
+        emoji = mkOpt (listOf str) [ ];
+        monospace = mkOpt (listOf str) [ "Fira Code" ];
+        sansSerif = mkOpt (listOf str) [ "Fira Sans" ];
+        serif = mkOpt (listOf str) [ ];
       };
     };
   };

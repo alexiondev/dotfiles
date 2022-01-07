@@ -2,7 +2,8 @@
 
 with lib.my;
 let cfg = config.modules.hardware.touchpad;
-in {
+in
+{
   options.modules.hardware.touchpad = {
     enable = mkBool false;
   };

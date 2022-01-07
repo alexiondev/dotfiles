@@ -2,13 +2,14 @@
 
 with lib.my;
 let cfg = config.modules.shell;
-in {
+in
+{
   options.modules.shell = with lib.types; {
     active = mkStr "bash";
 
-    aliases = mkOpt (attrsOf (either str path)) {};
+    aliases = mkOpt (attrsOf (either str path)) { };
 
-    variables = mkOpt attrs {};
+    variables = mkOpt attrs { };
   };
 
   config = lib.mkIf (cfg.active != null) {

@@ -2,6 +2,7 @@
 
 with lib.my;
 let cfg = config.modules.theme;
-in {
-  config = lib.mkIf (cfg.active == "dracula") {};
+in
+{
+  config = lib.mkIf (cfg.active == "dracula") { };
 }

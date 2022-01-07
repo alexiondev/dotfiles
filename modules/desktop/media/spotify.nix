@@ -2,7 +2,8 @@
 
 with lib.my;
 let cfg = config.modules.desktop.media.spotify;
-in {
+in
+{
   options.modules.desktop.media.spotify = {
     enable = mkBool false;
   };

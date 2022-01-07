@@ -2,7 +2,8 @@
 
 with lib.my;
 let cfg = config.modules.networking;
-in {
+in
+{
   options.modules.networking = {
     enable = mkBool true;
   };

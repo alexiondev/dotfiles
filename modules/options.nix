@@ -3,14 +3,16 @@
 with lib.my;
 {
   options = with lib.types; {
-    user = mkOpt attrs {};
+    user = mkOpt attrs { };
   };
 
   config = {
-    user = 
-      let user = builtins.getEnv "USER";
-          name = if lib.elem user [ "" "root" ] then "alexion" else user;
-      in {
+    user =
+      let
+        user = builtins.getEnv "USER";
+        name = if lib.elem user [ "" "root" ] then "alexion" else user;
+      in
+      {
         inherit name;
         extraGroups = [ "wheel" ];
         isNormalUser = true;
@@ -18,11 +20,11 @@ with lib.my;
         group = "users";
         uid = 1000;
         initialPassword = "";
-    };
-    
+      };
+
     users.users.${config.user.name} = lib.mkAliasDefinitions options.user;
     users.users.root.initialPassword = "";
-    
+
     home-manager = {
       backupFileExtension = "__old";
       useUserPackages = true;
@@ -33,7 +35,7 @@ with lib.my;
         home = {
           username = config.user.name;
           homeDirectory = config.user.home;
-  
+
           stateVersion = config.system.stateVersion;
         };
       };

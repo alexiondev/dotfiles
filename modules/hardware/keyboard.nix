@@ -2,10 +2,11 @@
 
 with lib.my;
 let cfg = config.modules.hardware.keyboard;
-in {
+in
+{
   options.modules.hardware.keyboard = {
-    keymap        = mkStr "us";
-    capsIsEscape  = mkBool true;
+    keymap = mkStr "us";
+    capsIsEscape = mkBool true;
   };
 
   config = {

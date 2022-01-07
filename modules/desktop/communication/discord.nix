@@ -2,7 +2,8 @@
 
 with lib.my;
 let cfg = config.modules.desktop.communication.discord;
-in {
+in
+{
   options.modules.desktop.communication.discord = {
     enable = mkBool false;
   };
