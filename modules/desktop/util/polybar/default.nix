@@ -17,7 +17,7 @@ in {
           pulseSupport = true;
         };
 
-        script = "DISPLAY=:0 polybar -q -r top & DISPLAY=:0 polybar -q -r bot &";
+        script = "polybar -q -r top & polybar -q -r bot &";
         config = let
           colors = {
             bg = "#00000000";

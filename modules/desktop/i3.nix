@@ -7,7 +7,7 @@ in {
     enable = mkBool false;
   };
 
-  config = 
+  config =
   let
     mod   = "Mod4";
     exec  = "exec --no-startup-id";
@@ -41,15 +41,6 @@ in {
     terminal  = "alacritty";
     screenshot = config.modules.desktop.util.screenshot;
   in lib.mkIf cfg.enable {
-    services.xserver = {
-      enable = true;
-      displayManager.startx.enable = true;
-    };
-
-    environment.loginShellInit = lib.mkBefore ''
-      [[ -z $DISPLAY && $(tty) == /dev/tty1 ]] && startx
-    '';
-    
     home-manager.users.${config.user.name}.xsession.windowManager.i3 = {
       enable = true;
       package = pkgs.i3-gaps;
@@ -83,10 +74,13 @@ in {
           }{  command = "${spotify}";
               always = false;
               notification = false;
-          }{  command = "picom";
+          }{  command = "systemctl --user restart picom.service";
               always = true;
               notification = false;
           }{  command = "systemctl --user restart polybar.service";
+              always = true;
+              notification = false;
+          }{  command = "systemctl --user restart redshift.service";
               always = true;
               notification = false;
           }

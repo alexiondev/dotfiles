@@ -23,6 +23,7 @@
         rofi.enable = true;
       };
       i3.enable = true;
+      startx.enable = true;
     };
     editors = {
       nvim.enable = true;
