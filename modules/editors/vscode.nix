@@ -59,7 +59,6 @@ in
         extensions = with pkgs.vscode-extensions; [
           # Nix
           jnoortheen.nix-ide
-          arrterian.nix-env-selector
 
           # Haskell
           haskell.haskell
