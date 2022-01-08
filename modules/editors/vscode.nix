@@ -54,8 +54,16 @@ in
             "nix.enableLanguageServer" = true;
           };
 
+        # Some extensions will rely on a project setting up a nix-env with
+        # dependencies. (Eg: Haskell projects with cabal and ghc)
         extensions = with pkgs.vscode-extensions; [
+          # Nix
           jnoortheen.nix-ide
+          arrterian.nix-env-selector
+
+          # Haskell
+          haskell.haskell
+          justusadam.language-haskell
         ]
         ++ (pkgs.vscode-utils.extensionsFromVscodeMarketplace [
         ]);
