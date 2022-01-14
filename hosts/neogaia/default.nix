@@ -12,6 +12,7 @@
     };
     desktop = {
       browsers.firefox.enable = true;
+      browsers.chromium.enable = true;
       communication.discord.enable = true;
       media.spotify.enable = true;
       term.alacritty.enable = true;
