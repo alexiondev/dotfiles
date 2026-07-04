@@ -24,6 +24,12 @@ deliberately hides all of it.
 any wildcard add — that would try to stage the entire home directory (caches,
 secrets, everything).
 
+**Stage automatically after changes.** Once a tracked file is edited, run
+`dot add <specific-path>` for it right away rather than waiting to be asked —
+one explicit path per changed file, still never a wildcard. This does not
+extend to `dot commit` or `dot push`, which still require an explicit
+request.
+
 ## The dot CLI
 
 ### Architecture
@@ -72,8 +78,21 @@ of `dot` itself.
    `~/.config/fish/completions/dot.fish` and `__dot_help` both discover new
    command files by globbing that directory, and `--wraps=git` still covers
    raw git subcommands.
-3. Add a case to `~/.config/dot/tests/dot.fish` covering it and run
-   `fishtape ~/.config/dot/tests/dot.fish` until it passes.
+3. Implement a `help` subcommand: check for `help` as `_dot_<name>`'s first
+   positional argument before `argparse`, and call a `_dot_<name>_usage`
+   function that prints usage and every flag. If `_dot_<name>` itself
+   dispatches to nested subcommands, apply this same check-then-dispatch
+   pattern at that level too — there's no central `--help` handling in
+   `dot.fish` to lean on; each level is responsible for its own.
+   `_dot_<name>_usage` should print its text as a single multi-line
+   `echo "..."` string (fish preserves literal newlines inside double
+   quotes) rather than one `echo` per line.
+4. Add a row to `~/.gitea/README.md`'s command table for it — one row per
+   distinct use case, with paths written relative to `$HOME`
+   (`~/.config/dot/...`), not relative to the README's own location.
+5. Add a case to `~/.config/dot/tests/dot.fish` covering it, including its
+   `help` output, and run `fishtape ~/.config/dot/tests/dot.fish` until it
+   passes.
 
 ### Testing
 

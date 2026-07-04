@@ -1,4 +1,15 @@
+function _dot_install_usage
+    echo "usage: dot install [--restore] [--no-sync] [package ...]
+  --restore   reinstall every package from the tracked list
+  --no-sync   skip 'pacman -Sy' before installing"
+end
+
 function _dot_install
+    if test "$argv[1]" = help
+        _dot_install_usage
+        return 0
+    end
+
     argparse 'restore' 'no-sync' -- $argv
     or return 1
 

@@ -14,12 +14,13 @@ fish -c 'dot init'
 
 ## Commands
 
-| Command        | Description                                                                              |
-| -------------- | ----------------------------------------------------------------------------------------- |
-| `dot help`     | Lists available commands.                                                                |
-| `dot init`     | Bootstraps the dotfiles repo on a new machine.                                           |
-| `dot <custom>` | Any file under `~/.config/dot/commands/` (currently `install`); run `dot help` for the live list. |
-| `dot <git>`    | Everything else is passed to `git`.                                                      |
+| Command                 | Description                                                                              |
+| ----------------------- | ----------------------------------------------------------------------------------------- |
+| `dot help`              | Lists available commands.                                                                |
+| `dot init`              | Bootstraps the dotfiles repo on a new machine.                                           |
+| `dot install <pkgs>`    | Installs the given pacman packages and appends them to the tracked list (`~/.config/dot/packages/pacman`). |
+| `dot install --restore` | Reinstalls every package from the tracked list.                                          |
+| `dot <git>`             | Everything else is passed to `git`.                                                      |
 
 See [CLAUDE.md](../.config/dot/CLAUDE.md) for the `dot` tool's internal
 architecture, bootstrap logic, subcommand dispatch, and test suite.

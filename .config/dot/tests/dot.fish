@@ -83,6 +83,7 @@ set -l help_status $status
 @test "dot help succeeds" $help_status -eq 0
 @test "dot help lists init" (string match -q '*init*' -- $help_output; echo $status) -eq 0
 @test "dot help mentions git passthrough" (string match -q '*git*' -- $help_output; echo $status) -eq 0
+@test "dot help hints at per-command help" (string match -q "*dot <command> help*" -- $help_output; echo $status) -eq 0
 
 mkdir -p $HOME/.config/dot/commands
 echo "function _dot_mark
@@ -228,3 +229,19 @@ set -l pacman_called_conflict (test -s $PACMAN_LOG; and echo yes; or echo no)
 
 @test "--restore combined with package names fails" $restore_conflict_status -ne 0
 @test "--restore combined with package names never calls pacman" $pacman_called_conflict = no
+
+# --- help prints usage instead of touching pacman ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands
+cp $commands_dir/install.fish $HOME/.config/dot/commands/install.fish
+set -gx PACMAN_LOG (mktemp)
+
+set -l help_output (dot install help)
+set -l help_status $status
+set -l pacman_called_help (test -s $PACMAN_LOG; and echo yes; or echo no)
+
+@test "dot install help succeeds" $help_status -eq 0
+@test "dot install help mentions --restore" (string match -q '*--restore*' -- $help_output; echo $status) -eq 0
+@test "dot install help mentions --no-sync" (string match -q '*--no-sync*' -- $help_output; echo $status) -eq 0
+@test "dot install help never calls pacman" $pacman_called_help = no
