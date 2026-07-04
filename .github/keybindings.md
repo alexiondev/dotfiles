@@ -32,3 +32,6 @@ Comma-separated keys are pressed in sequence, not together.
 | `Ctrl` + `Space`, `s`                                 | tmux    | Interactive session list                           |
 | `Ctrl` + `Space`, `(` / `)`                           | tmux    | Switch to previous / next session                  |
 | `Ctrl` + `Space`, `r`                                 | tmux    | Reload `tmux.conf`                                 |
+| `Ctrl` + `h` / `j` / `k` / `l`                        | neovim  | Move focus between splits left / down / up / right |
+| `Esc`                                                  | neovim  | Clear search highlight                             |
+| `Space`, `e`                                           | neovim  | Toggle file explorer (netrw)                       |
