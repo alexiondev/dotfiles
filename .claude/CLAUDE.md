@@ -24,4 +24,11 @@ These are common instructions for Alexion's agents across all scenarios.
   It means: don't discount a more robust or maintainable approach just because it would take a human a long time to build.
 - File names should always be lower case, unless there's a valid reason.
   Established ecosystem or tool conventions count as a valid reason automatically (e.g. `README.md`, `LICENSE`, `CHANGELOG.md`, `Makefile`, `Dockerfile`, `.github/` files), without needing to ask each time.
+- When you discover that a belief you held about an objective fact or convention of the current project was wrong, write it down so it isn't relearned next time.
+  This applies whether the user corrected you or you caught the mistake yourself, and only to things that are true regardless of who is operating the project (a wrong build command, a wrong file path, a convention you guessed at instead of checking) — not personal working-style preferences or one-off task details.
+  Record it in that project's own CLAUDE.md, not this global file, under a dedicated `## Gotchas` section (create the section if the file doesn't have one yet).
+  If the project has nested CLAUDE.md files, use the one nearest to where the mistake occurred, falling back to the project's top-level CLAUDE.md.
+  Append to an existing CLAUDE.md immediately, without asking; if no CLAUDE.md exists yet for the project, ask before creating one.
+  Briefly mention the edit in your response rather than making it silently.
+  If an existing entry is later found to be wrong or stale, correct or remove it the same way.
 
