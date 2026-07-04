@@ -12,6 +12,15 @@ config, git identity, the `dot` function itself, and more. To see everything
 tracked, run `dot ls-tree -r --name-only HEAD` from `$HOME` (paths are shown
 relative to cwd, so running it from elsewhere silently truncates the list).
 
+For an agent driving this through separate tool calls: `cd ~` in one call does
+not reliably carry over to the next, since each call may reset to the
+project's working directory. Always `cd "$HOME"` and run the `ls-tree` (or any
+other cwd-sensitive `dot`/`git` command) in that *same* call — e.g.
+`cd "$HOME" && dot ls-tree -r --name-only HEAD` — rather than trusting a prior
+`cd` to have stuck. Getting this wrong silently narrows the listing to
+whatever the leftover cwd happens to be, which reads as "this file isn't
+tracked" when it actually is.
+
 ## Always add by explicit path
 
 `status.showUntrackedFiles=no` is set locally (see `dot init` below), and

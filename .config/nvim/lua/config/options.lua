@@ -15,12 +15,6 @@ opt.expandtab = true
 
 opt.mouse = "a"
 
--- Neovim's built-in default colors paint their own dark/light background even
--- without a colorscheme; clear it so the terminal's own background shows through.
-for _, group in ipairs({ "Normal", "NormalNC", "NormalFloat", "SignColumn" }) do
-  vim.api.nvim_set_hl(0, group, { bg = "none" })
-end
-
 opt.undofile = true
 
 opt.ignorecase = true
