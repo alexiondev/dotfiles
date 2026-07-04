@@ -1,0 +1,6 @@
+.dotfiles
+.DS_Store
+*.swp
+*.swo
+*~
+Thumbs.db
