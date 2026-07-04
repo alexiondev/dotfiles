@@ -24,3 +24,8 @@ fish -c 'dot init'
 
 See [CLAUDE.md](../.config/dot/CLAUDE.md) for the `dot` tool's internal
 architecture, bootstrap logic, subcommand dispatch, and test suite.
+
+## Keybindings
+
+See [keybindings.md](keybindings.md) for custom and useful default
+keybindings across configured tools (currently: tmux).

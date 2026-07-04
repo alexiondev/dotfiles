@@ -87,7 +87,7 @@ of `dot` itself.
    `_dot_<name>_usage` should print its text as a single multi-line
    `echo "..."` string (fish preserves literal newlines inside double
    quotes) rather than one `echo` per line.
-4. Add a row to `~/.gitea/README.md`'s command table for it — one row per
+4. Add a row to `~/.github/README.md`'s command table for it — one row per
    distinct use case, with paths written relative to `$HOME`
    (`~/.config/dot/...`), not relative to the README's own location.
 5. Add a case to `~/.config/dot/tests/dot.fish` covering it, including its
@@ -118,3 +118,11 @@ Tests live at `~/.config/dot/tests/dot.fish`, run with
 - `@test "description" <expr> <op> <expected>` mirrors fish's `test` builtin
   (`-eq`, `-ne`, `=`, `-e`, `-f`, `-d`, `-n`, `-z`); `-a`/`-o` combinators
   aren't supported.
+
+## Keybindings
+
+Whenever a keybind is added, changed, or removed in *any* config on this
+machine (tmux, KDE, neovim, fish, whatever), add or update its row in
+[`~/.github/keybindings.md`](../../.github/keybindings.md) in the same
+change. That file is the single reference for every keybind across tools —
+it drifts the moment a bind changes somewhere without a matching edit there.
