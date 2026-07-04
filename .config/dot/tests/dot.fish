@@ -70,3 +70,22 @@ end" >$HOME/.config/dot/commands/mark.fish
 
 dot mark >/dev/null 2>&1
 @test "dispatches to a command file under ~/.config/dot/commands/" (cat $marker) = marked
+
+# --- dot help ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+
+set -l help_output (dot help)
+set -l help_status $status
+
+@test "dot help succeeds" $help_status -eq 0
+@test "dot help lists init" (string match -q '*init*' -- $help_output; echo $status) -eq 0
+@test "dot help mentions git passthrough" (string match -q '*git*' -- $help_output; echo $status) -eq 0
+
+mkdir -p $HOME/.config/dot/commands
+echo "function _dot_mark
+    echo marked
+end" >$HOME/.config/dot/commands/mark.fish
+
+set -l help_with_custom (dot help)
+@test "dot help lists custom commands found under ~/.config/dot/commands/" (string match -q '*mark*' -- $help_with_custom; echo $status) -eq 0

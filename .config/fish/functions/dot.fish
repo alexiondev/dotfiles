@@ -7,6 +7,11 @@ function dot --wraps=git --description 'Manage dotfiles via a bare repo checked 
         return $status
     end
 
+    if test "$argv[1]" = help
+        __dot_help
+        return $status
+    end
+
     set -l commands_dir $HOME/.config/dot/commands
     set -l command_file $commands_dir/$argv[1].fish
 
@@ -86,4 +91,24 @@ function __dot_init
     end
 
     echo "dot init: bootstrapped $dotfiles_dir from $url"
+end
+
+# The custom-subcommand glob is duplicated (not shared with
+# completions/dot.fish) because fish only autoloads a function from a file
+# named after that function; a shared helper would go undefined if `dot help`
+# ran in a completion context before `dot` itself had ever been sourced.
+function __dot_help
+    echo "dot: manage dotfiles via a bare repo checked out over \$HOME"
+    echo
+    echo "Commands:"
+    echo "  init    bootstrap the dotfiles repo on a new machine"
+    echo "  help    show this message"
+
+    for f in $HOME/.config/dot/commands/*.fish
+        test -e $f; or continue
+        echo "  "(path basename $f | path change-extension '')
+    end
+
+    echo
+    echo "Any other command is passed through to git (dot status, dot add, dot commit, dot push, ...)."
 end
