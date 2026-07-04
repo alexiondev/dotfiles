@@ -1,0 +1,65 @@
+# The dot CLI
+
+## Architecture
+
+`dot` is defined in one file: `~/.config/fish/functions/dot.fish`. It holds
+two functions:
+
+- `dot` (`--wraps=git`) — dispatches `init` and any file found under
+  `~/.config/dot/commands/`, otherwise forwards everything to
+  `git --git-dir=~/.dotfiles --work-tree=$HOME $argv` (full passthrough).
+- `__dot_init` — the bootstrap logic, inlined in the same file rather than
+  autoloaded separately, because it's the one subcommand that must work
+  before the dotfiles repo has ever been cloned onto a machine.
+
+`dot init`:
+
+- refuses to run if `~/.dotfiles` already exists (no re-init support)
+- clones the bare repo from `--url` (default: the hardcoded Gitea remote) —
+  if the clone fails, it errors out; it never falls back to `git init`
+- backs up any pre-existing file that checkout would clobber into
+  `~/.dotfiles-backup/<timestamp>/`, then retries the checkout
+- explicitly sets `status.showUntrackedFiles=no` after cloning — this is a
+  local-only git setting, so a fresh `git clone` never carries it over
+
+## Adding a subcommand
+
+Beyond `init`, `dot` looks for `~/.config/dot/commands/<name>.fish`, sources
+it, and calls `_dot_<name>`. These files are deliberately kept out of
+`~/.config/fish/functions/` (fish's autoload path) so they never become
+independently invokable top-level commands or clutter tab-completion outside
+of `dot` itself.
+
+1. Create `~/.config/dot/commands/<name>.fish` defining a `_dot_<name>`
+   function.
+2. Confirm `dot <name>` dispatches to it. No other wiring is needed —
+   `~/.config/fish/completions/dot.fish` discovers new command files by
+   globbing that directory, and `--wraps=git` still covers raw git
+   subcommands.
+3. Add a case to `~/.config/dot/tests/dot.fish` covering it and run
+   `fishtape ~/.config/dot/tests/dot.fish` until it passes.
+
+## Testing
+
+Tests live at `~/.config/dot/tests/dot.fish`, run with
+`fishtape ~/.config/dot/tests/dot.fish`. Fishtape is installed via Fisher
+(`fisher install jorgebucaran/fishtape`) and tracked in
+`~/.config/fish/fish_plugins` — a real, restorable dependency for developing
+`dot`, but never required just to use it.
+
+- Each scenario overrides `$HOME` (`set -gx HOME (mktemp -d)`) before calling
+  `dot`, so tests never touch the real `~/.dotfiles`.
+- Build a throwaway bare "remote" fixture with `git init --bare` plus a
+  seeded commit, and explicitly set its `HEAD`
+  (`git --git-dir=$remote symbolic-ref HEAD refs/heads/main`). Pushing with
+  `git push origin HEAD:main` does **not** update the bare repo's `HEAD`
+  symref — skip this and a clone of the fixture can end up "on a branch yet
+  to be born."
+- Don't use `.gitconfig` as a fake pre-existing "conflict" file in a
+  fixture — git parses `$HOME/.gitconfig` as its own global config on every
+  invocation, and garbage content there spams "key does not contain a
+  section" errors that drown out the real assertion. Use a harmless file
+  like `.bashrc` instead.
+- `@test "description" <expr> <op> <expected>` mirrors fish's `test` builtin
+  (`-eq`, `-ne`, `=`, `-e`, `-f`, `-d`, `-n`, `-z`); `-a`/`-o` combinators
+  aren't supported.
