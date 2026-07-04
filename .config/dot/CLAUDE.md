@@ -1,6 +1,32 @@
-# The dot CLI
+# Dotfiles
 
-## Architecture
+This machine's dotfiles are a bare git repo at `~/.dotfiles`, checked out with
+`$HOME` as its work-tree. The `dot` fish function wraps that invocation
+(`git --git-dir=~/.dotfiles --work-tree=$HOME $argv`, declared with
+`--wraps=git`), so every git subcommand works through it: `dot status`,
+`dot add`, `dot commit`, `dot push`, etc.
+
+This directory (`~/.config/dot`) holds the `dot` CLI's custom subcommands,
+tests, and package lists, but the repo tracks files across `$HOME` — fish
+config, git identity, the `dot` function itself, and more. To see everything
+tracked, run `dot ls-tree -r --name-only HEAD` from `$HOME` (paths are shown
+relative to cwd, so running it from elsewhere silently truncates the list).
+
+## Always add by explicit path
+
+`status.showUntrackedFiles=no` is set locally (see `dot init` below), and
+`.gitignore` only excludes `.dotfiles` itself plus OS/editor cruft — it is
+**not** a whitelist. That
+means virtually everything under `$HOME` reads as untracked, and `git status`
+deliberately hides all of it.
+
+**Always run `dot add <specific-path>`.** Never `dot add -A`, `dot add .`, or
+any wildcard add — that would try to stage the entire home directory (caches,
+secrets, everything).
+
+## The dot CLI
+
+### Architecture
 
 `dot` is defined in one file: `~/.config/fish/functions/dot.fish`. It holds
 three functions:
@@ -32,7 +58,7 @@ sync when the listing logic changes.
 - explicitly sets `status.showUntrackedFiles=no` after cloning — this is a
   local-only git setting, so a fresh `git clone` never carries it over
 
-## Adding a subcommand
+### Adding a subcommand
 
 Beyond `init`, `dot` looks for `~/.config/dot/commands/<name>.fish`, sources
 it, and calls `_dot_<name>`. These files are deliberately kept out of
@@ -49,7 +75,7 @@ of `dot` itself.
 3. Add a case to `~/.config/dot/tests/dot.fish` covering it and run
    `fishtape ~/.config/dot/tests/dot.fish` until it passes.
 
-## Testing
+### Testing
 
 Tests live at `~/.config/dot/tests/dot.fish`, run with
 `fishtape ~/.config/dot/tests/dot.fish`. Fishtape is installed via Fisher

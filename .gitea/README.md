@@ -14,11 +14,12 @@ fish -c 'dot init'
 
 ## Commands
 
-| Command     | Description                                     |
-| ----------- | ----------------------------------------------- |
-| `dot help`  | Lists available commands.                       |
-| `dot init`  | Bootstraps the dotfiles repo on a new machine.  |
-| `dot <git>` | Everything else is passed to `git`.             |
+| Command        | Description                                                                              |
+| -------------- | ----------------------------------------------------------------------------------------- |
+| `dot help`     | Lists available commands.                                                                |
+| `dot init`     | Bootstraps the dotfiles repo on a new machine.                                           |
+| `dot <custom>` | Any file under `~/.config/dot/commands/` (currently `install`); run `dot help` for the live list. |
+| `dot <git>`    | Everything else is passed to `git`.                                                      |
 
-See [DOT-CLI.md](../.claude/skills/dotfiles/DOT-CLI.md) for the `dot` tool's
-internal architecture, bootstrap logic, subcommand dispatch, and test suite.
+See [CLAUDE.md](../.config/dot/CLAUDE.md) for the `dot` tool's internal
+architecture, bootstrap logic, subcommand dispatch, and test suite.
