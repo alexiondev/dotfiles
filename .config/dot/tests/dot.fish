@@ -1,3 +1,5 @@
+set -l commands_dir (path resolve (status dirname)/../commands)
+
 # Fixture: a fake bare "remote" repo with tracked dotfiles, shared read-only
 # across every case below. dot init only ever clones from it, never mutates it.
 set -l remote (mktemp -d)/dotfiles.git
@@ -89,3 +91,140 @@ end" >$HOME/.config/dot/commands/mark.fish
 
 set -l help_with_custom (dot help)
 @test "dot help lists custom commands found under ~/.config/dot/commands/" (string match -q '*mark*' -- $help_with_custom; echo $status) -eq 0
+
+# --- dot install ---
+# pacman and sudo are faked out via a bin dir prepended to PATH: sudo just
+# execs its arguments, and pacman logs each invocation to $PACMAN_LOG (one
+# line per call) and fails only when asked to install a package literally
+# named "failpkg", so tests can force the failure path without touching the
+# real package manager.
+set -l fake_bin (mktemp -d)
+echo '#!/bin/sh
+exec "$@"' >$fake_bin/sudo
+chmod +x $fake_bin/sudo
+
+echo '#!/bin/sh
+echo "$@" >>"$PACMAN_LOG"
+for arg in "$@"; do
+    if [ "$arg" = failpkg ]; then
+        exit 1
+    fi
+done
+exit 0' >$fake_bin/pacman
+chmod +x $fake_bin/pacman
+
+set -gx PATH $fake_bin $PATH
+
+# --- a successful install records the packages, sorted and deduplicated ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands
+cp $commands_dir/install.fish $HOME/.config/dot/commands/install.fish
+set -gx PACMAN_LOG (mktemp)
+
+dot install zeta alpha >/dev/null 2>&1
+set -l first_install_status $status
+set -l list_file $HOME/.config/dot/packages/pacman
+set -l synced_by_default (string match -q '*-Sy*' -- (cat $PACMAN_LOG); and echo yes; or echo no)
+set -l installed_named (string match -q '*-S --needed zeta alpha*' -- (cat $PACMAN_LOG); and echo yes; or echo no)
+
+@test "dot install succeeds for real packages" $first_install_status -eq 0
+@test "dot install syncs the database by default" $synced_by_default = yes
+@test "dot install passes packages to pacman -S --needed" $installed_named = yes
+@test "installed packages are recorded, sorted" (cat $list_file | string collect) = "alpha
+zeta"
+
+dot install beta >/dev/null 2>&1
+@test "a later install merges into the existing list, still sorted" (cat $list_file | string collect) = "alpha
+beta
+zeta"
+
+dot install alpha >/dev/null 2>&1
+@test "re-installing an already-recorded package does not duplicate it" (cat $list_file | string collect) = "alpha
+beta
+zeta"
+
+# --- --no-sync skips the database refresh ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands
+cp $commands_dir/install.fish $HOME/.config/dot/commands/install.fish
+set -gx PACMAN_LOG (mktemp)
+
+dot install --no-sync somepkg >/dev/null 2>&1
+set -l synced_with_no_sync (string match -q '*-Sy*' -- (cat $PACMAN_LOG); and echo yes; or echo no)
+@test "--no-sync skips pacman -Sy" $synced_with_no_sync = no
+
+# --- a failed pacman run records nothing ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands
+cp $commands_dir/install.fish $HOME/.config/dot/commands/install.fish
+set -gx PACMAN_LOG (mktemp)
+
+dot install failpkg >/dev/null 2>&1
+set -l failed_install_status $status
+set -l list_exists_after_failure (test -e $HOME/.config/dot/packages/pacman; and echo yes; or echo no)
+
+@test "dot install fails when pacman fails" $failed_install_status -ne 0
+@test "a failed install leaves no package list behind" $list_exists_after_failure = no
+
+# --- no packages and no --restore is a usage error ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands
+cp $commands_dir/install.fish $HOME/.config/dot/commands/install.fish
+set -gx PACMAN_LOG (mktemp)
+
+dot install >/dev/null 2>&1
+set -l no_args_status $status
+set -l pacman_called_no_args (test -s $PACMAN_LOG; and echo yes; or echo no)
+
+@test "dot install with no arguments and no --restore fails" $no_args_status -ne 0
+@test "dot install with no arguments never calls pacman" $pacman_called_no_args = no
+
+# --- --restore reinstalls everything from the list without rewriting it ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands
+cp $commands_dir/install.fish $HOME/.config/dot/commands/install.fish
+mkdir -p $HOME/.config/dot/packages
+printf 'alpha\nbeta\n' >$HOME/.config/dot/packages/pacman
+set -gx PACMAN_LOG (mktemp)
+
+dot install --restore >/dev/null 2>&1
+set -l restore_status $status
+set -l restored_named (string match -q '*-S --needed alpha beta*' -- (cat $PACMAN_LOG); and echo yes; or echo no)
+
+@test "dot install --restore succeeds" $restore_status -eq 0
+@test "--restore installs every package from the list" $restored_named = yes
+@test "--restore does not rewrite the list" (cat $HOME/.config/dot/packages/pacman | string collect) = "alpha
+beta"
+
+# --- --restore with no list yet is an error ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands
+cp $commands_dir/install.fish $HOME/.config/dot/commands/install.fish
+set -gx PACMAN_LOG (mktemp)
+
+dot install --restore >/dev/null 2>&1
+set -l restore_no_list_status $status
+
+@test "--restore fails when no package list exists yet" $restore_no_list_status -ne 0
+
+# --- --restore and explicit packages are mutually exclusive ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands
+cp $commands_dir/install.fish $HOME/.config/dot/commands/install.fish
+mkdir -p $HOME/.config/dot/packages
+printf 'alpha\n' >$HOME/.config/dot/packages/pacman
+set -gx PACMAN_LOG (mktemp)
+
+dot install --restore extra >/dev/null 2>&1
+set -l restore_conflict_status $status
+set -l pacman_called_conflict (test -s $PACMAN_LOG; and echo yes; or echo no)
+
+@test "--restore combined with package names fails" $restore_conflict_status -ne 0
+@test "--restore combined with package names never calls pacman" $pacman_called_conflict = no
