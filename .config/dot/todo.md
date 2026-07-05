@@ -180,3 +180,46 @@ asked.
   rebinds, `Meta+L`→`Meta+X` lock move, etc.), remember the project's own
   convention: add/update rows in `~/.github/keybindings.md` for each changed
   keybind, per `~/.config/dot/CLAUDE.md`.
+
+## dot voice — hands-free dictation (shelved, 2026-07-04)
+
+Built and then fully reverted a `dot voice` subcommand for hands-free
+dictation into Claude Code: local Silero VAD (torch-free, onnxruntime
+only) segmenting mic audio into utterances, each POSTed to a
+`whisper-server` instance running remotely on a Proxmox host with an
+NVIDIA GPU (Vulkan backend), transcribed text buffered at the cursor via
+`ydotool`, submitted on a spoken "send it" and cancelled on "scratch
+that".
+Iterated through several accuracy levers in one session: dropped then
+restored a literal-vocabulary `initial_prompt` (helped once on the
+stronger model), a deterministic post-transcription `replacements.txt`
+for persistent single-word misses, per-request `temperature`/
+`temperature_inc`, beam search (`-bs`/`-bo`, ruled out as a factor),
+and a quantization bump from `q5_0` to full fp16 `medium.en` (helped
+substantially).
+Also fixed a real bug along the way: whisper-server can return multi-
+segment text joined by newlines, and `ydotool type` sends an embedded
+`\n` as a literal Enter keypress — this was silently submitting partial
+dictation mid-sentence. Fixed by collapsing all whitespace before typing.
+Despite all of that, real-world accuracy over the laptop's built-in mic
+was still not good enough for daily use — small word-substitution and
+dropped-word errors persisted even with the best config found (fp16,
+no beam search, prompt restored).
+**Shelved reason**: audio input quality was the one variable never
+tested — everything tuned this session was server/decoding-side. The
+user's only better-microphone option is their desktop, which doesn't
+have this dotfiles setup yet.
+**If resumed**: test with a real microphone (headset/USB) before any
+further server-side tuning — it's suspected to matter more than any of
+the software changes made so far. Also worth trying `large-v3-turbo`
+given the Proxmox GPU had comfortable headroom even at fp16 `medium.en`
+(~0.1–0.5s per utterance).
+**State**: fully reverted, nothing left in the tree or installed
+packages list. The full implementation existed as local commit
+`745e417f19a02bc589c5b32853e629993adaa01f` ("dotcli: Voice dictation
+software using whisper"), never pushed, then hard-reset away — not
+recoverable via normal git history, only via reflog for a limited time
+if urgently needed. The KDE global shortcut (`Meta+Ctrl+Space` → `dot
+voice arm`) was configured in System Settings and was **not** undone by
+this revert — check System Settings → Shortcuts → Custom Shortcuts if
+this work is ever picked back up or fully abandoned.
