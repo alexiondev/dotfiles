@@ -20,6 +20,9 @@ fish -c 'dot init'
 | `dot init`              | Bootstraps the dotfiles repo on a new machine.                                           |
 | `dot install <pkgs>`    | Installs the given pacman packages and appends them to the tracked list (`~/.config/dot/packages/pacman`). |
 | `dot install --restore` | Reinstalls every package from the tracked list.                                          |
+| `dot kde help`          | Lists `dot kde`'s subcommands.                                                           |
+| `dot kde save <identifier>` | Reads a KDE setting's current live value and declares it in the manifest (`~/.config/dot/kde-manifest`). |
+| `dot kde save`          | Refreshes every already-declared manifest entry's value from the live system.            |
 | `dot <git>`             | Everything else is passed to `git`.                                                      |
 
 See [CLAUDE.md](../.config/dot/CLAUDE.md) for the `dot` tool's internal

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0">
+  <kcfgfile name="testrc"/>
+  <group name="General">
+    <entry name="Greeting" type="String">
+      <default>Hello</default>
+    </entry>
+    <entry name="AliasedKey" key="RealKey" type="String">
+      <default>AliasDefault</default>
+    </entry>
+    <entry name="Some.Key With Spaces" type="String">
+      <default>SpacedDefault</default>
+    </entry>
+  </group>
+</kcfg>

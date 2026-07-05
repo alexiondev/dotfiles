@@ -266,3 +266,146 @@ set -l pacman_called_help (test -s $PACMAN_LOG; and echo yes; or echo no)
 @test "dot install help mentions --restore" (string match -q '*--restore*' -- $help_output; echo $status) -eq 0
 @test "dot install help mentions --no-sync" (string match -q '*--no-sync*' -- $help_output; echo $status) -eq 0
 @test "dot install help never calls pacman" $pacman_called_help = no
+
+# --- dot kde ---
+# The fixture schema directory stands in for the real /usr/share/config.kcfg:
+# testrc.kcfg declares a plain <kcfgfile name="testrc">, kwin.kcfg declares
+# <kcfgfile arg="true"> (resolved only via the hand-maintained exceptions
+# list, kwin.kcfg -> kwinrc), and unmapped.kcfg is an arg="true" schema with
+# no exceptions-list entry, so it never resolves to anything.
+set -l kcfg_fixtures (path resolve (status dirname)/fixtures/kcfg)
+set -gx DOT_KDE_KCFG_DIR $kcfg_fixtures
+
+# kreadconfig6 itself is never mocked for the tests that exercise real
+# save behavior (per the project's convention, it runs for real against
+# fixture rc files under the scratch HOME) -- only the help-path tests below
+# swap in a logging fake, to prove kreadconfig6 is never invoked for them.
+set -l path_before_fake_kreadconfig $PATH
+
+# --- dot kde help / dot kde save help touch neither the manifest nor kreadconfig6 ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/kde
+cp $commands_dir/kde/kde.fish $HOME/.config/dot/commands/kde/kde.fish
+cp $commands_dir/kde/kde.py $HOME/.config/dot/commands/kde/kde.py
+
+set -l fake_bin_kde (mktemp -d)
+set -gx KREADCONFIG_LOG (mktemp)
+echo '#!/bin/sh
+echo "$@" >>"$KREADCONFIG_LOG"
+exit 1' >$fake_bin_kde/kreadconfig6
+chmod +x $fake_bin_kde/kreadconfig6
+set -gx PATH $fake_bin_kde $PATH
+
+set -l kde_help_output (dot kde help)
+set -l kde_help_status $status
+set -l kreadconfig_called_for_kde_help (test -s $KREADCONFIG_LOG; and echo yes; or echo no)
+set -l manifest_exists_after_kde_help (test -e $HOME/.config/dot/kde-manifest; and echo yes; or echo no)
+
+@test "dot kde help succeeds" $kde_help_status -eq 0
+@test "dot kde help mentions save" (string match -q '*save*' -- $kde_help_output; echo $status) -eq 0
+@test "dot kde help never invokes kreadconfig6" $kreadconfig_called_for_kde_help = no
+@test "dot kde help does not create a manifest" $manifest_exists_after_kde_help = no
+
+set -l kde_save_help_output (dot kde save help)
+set -l kde_save_help_status $status
+set -l kreadconfig_called_for_save_help (test -s $KREADCONFIG_LOG; and echo yes; or echo no)
+set -l manifest_exists_after_save_help (test -e $HOME/.config/dot/kde-manifest; and echo yes; or echo no)
+
+@test "dot kde save help succeeds" $kde_save_help_status -eq 0
+@test "dot kde save help mentions identifier" (string match -q '*identifier*' -- $kde_save_help_output; echo $status) -eq 0
+@test "dot kde save help never invokes kreadconfig6" $kreadconfig_called_for_save_help = no
+@test "dot kde save help does not create a manifest" $manifest_exists_after_save_help = no
+
+set -gx PATH $path_before_fake_kreadconfig
+
+# --- dot kde save <identifier>: declares a new manifest entry from the real live value ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/kde
+cp $commands_dir/kde/kde.fish $HOME/.config/dot/commands/kde/kde.fish
+cp $commands_dir/kde/kde.py $HOME/.config/dot/commands/kde/kde.py
+mkdir -p $HOME/.config
+printf '[General]\nGreeting=Hi=There\n' >$HOME/.config/testrc
+set -l manifest $HOME/.config/dot/kde-manifest
+
+dot kde save testrc.General.Greeting >/dev/null 2>&1
+set -l save_status $status
+
+@test "dot kde save <identifier> succeeds" $save_status -eq 0
+@test "declares the identifier with its live value, preserving an embedded '='" (cat $manifest | string collect) = "testrc.General.Greeting=Hi=There"
+
+# a kcfg entry whose ini key (key=) differs from its schema name still
+# resolves correctly, falling back to the schema default when unset live
+dot kde save testrc.General.RealKey >/dev/null 2>&1
+@test "resolves an aliased kcfg key (name != key) to its schema default" (string match -q '*testrc.General.RealKey=AliasDefault*' -- (cat $manifest); echo $status) -eq 0
+
+# the identifier is split on the first two dots only, so the key portion
+# may itself contain further dots and spaces
+dot kde save "testrc.General.Some.Key With Spaces" >/dev/null 2>&1
+@test "an identifier's key portion may contain further dots and spaces" (string match -q '*testrc.General.Some.Key With Spaces=SpacedDefault*' -- (cat $manifest); echo $status) -eq 0
+
+# an arg="true" schema resolves through the hand-maintained exceptions list
+# (kwin.kcfg -> kwinrc), not by scanning for a static <kcfgfile name>
+dot kde save kwinrc.Windows.BorderSize >/dev/null 2>&1
+@test "resolves an arg=true schema via the hand-maintained exceptions list" (string match -q '*kwinrc.Windows.BorderSize=Normal*' -- (cat $manifest); echo $status) -eq 0
+
+set -l declared_count_before_freeform (cat $manifest | count)
+
+# a setting whose rc file never appears in the mapping table falls to the
+# freeform branch, which the dispatch structure accounts for but does not
+# implement yet
+dot kde save somefreeform.Group.Key >/dev/null 2>&1
+set -l unmapped_status $status
+set -l declared_count_after_freeform (cat $manifest | count)
+
+@test "an unmapped rc file is not silently treated as schema-backed" $unmapped_status -ne 0
+@test "a rejected freeform save adds no manifest entry" $declared_count_after_freeform -eq $declared_count_before_freeform
+
+# an arg="true" schema *absent* from the exceptions list (unmapped.kcfg)
+# must not be guessed at (e.g. from its own filename) -- it contributes
+# nothing to the mapping table, so its settings fall to freeform too
+dot kde save unmapped.Whatever.Setting >/dev/null 2>&1
+set -l unlisted_arg_true_status $status
+set -l declared_count_after_unlisted (cat $manifest | count)
+
+@test "an arg=true schema missing from the exceptions list resolves to freeform, not schema" $unlisted_arg_true_status -ne 0
+@test "a rejected unlisted-arg=true save adds no manifest entry" $declared_count_after_unlisted -eq $declared_count_before_freeform
+
+# --- dot kde save with no arguments refreshes every already-declared entry ---
+printf '[General]\nGreeting=Changed\n' >$HOME/.config/testrc
+dot kde save >/dev/null 2>&1
+set -l refresh_status $status
+set -l declared_count_after_refresh (cat $manifest | count)
+
+@test "dot kde save with no arguments succeeds" $refresh_status -eq 0
+@test "refreshes an already-declared entry's value from the live system" (string match -q '*testrc.General.Greeting=Changed*' -- (cat $manifest); echo $status) -eq 0
+@test "refresh leaves other already-declared entries untouched" (string match -q '*testrc.General.RealKey=AliasDefault*' -- (cat $manifest); echo $status) -eq 0
+@test "refresh adds no new undeclared entries" $declared_count_after_refresh -eq $declared_count_before_freeform
+
+# --- misuse: too many arguments / a malformed identifier ---
+dot kde save one two >/dev/null 2>&1
+set -l too_many_args_status $status
+@test "dot kde save rejects more than one identifier" $too_many_args_status -ne 0
+
+dot kde save nodots >/dev/null 2>&1
+set -l bad_identifier_status $status
+@test "dot kde save rejects an identifier without file.group.key structure" $bad_identifier_status -ne 0
+
+# --- kde.py complete: tab-completion candidates, sourced from the live
+#     schema mapping table rather than a hardcoded list. This is the
+#     underlying data completions/dot.fish shells out to; the fish
+#     completion wiring itself is verified manually (no existing
+#     infrastructure tests completions at all, per the nested-subcommand
+#     prefactoring task) ---
+set -l complete_output (python3 $HOME/.config/dot/commands/kde/kde.py complete)
+
+@test "kde.py complete lists a schema-backed identifier" (string match -q '*testrc.General.Greeting*' -- $complete_output; echo $status) -eq 0
+@test "kde.py complete resolves an aliased kcfg key to its ini key, not its schema name" (string match -q '*testrc.General.RealKey*' -- $complete_output; echo $status) -eq 0
+@test "kde.py complete lists an arg=true schema resolved via the exceptions list" (string match -q '*kwinrc.Windows.BorderSize*' -- $complete_output; echo $status) -eq 0
+@test "kde.py complete never lists an aliased entry under its schema name" (string match -q '*testrc.General.AliasedKey*' -- $complete_output; echo $status) -eq 1
+@test "kde.py complete never lists an arg=true schema absent from the exceptions list" (string match -q '*Whatever.Setting*' -- $complete_output; echo $status) -eq 1
+
+# --- dot help / dot help discovers dot kde ---
+set -l help_with_kde (dot help)
+@test "dot help lists the kde subcommand" (string match -q '*kde*' -- $help_with_kde; echo $status) -eq 0
