@@ -392,6 +392,71 @@ dot kde save nodots >/dev/null 2>&1
 set -l bad_identifier_status $status
 @test "dot kde save rejects an identifier without file.group.key structure" $bad_identifier_status -ne 0
 
+# --- dot kde apply help touches neither the manifest nor kwriteconfig6 ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/kde
+cp $commands_dir/kde/kde.fish $HOME/.config/dot/commands/kde/kde.fish
+cp $commands_dir/kde/kde.py $HOME/.config/dot/commands/kde/kde.py
+
+set -l fake_bin_kwrite (mktemp -d)
+set -gx KWRITECONFIG_LOG (mktemp)
+echo '#!/bin/sh
+echo "$@" >>"$KWRITECONFIG_LOG"
+exit 1' >$fake_bin_kwrite/kwriteconfig6
+chmod +x $fake_bin_kwrite/kwriteconfig6
+set -gx PATH $fake_bin_kwrite $path_before_fake_kreadconfig
+
+set -l kde_apply_help_output (dot kde apply help)
+set -l kde_apply_help_status $status
+set -l kwriteconfig_called_for_apply_help (test -s $KWRITECONFIG_LOG; and echo yes; or echo no)
+set -l manifest_exists_after_apply_help (test -e $HOME/.config/dot/kde-manifest; and echo yes; or echo no)
+
+@test "dot kde apply help succeeds" $kde_apply_help_status -eq 0
+@test "dot kde apply help mentions manifest" (string match -q '*manifest*' -- $kde_apply_help_output; echo $status) -eq 0
+@test "dot kde apply help never invokes kwriteconfig6" $kwriteconfig_called_for_apply_help = no
+@test "dot kde apply help does not create a manifest" $manifest_exists_after_apply_help = no
+
+set -gx PATH $path_before_fake_kreadconfig
+
+# --- dot kde apply: pushes every declared manifest entry onto the live rc file ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/kde
+cp $commands_dir/kde/kde.fish $HOME/.config/dot/commands/kde/kde.fish
+cp $commands_dir/kde/kde.py $HOME/.config/dot/commands/kde/kde.py
+mkdir -p $HOME/.config/dot
+printf 'testrc.General.Greeting=Applied Greeting\ntestrc.General.RealKey=Hi=There\n' >$HOME/.config/dot/kde-manifest
+
+dot kde apply >/dev/null 2>&1
+set -l apply_status $status
+set -l testrc_after_apply (cat $HOME/.config/testrc)
+
+@test "dot kde apply succeeds" $apply_status -eq 0
+@test "dot kde apply writes a declared value onto the live rc file" (string match -q '*Greeting=Applied Greeting*' -- $testrc_after_apply; echo $status) -eq 0
+@test "dot kde apply preserves an embedded '=' in the applied value" (string match -q '*RealKey=Hi=There*' -- $testrc_after_apply; echo $status) -eq 0
+
+# re-running against a system already matching the manifest changes nothing
+dot kde apply >/dev/null 2>&1
+set -l reapply_status $status
+set -l testrc_after_reapply (cat $HOME/.config/testrc)
+
+@test "re-running dot kde apply succeeds" $reapply_status -eq 0
+@test "re-running dot kde apply against an already-applied system is idempotent" "$testrc_after_reapply" = "$testrc_after_apply"
+
+# a manifest entry whose rc file isn't schema-backed (freeform, not yet
+# implemented) is rejected rather than silently mis-applied
+printf 'testrc.General.Greeting=Applied Greeting\nsomefreeform.Group.Key=Value\n' >$HOME/.config/dot/kde-manifest
+dot kde apply >/dev/null 2>&1
+set -l apply_freeform_status $status
+@test "dot kde apply rejects a manifest entry whose mechanism isn't schema-backed yet" $apply_freeform_status -ne 0
+
+# misuse: apply takes no arguments
+printf 'testrc.General.Greeting=Applied Greeting\n' >$HOME/.config/dot/kde-manifest
+dot kde apply extra-arg >/dev/null 2>&1
+set -l apply_extra_arg_status $status
+@test "dot kde apply rejects an unexpected argument" $apply_extra_arg_status -ne 0
+
 # --- kde.py complete: tab-completion candidates, sourced from the live
 #     schema mapping table rather than a hardcoded list. This is the
 #     underlying data completions/dot.fish shells out to; the fish

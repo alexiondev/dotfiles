@@ -2,6 +2,7 @@ function _dot_kde_usage
     echo "usage: dot kde <command>
 
 Commands:
+  apply   push manifest entries onto the live system
   save    write live KDE settings into the manifest
   help    show this message
 
@@ -17,6 +18,9 @@ function _dot_kde
     set -l helper_dir (status dirname)
 
     switch "$argv[1]"
+        case apply
+            python3 $helper_dir/kde.py apply $argv[2..-1]
+            return $status
         case save
             python3 $helper_dir/kde.py save $argv[2..-1]
             return $status

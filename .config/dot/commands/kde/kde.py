@@ -21,6 +21,11 @@ SAVE_USAGE = """usage: dot kde save [identifier]
   (no args)    refresh every already-declared manifest entry from the live system
   help         show this message"""
 
+APPLY_USAGE = """usage: dot kde apply
+
+  Pushes every manifest entry's declared value onto the live system.
+  help         show this message"""
+
 Setting = namedtuple("Setting", ["file", "group", "key"])
 
 
@@ -138,12 +143,36 @@ def read_live_value(setting, default):
     return result.stdout.rstrip("\n")
 
 
+def write_live_value(setting, value):
+    cmd = [
+        "kwriteconfig6",
+        "--file", setting.file,
+        "--group", setting.group,
+        "--key", setting.key,
+        "--",
+        value,
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"kwriteconfig6 failed for {setting.file}/{setting.group}/{setting.key}: {result.stderr.strip()}"
+        )
+
+
 def save_one(identifier, kcfg_map):
     setting = parse_identifier(identifier)
     mechanism, default = resolve_mechanism(setting, kcfg_map)
     if mechanism != "schema":
         raise RuntimeError(f"{identifier}: {mechanism} settings are not yet supported")
     return read_live_value(setting, default)
+
+
+def apply_one(identifier, value, kcfg_map):
+    setting = parse_identifier(identifier)
+    mechanism, _default = resolve_mechanism(setting, kcfg_map)
+    if mechanism != "schema":
+        raise RuntimeError(f"{identifier}: {mechanism} settings are not yet supported")
+    write_live_value(setting, value)
 
 
 def cmd_save(args, manifest_path, schema_dir):
@@ -172,6 +201,28 @@ def cmd_save(args, manifest_path, schema_dir):
     return 0
 
 
+def cmd_apply(args, manifest_path, schema_dir):
+    if args and args[0] == "help":
+        print(APPLY_USAGE)
+        return 0
+
+    if args:
+        print("dot kde apply: too many arguments", file=sys.stderr)
+        return 1
+
+    kcfg_map = build_kcfg_map(schema_dir)
+    manifest = load_manifest(manifest_path)
+
+    try:
+        for identifier, value in manifest.items():
+            apply_one(identifier, value, kcfg_map)
+    except (ValueError, RuntimeError) as e:
+        print(f"dot kde apply: {e}", file=sys.stderr)
+        return 1
+
+    return 0
+
+
 def cmd_complete(schema_dir):
     kcfg_map = build_kcfg_map(schema_dir)
     for identifier in sorted(set(iter_schema_identifiers(kcfg_map))):
@@ -190,6 +241,9 @@ def main(argv):
 
     if command == "save":
         return cmd_save(rest, manifest_path, schema_dir)
+
+    if command == "apply":
+        return cmd_apply(rest, manifest_path, schema_dir)
 
     # Internal, not a user-facing `dot kde` subcommand -- called directly by
     # completions/dot.fish to source candidates from the live schema, never
