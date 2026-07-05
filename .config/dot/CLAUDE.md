@@ -138,6 +138,14 @@ Tests live at `~/.config/dot/tests/dot.fish`, run with
   scoped to that directory, and don't assume an unrelated repo (e.g. a
   separate skills-source checkout elsewhere) is the tracked copy just because
   it also holds a copy of the same files.
+- `~/.claude/` and this project's own `.claude/` (e.g. `~/.config/dot/.claude/`)
+  are two different directories that both happen to exist. Project-relative
+  paths referenced in specs, task breakdowns, or other project docs — like
+  `.claude/spec/<slug>.md` or `.claude/tasks/<NNNN>-<slug>.md` — are relative
+  to this project directory (`~/.config/dot/.claude/...`), not to
+  `$HOME/.claude/`. Writing to `$HOME/.claude/tasks/` instead of
+  `~/.config/dot/.claude/tasks/` silently lands files in Claude Code's own
+  global config dir instead of the project.
 
 ## Keybindings
 
