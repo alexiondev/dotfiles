@@ -10,7 +10,7 @@ disable-model-invocation: true
 
 ### 1. Gather context
 
-Work from whatever is already in the conversation context. If the user passes a spec path, task-folder path, or other reference as an argument, read it directly.
+Work from whatever is already in the conversation context. If the user passes a spec path or other reference as an argument, read it directly.
 
 Determine the feature-slug this breakdown belongs to, if any: if a spec file is in context or was passed as an argument, derive it from the filename (`.claude/spec/<feature-slug>.md` → `<feature-slug>`) for each task's `spec` field — see [TASK-FORMAT.md](./TASK-FORMAT.md) for the field's rules. If no spec file exists, proceed without one.
 
