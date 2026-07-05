@@ -128,6 +128,17 @@ Tests live at `~/.config/dot/tests/dot.fish`, run with
   (`-eq`, `-ne`, `=`, `-e`, `-f`, `-d`, `-n`, `-z`); `-a`/`-o` combinators
   aren't supported.
 
+## Gotchas
+
+- `~/.claude/` (Claude Code's own config: skills, agents, commands, etc.) is
+  a plain directory, not a separate git repo of its own — plain `git` commands
+  run from inside it report "not a git repository". It's tracked the same way
+  as everything else under `$HOME`: through the `dot` bare repo. Use
+  `dot add`/`dot status` on paths under `~/.claude/`, not a `git` invocation
+  scoped to that directory, and don't assume an unrelated repo (e.g. a
+  separate skills-source checkout elsewhere) is the tracked copy just because
+  it also holds a copy of the same files.
+
 ## Keybindings
 
 Whenever a keybind is added, changed, or removed in *any* config on this
