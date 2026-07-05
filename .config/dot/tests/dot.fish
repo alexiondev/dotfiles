@@ -73,6 +73,19 @@ end" >$HOME/.config/dot/commands/mark.fish
 dot mark >/dev/null 2>&1
 @test "dispatches to a command file under ~/.config/dot/commands/" (cat $marker) = marked
 
+# --- dispatches to a nested commands/<name>/<name>.fish, same as a flat file
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+
+mkdir -p $HOME/.config/dot/commands/nested
+set -l nested_marker (mktemp)
+echo "function _dot_nested
+    echo nested-marked >$nested_marker
+end" >$HOME/.config/dot/commands/nested/nested.fish
+
+dot nested >/dev/null 2>&1
+@test "dispatches to a nested commands/<name>/<name>.fish" (cat $nested_marker) = nested-marked
+
 # --- dot help ---
 set -gx HOME (mktemp -d)
 dot init --url $remote >/dev/null 2>&1
@@ -92,6 +105,14 @@ end" >$HOME/.config/dot/commands/mark.fish
 
 set -l help_with_custom (dot help)
 @test "dot help lists custom commands found under ~/.config/dot/commands/" (string match -q '*mark*' -- $help_with_custom; echo $status) -eq 0
+
+mkdir -p $HOME/.config/dot/commands/nested
+echo "function _dot_nested
+    echo nested
+end" >$HOME/.config/dot/commands/nested/nested.fish
+
+set -l help_with_nested (dot help)
+@test "dot help lists a nested-directory subcommand" (string match -q '*nested*' -- $help_with_nested; echo $status) -eq 0
 
 # --- dot install ---
 # pacman and sudo are faked out via a bin dir prepended to PATH: sudo just

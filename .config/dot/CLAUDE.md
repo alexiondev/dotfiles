@@ -62,6 +62,7 @@ shared: fish only autoloads a function from a file named after that function,
 so a helper defined inside `dot.fish` would be undefined if tab-completion
 ran before `dot` had ever been sourced in the session. Keep both copies in
 sync when the listing logic changes.
+Both copies also glob one directory level deeper, matching `~/.config/dot/commands/<name>/<name>.fish`, so a subcommand's companion file (e.g. a Python helper) can live alongside it in its own directory.
 
 `dot init`:
 
@@ -76,7 +77,9 @@ sync when the listing logic changes.
 ### Adding a subcommand
 
 Beyond `init`, `dot` looks for `~/.config/dot/commands/<name>.fish`, sources
-it, and calls `_dot_<name>`. These files are deliberately kept out of
+it, and calls `_dot_<name>`.
+A subcommand needing a companion file can instead live nested one level deeper, as `~/.config/dot/commands/<name>/<name>.fish` — both layouts dispatch identically.
+These files are deliberately kept out of
 `~/.config/fish/functions/` (fish's autoload path) so they never become
 independently invokable top-level commands or clutter tab-completion outside
 of `dot` itself.

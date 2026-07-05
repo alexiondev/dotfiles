@@ -14,11 +14,18 @@ function dot --wraps=git --description 'Manage dotfiles via a bare repo checked 
 
     set -l commands_dir $HOME/.config/dot/commands
     set -l command_file $commands_dir/$argv[1].fish
+    set -l nested_command_file $commands_dir/$argv[1]/$argv[1].fish
 
-    if test -n "$argv[1]" -a -f "$command_file"
-        source $command_file
-        _dot_$argv[1] $argv[2..-1]
-        return $status
+    if test -n "$argv[1]"
+        if test -f "$command_file"
+            source $command_file
+            _dot_$argv[1] $argv[2..-1]
+            return $status
+        else if test -f "$nested_command_file"
+            source $nested_command_file
+            _dot_$argv[1] $argv[2..-1]
+            return $status
+        end
     end
 
     git --git-dir=$dotfiles_dir --work-tree=$HOME $argv
@@ -107,6 +114,13 @@ Commands:
     for f in $HOME/.config/dot/commands/*.fish
         test -e $f; or continue
         echo "  "(path basename $f | path change-extension '')
+    end
+
+    for d in $HOME/.config/dot/commands/*/
+        test -d $d; or continue
+        set -l name (path basename $d)
+        test -f $d$name.fish; or continue
+        echo "  $name"
     end
 
     echo "
