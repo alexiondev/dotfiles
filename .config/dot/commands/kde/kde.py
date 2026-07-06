@@ -38,23 +38,85 @@ APPLY_USAGE = """usage: dot kde apply
 DIFF_USAGE = """usage: dot kde diff
 
   Scans every schema-backed setting reachable through the kcfg mapping
-  table and reports each one whose live value differs from its
-  schema-declared default, tagged declared (present in the manifest)
-  or undeclared. Also reports already-declared freeform and shortcut
-  settings whose live value differs from their default (neither has a
-  schema/mapping table to broad-scan, so both are only checked when
-  already declared). Read-only -- never writes the manifest or the
-  live system.
+  table, and every shortcut registered with kglobalaccel, reporting each
+  one whose live value differs from its default, tagged declared
+  (present in the manifest) or undeclared. Also reports already-declared
+  freeform settings whose live value differs from their default (no
+  schema to broad-scan, so it's only checked when already declared).
+  Read-only -- never writes the manifest or the live system.
   help         show this message"""
 
 Setting = namedtuple("Setting", ["file", "group", "key"])
 
 
-def parse_identifier(identifier):
-    parts = identifier.split(".", 2)
-    if len(parts) != 3:
+def _split_on_known_prefix(rest, candidates):
+    matches = [c for c in candidates if rest == c or rest.startswith(c + ".")]
+    if not matches:
+        return None
+
+    prefix = max(matches, key=len)
+    remainder = rest[len(prefix):].lstrip(".")
+    if not remainder:
+        return None
+    return prefix, remainder
+
+
+def _known_schema_groups(file, kcfg_map):
+    groups = set()
+    for path in kcfg_map.get(file, []):
+        root = _parse_kcfg(path)
+        if root is None:
+            continue
+        for group_elem in root.iter(f"{KCFG_NS}group"):
+            name = group_elem.get("name")
+            if name:
+                groups.add(name)
+    return groups
+
+
+def _split_schema_group_key(file, rest, kcfg_map):
+    match = _split_on_known_prefix(rest, _known_schema_groups(file, kcfg_map))
+    if match is not None:
+        return match
+
+    # No schema group matches -- freeform. Its group is never known to contain
+    # a dot (there's no schema to have told us otherwise), so the boundary is
+    # just the first remaining dot.
+    group, _, key = rest.partition(".")
+    if not key:
+        raise ValueError(f"invalid identifier {file}.{rest!r} (expected file.group.key)")
+    return group, key
+
+
+def _split_shortcut_group_key(rest):
+    (components,) = _kglobalaccel_call("allMainComponents", None)
+    match = _split_on_known_prefix(rest, [component[0] for component in components])
+    if match is None:
+        raise RuntimeError(
+            f"no live kglobalaccel component matches {rest!r} "
+            "(the owning application may need to run once to register its shortcuts with kglobalaccel)"
+        )
+    return match
+
+
+# Only the file segment is unambiguous (rc file names never contain a dot).
+# The group/key boundary can't be found by counting dots -- both KConfig group
+# names (e.g. "org.kde.kdecoration2") and kglobalaccel componentUnique names
+# (e.g. "org.kde.dolphin.desktop") routinely contain their own dots -- so it's
+# resolved against known-good data instead: the live kglobalaccel component
+# list for shortcuts, the kcfg schema's declared group names for everything
+# else (falling back to freeform's first-dot split when no schema matches).
+def parse_identifier(identifier, kcfg_map):
+    file, sep, rest = identifier.partition(".")
+    if not sep or not rest:
         raise ValueError(f"invalid identifier {identifier!r} (expected file.group.key)")
-    return Setting(*parts)
+
+    if file == "kglobalshortcutsrc":
+        group, key = _split_shortcut_group_key(rest)
+    else:
+        group, key = _split_schema_group_key(file, rest, kcfg_map)
+
+    return Setting(file, group, key)
 
 
 def load_manifest(path):
@@ -137,7 +199,7 @@ def iter_schema_identifiers(kcfg_map):
                 for entry in group_elem.findall(f"{KCFG_NS}entry"):
                     key = entry.get("key") or entry.get("name")
                     if key:
-                        yield f"{rcfile}.{group}.{key}"
+                        yield Setting(rcfile, group, key)
 
 
 def resolve_mechanism(setting, kcfg_map):
@@ -233,7 +295,7 @@ def iter_shortcut_identifiers():
     (components,) = _kglobalaccel_call("allMainComponents", None)
     for component in components:
         for action in _actions_for_component(component[0]):
-            yield f"kglobalshortcutsrc.{action[0]}.{action[1]}"
+            yield Setting("kglobalshortcutsrc", action[0], action[1])
 
 
 def _resolve_shortcut_action_id(component_unique, action_unique):
@@ -279,7 +341,7 @@ def write_shortcut_value(component_unique, action_unique, value):
 
 
 def save_one(identifier, kcfg_map):
-    setting = parse_identifier(identifier)
+    setting = parse_identifier(identifier, kcfg_map)
     mechanism, default = resolve_mechanism(setting, kcfg_map)
     if mechanism == "shortcuts":
         return read_shortcut_value(setting.group, setting.key)
@@ -287,7 +349,7 @@ def save_one(identifier, kcfg_map):
 
 
 def apply_one(identifier, value, kcfg_map):
-    setting = parse_identifier(identifier)
+    setting = parse_identifier(identifier, kcfg_map)
     mechanism, _default = resolve_mechanism(setting, kcfg_map)
     if mechanism == "shortcuts":
         write_shortcut_value(setting.group, setting.key, value)
@@ -355,8 +417,8 @@ def cmd_diff(args, manifest_path, schema_dir):
     kcfg_map = build_kcfg_map(schema_dir)
     manifest = load_manifest(manifest_path)
 
-    for identifier in sorted(set(iter_schema_identifiers(kcfg_map))):
-        setting = parse_identifier(identifier)
+    for setting in sorted(set(iter_schema_identifiers(kcfg_map))):
+        identifier = f"{setting.file}.{setting.group}.{setting.key}"
         default = find_schema_default(kcfg_map.get(setting.file, []), setting)
         try:
             live = read_live_value(setting, default)
@@ -370,24 +432,48 @@ def cmd_diff(args, manifest_path, schema_dir):
         tag = "declared" if identifier in manifest else "undeclared"
         print(f"{tag} {identifier} = {live} (default: {default})")
 
-    # Freeform and shortcuts settings have no schema/mapping table to enumerate,
-    # so unlike the schema-backed loop above, they can only be checked by walking
-    # identifiers already in the manifest -- neither ever surfaces an undeclared
-    # setting via broad scan.
-    for identifier in manifest:
+    # Shortcuts are enumerable via kglobalaccel's allMainComponents/
+    # allActionsForComponent (the same source iter_shortcut_identifiers already
+    # walks for tab-completion), so unlike freeform they can participate in
+    # broad undeclared-drift discovery too.
+    try:
+        shortcut_settings = sorted(set(iter_shortcut_identifiers()))
+    except (RuntimeError, OSError) as e:
+        print(f"dot kde diff: shortcuts scan unavailable: {e}", file=sys.stderr)
+        shortcut_settings = []
+
+    for setting in shortcut_settings:
+        identifier = f"{setting.file}.{setting.group}.{setting.key}"
         try:
-            setting = parse_identifier(identifier)
+            live = read_shortcut_value(setting.group, setting.key)
+            default = read_shortcut_value(setting.group, setting.key, method="defaultShortcutKeys")
+        except RuntimeError as e:
+            print(f"dot kde diff: {e}", file=sys.stderr)
+            continue
+
+        if live == default:
+            continue
+
+        tag = "declared" if identifier in manifest else "undeclared"
+        print(f"{tag} {identifier} = {live} (default: {default})")
+
+    # Freeform settings have no schema to enumerate from, so unlike the
+    # schema-backed and shortcuts scans above, they can only be checked by
+    # walking identifiers already in the manifest -- they never surface an
+    # undeclared setting via broad scan. Shortcuts entries are skipped here
+    # (rather than re-parsed) since the broad-scan pass above already reports
+    # every declared shortcut mismatch; parsing one here would also mean an
+    # extra live kglobalaccel round-trip per entry for no benefit.
+    for identifier in manifest:
+        if identifier.split(".", 1)[0] == "kglobalshortcutsrc":
+            continue
+        try:
+            setting = parse_identifier(identifier, kcfg_map)
             mechanism, default = resolve_mechanism(setting, kcfg_map)
-            if mechanism == "shortcuts":
-                live = read_shortcut_value(setting.group, setting.key)
-                default = read_shortcut_value(setting.group, setting.key, method="defaultShortcutKeys")
-                if live == default:
-                    continue
-            elif mechanism == "freeform":
-                live = read_live_value(setting, default)
-                if live == "":
-                    continue
-            else:
+            if mechanism != "freeform":
+                continue
+            live = read_live_value(setting, default)
+            if live == "":
                 continue
         except (ValueError, RuntimeError) as e:
             print(f"dot kde diff: {e}", file=sys.stderr)
@@ -400,19 +486,19 @@ def cmd_diff(args, manifest_path, schema_dir):
 
 def cmd_complete(schema_dir):
     kcfg_map = build_kcfg_map(schema_dir)
-    for identifier in sorted(set(iter_schema_identifiers(kcfg_map))):
-        print(identifier)
+    for setting in sorted(set(iter_schema_identifiers(kcfg_map))):
+        print(f"{setting.file}.{setting.group}.{setting.key}")
 
     try:
         # Fish's completion runs this on every TAB press, in shells that may have no
         # live KDE session (or no busctl at all) -- a broken shortcuts source must
         # never cost the schema-backed candidates already printed above.
-        shortcut_identifiers = sorted(set(iter_shortcut_identifiers()))
+        shortcut_settings = sorted(set(iter_shortcut_identifiers()))
     except (RuntimeError, OSError):
-        shortcut_identifiers = []
+        shortcut_settings = []
 
-    for identifier in shortcut_identifiers:
-        print(identifier)
+    for setting in shortcut_settings:
+        print(f"{setting.file}.{setting.group}.{setting.key}")
 
     return 0
 
