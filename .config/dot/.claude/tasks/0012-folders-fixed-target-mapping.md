@@ -1,6 +1,6 @@
 ---
 spec: dot-setup-folders
-blocked-by: 000b-folders-unconditional-merge
+blocked-by: 0011-folders-unconditional-merge
 ---
 
 ## What to build

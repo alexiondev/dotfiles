@@ -34,7 +34,7 @@ Break the plan into **tracer bullet** tasks — vertical slices, not horizontal 
 
 ### 4. Quiz the user
 
-Number slices with a single sequence shared across every file already in `.claude/tasks/`: scan for the highest existing `NNNN` (four-digit, zero-padded lowercase hex, `0000`-`ffff`) and increment from there. Never restart the sequence per feature and never reuse a number.
+Number slices with a single sequence shared across every file already in `.claude/tasks/`: scan for the highest existing `NNNN` (four-digit, zero-padded decimal, `0000`-`9999`) and increment from there. Never restart the sequence per feature and never reuse a number.
 
 Present the proposed breakdown as a numbered list. For each slice, show:
 
