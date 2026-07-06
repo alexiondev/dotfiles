@@ -1,5 +1,5 @@
 kxkbrc.Layout.Options=caps:escape_shifted_capslock
-kglobalshortcutsrc.ksmserver.Lock Session=Meta+X	Screensaver
+kglobalshortcutsrc.ksmserver.Lock Session=Meta+L	Screensaver
 kglobalshortcutsrc.kwin.Window to Desktop 1=Meta+!
 kglobalshortcutsrc.kwin.Window to Desktop 2=Meta+@
 kglobalshortcutsrc.kwin.Window to Desktop 3=Meta+#
@@ -27,3 +27,5 @@ kglobalshortcutsrc.plasmashell.activate task manager entry 6=
 kglobalshortcutsrc.plasmashell.activate task manager entry 7=
 kglobalshortcutsrc.plasmashell.activate task manager entry 8=
 kglobalshortcutsrc.plasmashell.activate task manager entry 9=
+kglobalshortcutsrc.Alacritty.desktop._launch=Meta+Return
+kglobalshortcutsrc.org.kde.konsole.desktop._launch=
