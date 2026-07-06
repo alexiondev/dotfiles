@@ -149,6 +149,19 @@ Tests live at `~/.config/dot/tests/dot.fish`, run with
   `$HOME/.claude/`. Writing to `$HOME/.claude/tasks/` instead of
   `~/.config/dot/.claude/tasks/` silently lands files in Claude Code's own
   global config dir instead of the project.
+- Task file numbers (`.claude/tasks/<NNNN>-<slug>.md`) are lowercase
+  **hexadecimal**, not decimal — per `~/.claude/skills/to-tasks/SKILL.md`.
+  After `0009` comes `000a`, not `0010`. A past task-breakdown session
+  ignored this and produced a decimal `0010`, which had to be renamed back
+  to `000a` once caught.
+- An agent's `Bash` tool runs commands through **zsh**, not fish, so the
+  `dot` fish function (defined in `~/.config/fish/functions/dot.fish`) is
+  not on that shell's autoload path. Typing `dot <subcommand>` there
+  silently resolves to `/usr/bin/dot` (Graphviz) instead, producing
+  confusing "can't open <arg>: No such file or directory" / "syntax error
+  near '--'" errors rather than a clear "command not found". Either invoke
+  it as `fish -c "dot <subcommand> ..."`, or bypass the wrapper and call
+  `git --git-dir=$HOME/.dotfiles --work-tree=$HOME <args>` directly.
 
 ## Keybindings
 
