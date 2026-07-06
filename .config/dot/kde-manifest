@@ -1,1 +1,2 @@
 kxkbrc.Layout.Options=caps:escape_shifted_capslock
+kglobalshortcutsrc.ksmserver.Lock Session=Meta+X	Screensaver

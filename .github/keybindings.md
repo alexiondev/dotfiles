@@ -37,3 +37,4 @@ Comma-separated keys are pressed in sequence, not together.
 | `Space`, `e`                                           | neovim  | Toggle file explorer (netrw)                       |
 | `CapsLock`                                             | KDE     | Acts as `Esc` (`kxkbrc` `Options=caps:escape_shifted_capslock`) |
 | `Shift` + `CapsLock`                                   | KDE     | Toggles Caps Lock                                  |
+| `Meta` + `X`                                           | KDE     | Lock Session (moved off `Meta+L`, tracked via `dot kde`) |

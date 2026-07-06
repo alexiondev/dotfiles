@@ -377,10 +377,10 @@ set -l unlisted_arg_true_status $status
 @test "a freeform read never falls back to another schema's default" (string match -q '*Unreachable*' -- (cat $manifest); echo $status) -eq 1
 @test "a freeform read of an absent key stores an empty value" (string match -q '*unmapped.Whatever.Setting=*' -- (cat $manifest); echo $status) -eq 0
 
-# misuse: shortcuts settings remain unsupported until a later task
-dot kde save kglobalshortcutsrc.someComponent.someAction >/dev/null 2>&1
-set -l shortcuts_save_status $status
-@test "dot kde save rejects a shortcuts identifier (not yet supported)" $shortcuts_save_status -ne 0
+# the shortcuts mechanism (kglobalshortcutsrc -> kglobalaccel D-Bus calls) is
+# deliberately excluded from this suite -- it depends on a live, already-running
+# session service not practically substitutable without disproportionate mock
+# infrastructure. Verified manually against the real session instead.
 
 set -l declared_count_before_refresh (cat $manifest | count)
 
@@ -472,12 +472,8 @@ dot kde apply >/dev/null 2>&1
 set -l freeformrc_after_reapply (cat $HOME/.config/somefreeform)
 @test "re-running dot kde apply against an already-applied freeform entry is idempotent" "$freeformrc_after_reapply" = "$freeformrc_after_apply"
 
-# a manifest entry whose mechanism is shortcuts (not yet implemented) is
-# rejected rather than silently mis-applied
-printf 'testrc.General.Greeting=Applied Greeting\nkglobalshortcutsrc.someComponent.someAction=Value\n' >$HOME/.config/dot/kde-manifest
-dot kde apply >/dev/null 2>&1
-set -l apply_shortcuts_status $status
-@test "dot kde apply rejects a manifest entry whose mechanism isn't implemented yet (shortcuts)" $apply_shortcuts_status -ne 0
+# the shortcuts mechanism is deliberately excluded from this suite -- see the
+# note by the `dot kde save` shortcuts exclusion above.
 
 # misuse: apply takes no arguments
 printf 'testrc.General.Greeting=Applied Greeting\n' >$HOME/.config/dot/kde-manifest

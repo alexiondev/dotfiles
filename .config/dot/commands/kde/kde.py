@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import json
 import os
 import subprocess
 import sys
@@ -8,6 +9,14 @@ from pathlib import Path
 
 KCFG_NS = "{http://www.kde.org/standards/kcfg/1.0}"
 DEFAULT_SCHEMA_DIR = "/usr/share/config.kcfg"
+
+KGLOBALACCEL_SERVICE = "org.kde.kglobalaccel"
+KGLOBALACCEL_PATH = "/kglobalaccel"
+KGLOBALACCEL_IFACE = "org.kde.KGlobalAccel"
+# KGlobalAccel::GlobalShortcutLoading::NoAutoloading, per KF6/KGlobalAccel/kglobalaccel.h --
+# makes a write always win over whatever shortcut was previously saved, rather than being
+# ignored in favor of it (the Autoloading=0x0 default).
+SHORTCUT_NO_AUTOLOADING = 0x4
 
 # .kcfg files that only declare their target rc file at runtime
 # (<kcfgfile arg="true">), so it can't be discovered by scanning.
@@ -31,10 +40,11 @@ DIFF_USAGE = """usage: dot kde diff
   Scans every schema-backed setting reachable through the kcfg mapping
   table and reports each one whose live value differs from its
   schema-declared default, tagged declared (present in the manifest)
-  or undeclared. Also reports already-declared freeform settings whose
-  live value is present (freeform has no schema to scan, so it is only
-  checked when already declared). Read-only -- never writes the
-  manifest or the live system.
+  or undeclared. Also reports already-declared freeform and shortcut
+  settings whose live value differs from their default (neither has a
+  schema/mapping table to broad-scan, so both are only checked when
+  already declared). Read-only -- never writes the manifest or the
+  live system.
   help         show this message"""
 
 Setting = namedtuple("Setting", ["file", "group", "key"])
@@ -170,11 +180,98 @@ def write_live_value(setting, value):
         )
 
 
+def _key_sequence_class():
+    try:
+        from PyQt6.QtGui import QKeySequence
+    except ImportError as e:
+        raise RuntimeError(
+            "the shortcuts mechanism requires PyQt6 (install python-pyqt6) to translate key names"
+        ) from e
+    return QKeySequence
+
+
+def _keys_to_string(key_ints):
+    QKeySequence = _key_sequence_class()
+    return "\t".join(QKeySequence(key).toString() for key in key_ints)
+
+
+def _string_to_keys(value):
+    if not value:
+        return []
+
+    QKeySequence = _key_sequence_class()
+    keys = []
+    for part in value.split("\t"):
+        part = part.strip()
+        if not part or part.lower() == "none":
+            continue
+        sequence = QKeySequence(part)
+        if sequence.count() != 1:
+            raise RuntimeError(f"invalid key sequence {part!r} (expected exactly one key combination)")
+        keys.append(int(sequence[0].toCombined()))
+    return keys
+
+
+def _kglobalaccel_call(method, signature, *tokens):
+    cmd = ["busctl", "--user", "--json=short", "call",
+           KGLOBALACCEL_SERVICE, KGLOBALACCEL_PATH, KGLOBALACCEL_IFACE, method]
+    if signature:
+        cmd += [signature, *(str(token) for token in tokens)]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"kglobalaccel {method} failed: {result.stderr.strip()}")
+    return json.loads(result.stdout)["data"]
+
+
+def _resolve_shortcut_action_id(component_unique, action_unique):
+    (actions,) = _kglobalaccel_call("allActionsForComponent", "as", 1, component_unique)
+    for action in actions:
+        if action[0] == component_unique and action[1] == action_unique:
+            return action
+
+    raise RuntimeError(
+        f"no shortcut action {action_unique!r} in component {component_unique!r} "
+        "(the owning application may need to run once to register its shortcuts with kglobalaccel)"
+    )
+
+
+# The plural *Keys methods (a(ai), one 4-int QKeyCombination chord slot per bound
+# key sequence) are used instead of the singular shortcut()/defaultShortcut()/
+# setShortcut() methods the flat ai signature suggests: on this KF6 build,
+# defaultShortcut() was empirically found to just mirror shortcut() -- returning
+# whatever the *current* value is rather than the true packaged default -- while
+# defaultShortcutKeys() correctly returns the untouched default even after
+# setShortcutKeys() has changed the current value. Only single, non-chorded key
+# combinations are supported (see _string_to_keys), so only the first of each
+# chord's 4 int slots is ever meaningful here; the rest are always 0.
+def _keys_from_chords(chords):
+    return [chord[0][0] for chord in chords]
+
+
+def read_shortcut_value(component_unique, action_unique, method="shortcutKeys"):
+    action_id = _resolve_shortcut_action_id(component_unique, action_unique)
+    (chords,) = _kglobalaccel_call(method, "as", len(action_id), *action_id)
+    return _keys_to_string(_keys_from_chords(chords))
+
+
+def write_shortcut_value(component_unique, action_unique, value):
+    action_id = _resolve_shortcut_action_id(component_unique, action_unique)
+    keys = _string_to_keys(value)
+
+    tokens = [len(action_id), *action_id, len(keys)]
+    for key in keys:
+        tokens += [4, key, 0, 0, 0]
+    tokens.append(SHORTCUT_NO_AUTOLOADING)
+
+    _kglobalaccel_call("setShortcutKeys", "asa(ai)u", *tokens)
+
+
 def save_one(identifier, kcfg_map):
     setting = parse_identifier(identifier)
     mechanism, default = resolve_mechanism(setting, kcfg_map)
     if mechanism == "shortcuts":
-        raise RuntimeError(f"{identifier}: {mechanism} settings are not yet supported")
+        return read_shortcut_value(setting.group, setting.key)
     return read_live_value(setting, default)
 
 
@@ -182,7 +279,8 @@ def apply_one(identifier, value, kcfg_map):
     setting = parse_identifier(identifier)
     mechanism, _default = resolve_mechanism(setting, kcfg_map)
     if mechanism == "shortcuts":
-        raise RuntimeError(f"{identifier}: {mechanism} settings are not yet supported")
+        write_shortcut_value(setting.group, setting.key, value)
+        return
     write_live_value(setting, value)
 
 
@@ -261,21 +359,27 @@ def cmd_diff(args, manifest_path, schema_dir):
         tag = "declared" if identifier in manifest else "undeclared"
         print(f"{tag} {identifier} = {live} (default: {default})")
 
-    # Freeform settings have no schema to enumerate, so unlike the schema-backed
-    # loop above, this can only walk identifiers already in the manifest -- it
-    # never surfaces an undeclared freeform setting via broad scan.
+    # Freeform and shortcuts settings have no schema/mapping table to enumerate,
+    # so unlike the schema-backed loop above, they can only be checked by walking
+    # identifiers already in the manifest -- neither ever surfaces an undeclared
+    # setting via broad scan.
     for identifier in manifest:
         try:
             setting = parse_identifier(identifier)
             mechanism, default = resolve_mechanism(setting, kcfg_map)
-            if mechanism != "freeform":
+            if mechanism == "shortcuts":
+                live = read_shortcut_value(setting.group, setting.key)
+                default = read_shortcut_value(setting.group, setting.key, method="defaultShortcutKeys")
+                if live == default:
+                    continue
+            elif mechanism == "freeform":
+                live = read_live_value(setting, default)
+                if live == "":
+                    continue
+            else:
                 continue
-            live = read_live_value(setting, default)
         except (ValueError, RuntimeError) as e:
             print(f"dot kde diff: {e}", file=sys.stderr)
-            continue
-
-        if live == "":
             continue
 
         print(f"declared {identifier} = {live} (default: {default or ''})")
