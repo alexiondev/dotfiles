@@ -4,3 +4,4 @@
 *.swo
 *~
 Thumbs.db
+**/__pycache__
