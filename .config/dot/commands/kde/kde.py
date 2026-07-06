@@ -26,6 +26,15 @@ APPLY_USAGE = """usage: dot kde apply
   Pushes every manifest entry's declared value onto the live system.
   help         show this message"""
 
+DIFF_USAGE = """usage: dot kde diff
+
+  Scans every schema-backed setting reachable through the kcfg mapping
+  table and reports each one whose live value differs from its
+  schema-declared default, tagged declared (present in the manifest)
+  or undeclared. Read-only -- never writes the manifest or the live
+  system.
+  help         show this message"""
+
 Setting = namedtuple("Setting", ["file", "group", "key"])
 
 
@@ -223,6 +232,36 @@ def cmd_apply(args, manifest_path, schema_dir):
     return 0
 
 
+def cmd_diff(args, manifest_path, schema_dir):
+    if args and args[0] == "help":
+        print(DIFF_USAGE)
+        return 0
+
+    if args:
+        print("dot kde diff: too many arguments", file=sys.stderr)
+        return 1
+
+    kcfg_map = build_kcfg_map(schema_dir)
+    manifest = load_manifest(manifest_path)
+
+    for identifier in sorted(set(iter_schema_identifiers(kcfg_map))):
+        setting = parse_identifier(identifier)
+        default = find_schema_default(kcfg_map.get(setting.file, []), setting)
+        try:
+            live = read_live_value(setting, default)
+        except RuntimeError as e:
+            print(f"dot kde diff: {e}", file=sys.stderr)
+            continue
+
+        if live == default:
+            continue
+
+        tag = "declared" if identifier in manifest else "undeclared"
+        print(f"{tag} {identifier} = {live} (default: {default})")
+
+    return 0
+
+
 def cmd_complete(schema_dir):
     kcfg_map = build_kcfg_map(schema_dir)
     for identifier in sorted(set(iter_schema_identifiers(kcfg_map))):
@@ -244,6 +283,9 @@ def main(argv):
 
     if command == "apply":
         return cmd_apply(rest, manifest_path, schema_dir)
+
+    if command == "diff":
+        return cmd_diff(rest, manifest_path, schema_dir)
 
     # Internal, not a user-facing `dot kde` subcommand -- called directly by
     # completions/dot.fish to source candidates from the live schema, never

@@ -3,6 +3,7 @@ function _dot_kde_usage
 
 Commands:
   apply   push manifest entries onto the live system
+  diff    scan for settings whose live value differs from its default
   save    write live KDE settings into the manifest
   help    show this message
 
@@ -20,6 +21,9 @@ function _dot_kde
     switch "$argv[1]"
         case apply
             python3 $helper_dir/kde.py apply $argv[2..-1]
+            return $status
+        case diff
+            python3 $helper_dir/kde.py diff $argv[2..-1]
             return $status
         case save
             python3 $helper_dir/kde.py save $argv[2..-1]

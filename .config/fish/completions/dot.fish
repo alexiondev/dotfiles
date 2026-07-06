@@ -19,9 +19,11 @@ complete -c dot -n "__fish_seen_subcommand_from install; and not __fish_seen_arg
 complete -c dot -n "__fish_seen_subcommand_from install; and not __fish_seen_argument -l restore" -f -a "(__fish_print_pacman_packages)"
 
 # --- dot kde ---
-complete -c dot -n "__fish_seen_subcommand_from kde; and not __fish_seen_subcommand_from save help" -f -a save -d "write live KDE settings into the manifest"
-complete -c dot -n "__fish_seen_subcommand_from kde; and not __fish_seen_subcommand_from save help" -f -a help -d "show usage"
-complete -c dot -n "__fish_seen_subcommand_from kde; and __fish_seen_subcommand_from save" -f -a help -d "show usage"
+complete -c dot -n "__fish_seen_subcommand_from kde; and not __fish_seen_subcommand_from apply diff save help" -f -a apply -d "push manifest entries onto the live system"
+complete -c dot -n "__fish_seen_subcommand_from kde; and not __fish_seen_subcommand_from apply diff save help" -f -a diff -d "scan for settings whose live value differs from its default"
+complete -c dot -n "__fish_seen_subcommand_from kde; and not __fish_seen_subcommand_from apply diff save help" -f -a save -d "write live KDE settings into the manifest"
+complete -c dot -n "__fish_seen_subcommand_from kde; and not __fish_seen_subcommand_from apply diff save help" -f -a help -d "show usage"
+complete -c dot -n "__fish_seen_subcommand_from kde; and __fish_seen_subcommand_from apply diff save" -f -a help -d "show usage"
 # Sourced live from the schema mapping table (real .kcfg files), not a
 # hardcoded list -- same helper kde.py's own save/refresh logic builds from.
 complete -c dot -n "__fish_seen_subcommand_from kde; and __fish_seen_subcommand_from save" -f -a "(python3 $HOME/.config/dot/commands/kde/kde.py complete 2>/dev/null)"

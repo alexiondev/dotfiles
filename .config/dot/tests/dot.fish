@@ -457,6 +457,67 @@ dot kde apply extra-arg >/dev/null 2>&1
 set -l apply_extra_arg_status $status
 @test "dot kde apply rejects an unexpected argument" $apply_extra_arg_status -ne 0
 
+# --- dot kde diff help touches neither the manifest nor kreadconfig6 ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/kde
+cp $commands_dir/kde/kde.fish $HOME/.config/dot/commands/kde/kde.fish
+cp $commands_dir/kde/kde.py $HOME/.config/dot/commands/kde/kde.py
+
+set -l fake_bin_kde_diff (mktemp -d)
+set -gx KREADCONFIG_LOG (mktemp)
+echo '#!/bin/sh
+echo "$@" >>"$KREADCONFIG_LOG"
+exit 1' >$fake_bin_kde_diff/kreadconfig6
+chmod +x $fake_bin_kde_diff/kreadconfig6
+set -gx PATH $fake_bin_kde_diff $path_before_fake_kreadconfig
+
+set -l kde_diff_help_output (dot kde diff help)
+set -l kde_diff_help_status $status
+set -l kreadconfig_called_for_diff_help (test -s $KREADCONFIG_LOG; and echo yes; or echo no)
+set -l manifest_exists_after_diff_help (test -e $HOME/.config/dot/kde-manifest; and echo yes; or echo no)
+
+@test "dot kde diff help succeeds" $kde_diff_help_status -eq 0
+@test "dot kde diff help mentions undeclared" (string match -q '*undeclared*' -- $kde_diff_help_output; echo $status) -eq 0
+@test "dot kde diff help never invokes kreadconfig6" $kreadconfig_called_for_diff_help = no
+@test "dot kde diff help does not create a manifest" $manifest_exists_after_diff_help = no
+
+set -gx PATH $path_before_fake_kreadconfig
+
+# --- dot kde diff: broad read-only scan over every schema-backed identifier,
+#     tagging each mismatch declared/undeclared, and skipping settings that
+#     already match their schema default ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/kde
+cp $commands_dir/kde/kde.fish $HOME/.config/dot/commands/kde/kde.fish
+cp $commands_dir/kde/kde.py $HOME/.config/dot/commands/kde/kde.py
+mkdir -p $HOME/.config/dot
+
+# Greeting differs from its default and is already declared in the manifest;
+# RealKey differs from its default but has never been declared; Some.Key With
+# Spaces is left unset, so it falls back to (and matches) its schema default,
+# and kwinrc.Windows.BorderSize likewise matches its default via the
+# arg=true/exceptions-list mapping -- neither should be reported.
+printf '[General]\nGreeting=Bonjour\nRealKey=ChangedAlias\n' >$HOME/.config/testrc
+printf 'testrc.General.Greeting=Bonjour\n' >$HOME/.config/dot/kde-manifest
+set -l manifest_before_diff (cat $HOME/.config/dot/kde-manifest | string collect)
+
+set -l diff_output (dot kde diff)
+set -l diff_status $status
+set -l manifest_after_diff (cat $HOME/.config/dot/kde-manifest | string collect)
+
+@test "dot kde diff succeeds" $diff_status -eq 0
+@test "dot kde diff tags an already-declared mismatch as declared" (string match -q '*declared testrc.General.Greeting = Bonjour (default: Hello)*' -- $diff_output; echo $status) -eq 0
+@test "dot kde diff tags a never-declared mismatch as undeclared" (string match -q '*undeclared testrc.General.RealKey = ChangedAlias (default: AliasDefault)*' -- $diff_output; echo $status) -eq 0
+@test "dot kde diff does not report a setting matching its default (unset key)" (string match -q '*Some.Key With Spaces*' -- $diff_output; echo $status) -eq 1
+@test "dot kde diff does not report a setting matching its default (arg=true mapping)" (string match -q '*BorderSize*' -- $diff_output; echo $status) -eq 1
+@test "dot kde diff makes no writes to the manifest" "$manifest_after_diff" = "$manifest_before_diff"
+
+dot kde diff extra-arg >/dev/null 2>&1
+set -l diff_extra_arg_status $status
+@test "dot kde diff rejects an unexpected argument" $diff_extra_arg_status -ne 0
+
 # --- kde.py complete: tab-completion candidates, sourced from the live
 #     schema mapping table rather than a hardcoded list. This is the
 #     underlying data completions/dot.fish shells out to; the fish

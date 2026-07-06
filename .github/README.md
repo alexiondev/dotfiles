@@ -21,6 +21,7 @@ fish -c 'dot init'
 | `dot install <pkgs>`    | Installs the given pacman packages and appends them to the tracked list (`~/.config/dot/packages/pacman`). |
 | `dot install --restore` | Reinstalls every package from the tracked list.                                          |
 | `dot kde apply`         | Pushes every manifest entry's declared value onto the live system.                       |
+| `dot kde diff`          | Reports every schema-backed setting whose live value differs from its default, tagged declared or undeclared. |
 | `dot kde help`          | Lists `dot kde`'s subcommands.                                                           |
 | `dot kde save <identifier>` | Reads a KDE setting's current live value and declares it in the manifest (`~/.config/dot/kde-manifest`). |
 | `dot kde save`          | Refreshes every already-declared manifest entry's value from the live system.            |
