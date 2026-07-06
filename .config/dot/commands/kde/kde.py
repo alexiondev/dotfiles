@@ -224,9 +224,20 @@ def _kglobalaccel_call(method, signature, *tokens):
     return json.loads(result.stdout)["data"]
 
 
-def _resolve_shortcut_action_id(component_unique, action_unique):
+def _actions_for_component(component_unique):
     (actions,) = _kglobalaccel_call("allActionsForComponent", "as", 1, component_unique)
-    for action in actions:
+    return actions
+
+
+def iter_shortcut_identifiers():
+    (components,) = _kglobalaccel_call("allMainComponents", None)
+    for component in components:
+        for action in _actions_for_component(component[0]):
+            yield f"kglobalshortcutsrc.{action[0]}.{action[1]}"
+
+
+def _resolve_shortcut_action_id(component_unique, action_unique):
+    for action in _actions_for_component(component_unique):
         if action[0] == component_unique and action[1] == action_unique:
             return action
 
@@ -391,6 +402,18 @@ def cmd_complete(schema_dir):
     kcfg_map = build_kcfg_map(schema_dir)
     for identifier in sorted(set(iter_schema_identifiers(kcfg_map))):
         print(identifier)
+
+    try:
+        # Fish's completion runs this on every TAB press, in shells that may have no
+        # live KDE session (or no busctl at all) -- a broken shortcuts source must
+        # never cost the schema-backed candidates already printed above.
+        shortcut_identifiers = sorted(set(iter_shortcut_identifiers()))
+    except (RuntimeError, OSError):
+        shortcut_identifiers = []
+
+    for identifier in shortcut_identifiers:
+        print(identifier)
+
     return 0
 
 
