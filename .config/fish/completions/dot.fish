@@ -18,6 +18,11 @@ complete -c dot -n "__fish_seen_subcommand_from install; and not __fish_seen_arg
 complete -c dot -n "__fish_seen_subcommand_from install; and not __fish_seen_argument -l no-sync" -l no-sync -d "skip the pacman -Sy database refresh"
 complete -c dot -n "__fish_seen_subcommand_from install; and not __fish_seen_argument -l restore" -f -a "(__fish_print_pacman_packages)"
 
+# --- dot setup ---
+complete -c dot -n "__fish_seen_subcommand_from setup; and not __fish_seen_subcommand_from folders help" -f -a folders -d "bring the 8 standard XDG user directories under the short-name convention"
+complete -c dot -n "__fish_seen_subcommand_from setup; and not __fish_seen_subcommand_from folders help" -f -a help -d "show usage"
+complete -c dot -n "__fish_seen_subcommand_from setup; and __fish_seen_subcommand_from folders" -f -a help -d "show usage"
+
 # --- dot kde ---
 complete -c dot -n "__fish_seen_subcommand_from kde; and not __fish_seen_subcommand_from apply diff save help" -f -a apply -d "push manifest entries onto the live system"
 complete -c dot -n "__fish_seen_subcommand_from kde; and not __fish_seen_subcommand_from apply diff save help" -f -a diff -d "scan for settings whose live value differs from its default"

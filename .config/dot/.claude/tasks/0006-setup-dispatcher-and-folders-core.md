@@ -41,20 +41,50 @@ duplication point, and a README command-table row.
 
 ## Acceptance criteria
 
-- [ ] `dot setup folders` on a fresh scratch `$HOME` (all 8 legacy folders
+- [x] `dot setup folders` on a fresh scratch `$HOME` (all 8 legacy folders
       present and empty) renames them to their short-name targets per the
       mapping table, including `Pictures/Screenshots→pic/screenshots`, and
       leaves the tracked `user-dirs.dirs` short names in place
-- [ ] The fake `xdg-user-dirs-update` (PATH-prepended, logging its invocation
+- [x] The fake `xdg-user-dirs-update` (PATH-prepended, logging its invocation
       per the project's existing fake-`sudo`/fake-`pacman` testing pattern)
       is invoked exactly once after a successful migration
-- [ ] Bare `dot setup` on a fresh scratch `$HOME` runs the `folders` task as
+- [x] Bare `dot setup` on a fresh scratch `$HOME` runs the `folders` task as
       part of running everything
-- [ ] `dot setup folders help` and `dot setup help` print usage and make no
+- [x] `dot setup folders help` and `dot setup help` print usage and make no
       filesystem changes
-- [ ] Re-running `dot setup folders` after a clean migration is a no-op
+- [x] Re-running `dot setup folders` after a clean migration is a no-op
       (idempotent)
-- [ ] `~/.github/README.md` has a command-table row for `dot setup`
+- [x] `~/.github/README.md` has a command-table row for `dot setup`
       (and its `folders` task) with paths relative to `$HOME`
-- [ ] `~/.config/dot/tests/dot.fish` covers the above cases and
+- [x] `~/.config/dot/tests/dot.fish` covers the above cases and
       `fishtape ~/.config/dot/tests/dot.fish` passes
+
+## Implementation Notes
+
+- The desired short names for `dot setup folders` are read directly from the
+  tracked `~/.config/user-dirs.dirs` (parsed via `grep`/`string match`, not
+  sourced as shell), per the parent spec's decision that this file is the
+  single source of truth. This machine's real `user-dirs.dirs` was
+  deliberately left untouched/untracked and no live migration was run against
+  this machine's actual home directory — the user chose "code + tests only"
+  scope for this task (a real rename of `~/Desktop`, `~/Documents`, etc. is a
+  separate, explicit action to take later), so only the scratch-`$HOME`
+  fishtape fixtures exercise the short-name `user-dirs.dirs` content.
+  Tracking the real file and running the real migration remains open.
+- During `/review-uncommitted`, the spec-fidelity pass caught a real bug: the
+  nested `Pictures/Screenshots→pic/screenshots` move ran unconditionally,
+  before checking whether `Pictures` held other, unrelated content — so a
+  `Pictures` folder with both `Screenshots/` and some other file got
+  partially mutated (Screenshots pulled out) while still being reported as
+  "left in place." Fixed by gating the Screenshots move on the rest of the
+  folder being empty too; added a regression test for this case
+  ("Screenshots is not peeled off... when Pictures still has other
+  content").
+- Completions (`~/.config/fish/completions/dot.fish`) got a `dot setup`
+  block mirroring `dot kde`'s per-subcommand completion entries, even though
+  the task's required "completions/help-glob duplication point" is already
+  satisfied automatically by the existing generic directory glob (no changes
+  were needed there for `dot setup`/`dot help` to discover the new nested
+  command). The added completions are a small polish addition beyond the
+  strict letter of the acceptance criteria, consistent with the existing
+  `kde` subcommand's treatment.

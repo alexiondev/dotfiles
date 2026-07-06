@@ -568,3 +568,360 @@ set -l complete_output (python3 $HOME/.config/dot/commands/kde/kde.py complete)
 # --- dot help / dot help discovers dot kde ---
 set -l help_with_kde (dot help)
 @test "dot help lists the kde subcommand" (string match -q '*kde*' -- $help_with_kde; echo $status) -eq 0
+
+# --- dot setup folders ---
+# The legacy->short-name mapping is fixed in the command itself, not read
+# from ~/.config/user-dirs.dirs (a separate, manually tracked dotfile this
+# command never reads or writes), so no scenario below needs to seed one.
+
+# xdg-user-dirs-update is faked out via a PATH-prepended bin that logs each
+# invocation, exactly mirroring dot install's fake sudo/pacman.
+set -l fake_bin_xdg (mktemp -d)
+echo '#!/bin/sh
+echo "$@" >>"$XDG_UPDATE_LOG"
+exit 0' >$fake_bin_xdg/xdg-user-dirs-update
+chmod +x $fake_bin_xdg/xdg-user-dirs-update
+set -gx PATH $fake_bin_xdg $PATH
+
+# --- a fresh migration: all 8 legacy folders present and empty, including a
+#     nested empty Pictures/Screenshots ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/setup
+cp $commands_dir/setup/setup.fish $HOME/.config/dot/commands/setup/setup.fish
+cp $commands_dir/setup/folders.fish $HOME/.config/dot/commands/setup/folders.fish
+mkdir -p $HOME/Desktop $HOME/Documents $HOME/Downloads $HOME/Music $HOME/Pictures/Screenshots $HOME/Videos $HOME/Templates $HOME/Public
+set -gx XDG_UPDATE_LOG (mktemp)
+
+dot setup folders >/dev/null 2>&1
+set -l fresh_folders_status $status
+
+@test "dot setup folders succeeds on a fresh scratch HOME" $fresh_folders_status -eq 0
+@test "Desktop is renamed to .desktop" -d $HOME/.desktop
+@test "Documents is renamed to doc" -d $HOME/doc
+@test "Downloads is renamed to dwn" -d $HOME/dwn
+@test "Music is renamed to mus" -d $HOME/mus
+@test "Pictures is renamed to pic" -d $HOME/pic
+@test "Videos is renamed to vid" -d $HOME/vid
+@test "Templates and Public both merge into .ignoreme" -d $HOME/.ignoreme
+@test "the nested Screenshots folder is renamed to pic/screenshots" -d $HOME/pic/screenshots
+@test "the legacy Desktop folder no longer exists" (test -e $HOME/Desktop; and echo yes; or echo no) = no
+@test "the legacy Documents folder no longer exists" (test -e $HOME/Documents; and echo yes; or echo no) = no
+@test "the legacy Pictures folder no longer exists" (test -e $HOME/Pictures; and echo yes; or echo no) = no
+@test "xdg-user-dirs-update is invoked exactly once" (cat $XDG_UPDATE_LOG | count) -eq 1
+
+# --- re-running after a clean migration is a no-op ---
+dot setup folders >/dev/null 2>&1
+set -l rerun_status $status
+
+@test "re-running dot setup folders succeeds" $rerun_status -eq 0
+@test "re-running leaves the short-named folders in place" -d $HOME/pic/screenshots
+@test "re-running does not recreate any legacy folder" (test -e $HOME/Pictures; and echo yes; or echo no) = no
+
+# --- the short-name mapping is fixed regardless of what (if anything)
+#     ~/.config/user-dirs.dirs declares -- this is the exact real-world bug
+#     that motivated dropping the dependency: a stale, never-updated
+#     user-dirs.dirs (still pointing XDG_DOCUMENTS_DIR at ~/Documents itself)
+#     must not make the target collide with the legacy folder ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/setup
+cp $commands_dir/setup/setup.fish $HOME/.config/dot/commands/setup/setup.fish
+cp $commands_dir/setup/folders.fish $HOME/.config/dot/commands/setup/folders.fish
+mkdir -p $HOME/.config
+echo 'XDG_DESKTOP_DIR="$HOME/Desktop"
+XDG_DOWNLOAD_DIR="$HOME/Downloads"
+XDG_TEMPLATES_DIR="$HOME/"
+XDG_PUBLICSHARE_DIR="$HOME/"
+XDG_DOCUMENTS_DIR="$HOME/Documents"
+XDG_MUSIC_DIR="$HOME/"
+XDG_PICTURES_DIR="$HOME/Pictures"
+XDG_VIDEOS_DIR="$HOME/Videos"' >$HOME/.config/user-dirs.dirs
+mkdir -p $HOME/Documents
+echo real-content >$HOME/Documents/report.txt
+set -gx XDG_UPDATE_LOG (mktemp)
+
+dot setup folders >/dev/null 2>&1
+
+@test "a stale user-dirs.dirs pointing at the legacy folder itself doesn't confuse the migration" (cat $HOME/doc/report.txt) = real-content
+@test "the legacy folder is still removed despite the stale user-dirs.dirs" (test -e $HOME/Documents; and echo yes; or echo no) = no
+@test "the stale user-dirs.dirs file itself is left byte-for-byte untouched" (string match -q '*XDG_DOCUMENTS_DIR="$HOME/Documents"*' -- (cat $HOME/.config/user-dirs.dirs); echo $status) -eq 0
+
+# --- dot setup folders works even when user-dirs.dirs doesn't exist at all ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/setup
+cp $commands_dir/setup/setup.fish $HOME/.config/dot/commands/setup/setup.fish
+cp $commands_dir/setup/folders.fish $HOME/.config/dot/commands/setup/folders.fish
+mkdir -p $HOME/Documents
+echo real-content >$HOME/Documents/report.txt
+set -gx XDG_UPDATE_LOG (mktemp)
+
+set -l no_user_dirs_status
+dot setup folders >/dev/null 2>&1
+set no_user_dirs_status $status
+
+@test "dot setup folders succeeds with no user-dirs.dirs present at all" $no_user_dirs_status -eq 0
+@test "migration still happens with no user-dirs.dirs present at all" (cat $HOME/doc/report.txt) = real-content
+@test "no user-dirs.dirs is created as a side effect" (test -e $HOME/.config/user-dirs.dirs; and echo yes; or echo no) = no
+
+# --- bare `dot setup` (no task given) runs folders as part of running everything ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/setup
+cp $commands_dir/setup/setup.fish $HOME/.config/dot/commands/setup/setup.fish
+cp $commands_dir/setup/folders.fish $HOME/.config/dot/commands/setup/folders.fish
+mkdir -p $HOME/Desktop $HOME/Documents $HOME/Downloads $HOME/Music $HOME/Pictures $HOME/Videos $HOME/Templates $HOME/Public
+set -gx XDG_UPDATE_LOG (mktemp)
+
+dot setup >/dev/null 2>&1
+set -l bare_setup_status $status
+
+@test "bare dot setup succeeds" $bare_setup_status -eq 0
+@test "bare dot setup runs the folders task" -d $HOME/.desktop
+@test "bare dot setup also merges Pictures into pic" -d $HOME/pic
+
+# --- a non-empty legacy folder merges unconditionally, no flag needed --
+#     an unrelated empty legacy folder migrates in the same run ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/setup
+cp $commands_dir/setup/setup.fish $HOME/.config/dot/commands/setup/setup.fish
+cp $commands_dir/setup/folders.fish $HOME/.config/dot/commands/setup/folders.fish
+mkdir -p $HOME/Documents $HOME/Desktop
+echo real-content >$HOME/Documents/report.txt
+set -gx XDG_UPDATE_LOG (mktemp)
+
+set -l nonempty_output (dot setup folders 2>&1)
+set -l nonempty_status $status
+
+@test "dot setup folders succeeds when a legacy folder has content" $nonempty_status -eq 0
+@test "a non-empty legacy folder's content is migrated by default" (cat $HOME/doc/report.txt) = real-content
+@test "the now-empty legacy folder is removed" (test -e $HOME/Documents; and echo yes; or echo no) = no
+@test "prints a message about what was moved" (string match -q '*Documents*' -- $nonempty_output; echo $status) -eq 0
+@test "an unrelated empty legacy folder still migrates in the same run" (test -e $HOME/Desktop; and echo yes; or echo no) = no
+
+# --- a legacy folder containing only a stray dotfile still migrates by
+#     default -- there's no separate empty-vs-non-empty gate to trip ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/setup
+cp $commands_dir/setup/setup.fish $HOME/.config/dot/commands/setup/setup.fish
+cp $commands_dir/setup/folders.fish $HOME/.config/dot/commands/setup/folders.fish
+mkdir -p $HOME/Downloads
+touch $HOME/Downloads/.directory
+set -gx XDG_UPDATE_LOG (mktemp)
+
+dot setup folders >/dev/null 2>&1
+
+@test "a legacy folder holding only a stray dotfile is migrated by default" -e $HOME/dwn/.directory
+@test "the legacy folder holding only a stray dotfile is removed" (test -e $HOME/Downloads; and echo yes; or echo no) = no
+
+# --- a nested empty Screenshots folder migrates alongside unrelated real
+#     content in the same Pictures folder, all in the same default run ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/setup
+cp $commands_dir/setup/setup.fish $HOME/.config/dot/commands/setup/setup.fish
+cp $commands_dir/setup/folders.fish $HOME/.config/dot/commands/setup/folders.fish
+mkdir -p $HOME/Pictures/Screenshots
+echo vacation-photo >$HOME/Pictures/vacation.jpg
+set -gx XDG_UPDATE_LOG (mktemp)
+
+dot setup folders >/dev/null 2>&1
+set -l pictures_with_content_status $status
+
+@test "dot setup folders succeeds when Pictures has unrelated content" $pictures_with_content_status -eq 0
+@test "the unrelated file in Pictures is migrated into pic" (cat $HOME/pic/vacation.jpg) = vacation-photo
+@test "the nested Screenshots folder is renamed to pic/screenshots" -d $HOME/pic/screenshots
+@test "the now-empty Pictures folder is removed" (test -e $HOME/Pictures; and echo yes; or echo no) = no
+
+# --- a Screenshots folder that itself holds real content migrates by
+#     default too, renamed to pic/screenshots, even when the rest of
+#     Pictures is empty ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/setup
+cp $commands_dir/setup/setup.fish $HOME/.config/dot/commands/setup/setup.fish
+cp $commands_dir/setup/folders.fish $HOME/.config/dot/commands/setup/folders.fish
+mkdir -p $HOME/Pictures/Screenshots
+echo shot-content >$HOME/Pictures/Screenshots/shot.png
+set -gx XDG_UPDATE_LOG (mktemp)
+
+dot setup folders >/dev/null 2>&1
+
+@test "a non-empty Screenshots folder migrates by default, renamed to pic/screenshots" (cat $HOME/pic/screenshots/shot.png) = shot-content
+@test "the now-empty Pictures folder is removed after migrating Screenshots" (test -e $HOME/Pictures; and echo yes; or echo no) = no
+
+# --- a filename collision between a legacy folder and its already-populated
+#     short-named target is skipped (not overwritten), reported, and leaves
+#     the legacy folder in place -- even when another non-colliding file in
+#     the same folder is merged successfully ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/setup
+cp $commands_dir/setup/setup.fish $HOME/.config/dot/commands/setup/setup.fish
+cp $commands_dir/setup/folders.fish $HOME/.config/dot/commands/setup/folders.fish
+mkdir -p $HOME/Documents $HOME/doc
+echo legacy-content >$HOME/Documents/report.txt
+echo legacy-only >$HOME/Documents/notes.txt
+echo target-content >$HOME/doc/report.txt
+set -gx XDG_UPDATE_LOG (mktemp)
+
+set -l collision_output (dot setup folders 2>&1)
+set -l collision_status $status
+
+@test "dot setup folders still succeeds when a collision occurs" $collision_status -eq 0
+@test "the colliding target file is preserved byte-for-byte" (cat $HOME/doc/report.txt) = target-content
+@test "the colliding legacy file is left in place, untouched" (cat $HOME/Documents/report.txt) = legacy-content
+@test "the collision is reported" (string match -q '*report.txt*' -- $collision_output; echo $status) -eq 0
+@test "the legacy Documents folder is left in place due to the collision" -d $HOME/Documents
+@test "a non-colliding file in the same folder is still merged" (cat $HOME/doc/notes.txt) = legacy-only
+@test "the merged non-colliding file no longer sits in the legacy folder" (test -e $HOME/Documents/notes.txt; and echo yes; or echo no) = no
+
+# --- re-running after a collision was reported: the skipped file isn't
+#     lost, and the already-migrated file isn't moved again ---
+dot setup folders >/dev/null 2>&1
+
+@test "re-running after a collision still preserves the target file" (cat $HOME/doc/report.txt) = target-content
+@test "re-running after a collision still leaves the legacy file in place" (cat $HOME/Documents/report.txt) = legacy-content
+@test "re-running after a collision does not resurrect the already-migrated file in the legacy folder" (test -e $HOME/Documents/notes.txt; and echo yes; or echo no) = no
+
+# --- a collision on the nested Screenshots unit is skipped, reported, and
+#     leaves Pictures in place, even though Pictures also holds other
+#     content unrelated to the collision ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/setup
+cp $commands_dir/setup/setup.fish $HOME/.config/dot/commands/setup/setup.fish
+cp $commands_dir/setup/folders.fish $HOME/.config/dot/commands/setup/folders.fish
+mkdir -p $HOME/Pictures/Screenshots $HOME/pic/screenshots
+echo legacy-shot >$HOME/Pictures/Screenshots/shot.png
+echo target-shot >$HOME/pic/screenshots/shot.png
+set -gx XDG_UPDATE_LOG (mktemp)
+
+set -l screenshots_collision_output (dot setup folders 2>&1)
+
+@test "a Screenshots collision preserves the existing target screenshot" (cat $HOME/pic/screenshots/shot.png) = target-shot
+@test "a Screenshots collision leaves the legacy Screenshots folder in place" (cat $HOME/Pictures/Screenshots/shot.png) = legacy-shot
+@test "the Screenshots collision is reported" (string match -q '*Screenshots*' -- $screenshots_collision_output; echo $status) -eq 0
+@test "Pictures itself is left in place due to the Screenshots collision" -d $HOME/Pictures
+
+# --- the same Screenshots-collision handling also holds when Pictures has
+#     nothing else in it besides the colliding Screenshots folder ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/setup
+cp $commands_dir/setup/setup.fish $HOME/.config/dot/commands/setup/setup.fish
+cp $commands_dir/setup/folders.fish $HOME/.config/dot/commands/setup/folders.fish
+mkdir -p $HOME/Pictures/Screenshots $HOME/pic/screenshots
+echo target-shot >$HOME/pic/screenshots/shot.png
+set -gx XDG_UPDATE_LOG (mktemp)
+
+set -l bare_screenshots_collision_output (dot setup folders 2>&1)
+set -l bare_screenshots_collision_status $status
+
+@test "a Screenshots-only collision still succeeds" $bare_screenshots_collision_status -eq 0
+@test "a Screenshots-only collision preserves the existing target screenshot" (cat $HOME/pic/screenshots/shot.png) = target-shot
+@test "a Screenshots-only collision leaves the empty legacy Screenshots folder in place" -d $HOME/Pictures/Screenshots
+@test "a Screenshots-only collision leaves Pictures itself in place" -d $HOME/Pictures
+@test "the Screenshots-only collision is reported" (string match -q '*Screenshots*' -- $bare_screenshots_collision_output; echo $status) -eq 0
+
+# --- --dry-run reports what would move/skip without touching the
+#     filesystem: no mkdir, no mv/rmdir, no xdg-user-dirs-update ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/setup
+cp $commands_dir/setup/setup.fish $HOME/.config/dot/commands/setup/setup.fish
+cp $commands_dir/setup/folders.fish $HOME/.config/dot/commands/setup/folders.fish
+mkdir -p $HOME/Documents $HOME/Pictures/Screenshots
+echo real-content >$HOME/Documents/report.txt
+set -gx XDG_UPDATE_LOG (mktemp)
+
+set -l dryrun_output (dot setup folders --dry-run 2>&1)
+set -l dryrun_status $status
+
+@test "dot setup folders --dry-run succeeds" $dryrun_status -eq 0
+@test "--dry-run reports the entry it would move" (string match -q '*Documents*' -- $dryrun_output; echo $status) -eq 0
+@test "--dry-run reports the Screenshots folder it would move" (string match -q '*Screenshots*' -- $dryrun_output; echo $status) -eq 0
+@test "--dry-run leaves the legacy Documents folder's content untouched" (cat $HOME/Documents/report.txt) = real-content
+@test "--dry-run does not remove the legacy Documents folder" -d $HOME/Documents
+@test "--dry-run does not create the short-named target folder" (test -e $HOME/doc; and echo yes; or echo no) = no
+@test "--dry-run does not rename the nested Screenshots folder" -d $HOME/Pictures/Screenshots
+@test "--dry-run never invokes xdg-user-dirs-update" (test -s $XDG_UPDATE_LOG; and echo yes; or echo no) = no
+
+# --- --dry-run also reports a would-be collision without touching
+#     either side, and doesn't move the non-colliding entry either ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/setup
+cp $commands_dir/setup/setup.fish $HOME/.config/dot/commands/setup/setup.fish
+cp $commands_dir/setup/folders.fish $HOME/.config/dot/commands/setup/folders.fish
+mkdir -p $HOME/Documents $HOME/doc
+echo legacy-content >$HOME/Documents/report.txt
+echo legacy-only >$HOME/Documents/notes.txt
+echo target-content >$HOME/doc/report.txt
+set -gx XDG_UPDATE_LOG (mktemp)
+
+set -l dryrun_collision_output (dot setup folders --dry-run 2>&1)
+
+@test "--dry-run reports the would-be collision" (string match -q '*report.txt*' -- $dryrun_collision_output; echo $status) -eq 0
+@test "--dry-run leaves the colliding target file untouched" (cat $HOME/doc/report.txt) = target-content
+@test "--dry-run leaves the colliding legacy file untouched" (cat $HOME/Documents/report.txt) = legacy-content
+@test "--dry-run does not move the non-colliding file either" -e $HOME/Documents/notes.txt
+
+# --- a legacy folder with nothing to move produces no --dry-run output ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/setup
+cp $commands_dir/setup/setup.fish $HOME/.config/dot/commands/setup/setup.fish
+cp $commands_dir/setup/folders.fish $HOME/.config/dot/commands/setup/folders.fish
+mkdir -p $HOME/Desktop
+set -gx XDG_UPDATE_LOG (mktemp)
+
+set -l dryrun_empty_output (dot setup folders --dry-run 2>&1)
+
+@test "--dry-run is silent for a legacy folder with nothing to move" -z "$dryrun_empty_output"
+@test "--dry-run leaves an empty legacy folder in place" -d $HOME/Desktop
+
+# --- the removed --yes flag now fails fast as an unknown option ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/setup
+cp $commands_dir/setup/setup.fish $HOME/.config/dot/commands/setup/setup.fish
+cp $commands_dir/setup/folders.fish $HOME/.config/dot/commands/setup/folders.fish
+set -gx XDG_UPDATE_LOG (mktemp)
+
+dot setup folders --yes >/dev/null 2>&1
+set -l old_yes_status $status
+
+@test "dot setup folders --yes now fails as an unknown option" $old_yes_status -ne 0
+
+# --- help prints usage and makes no filesystem changes ---
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands/setup
+cp $commands_dir/setup/setup.fish $HOME/.config/dot/commands/setup/setup.fish
+cp $commands_dir/setup/folders.fish $HOME/.config/dot/commands/setup/folders.fish
+mkdir -p $HOME/Documents $HOME/Desktop
+set -gx XDG_UPDATE_LOG (mktemp)
+
+set -l setup_help_output (dot setup help)
+set -l setup_help_status $status
+set -l folders_help_output (dot setup folders help)
+set -l folders_help_status $status
+set -l xdg_called_for_help (test -s $XDG_UPDATE_LOG; and echo yes; or echo no)
+
+@test "dot setup help succeeds" $setup_help_status -eq 0
+@test "dot setup help mentions folders" (string match -q '*folders*' -- $setup_help_output; echo $status) -eq 0
+@test "dot setup folders help succeeds" $folders_help_status -eq 0
+@test "dot setup folders help mentions the short-name convention" (string match -q '*.desktop*' -- $folders_help_output; echo $status) -eq 0
+@test "dot setup folders help documents --dry-run" (string match -q '*--dry-run*' -- $folders_help_output; echo $status) -eq 0
+@test "neither help invocation ever calls xdg-user-dirs-update" $xdg_called_for_help = no
+@test "dot setup help leaves the legacy Documents folder untouched" -d $HOME/Documents
+@test "dot setup folders help leaves the legacy Desktop folder untouched" -d $HOME/Desktop
+@test "help does not create any short-named target folder" (test -e $HOME/doc; and echo yes; or echo no) = no
+
+# --- dot help discovers dot setup ---
+set -l help_with_setup (dot help)
+@test "dot help lists the setup subcommand" (string match -q '*setup*' -- $help_with_setup; echo $status) -eq 0

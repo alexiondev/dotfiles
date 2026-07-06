@@ -25,6 +25,8 @@ fish -c 'dot init'
 | `dot kde help`          | Lists `dot kde`'s subcommands.                                                           |
 | `dot kde save <identifier>` | Reads a KDE setting's current live value and declares it in the manifest (`~/.config/dot/kde-manifest`). |
 | `dot kde save`          | Refreshes every already-declared manifest entry's value from the live system.            |
+| `dot setup`             | Runs every machine-setup task (currently just `folders`).                                |
+| `dot setup folders`     | Brings the 8 standard XDG user directories (`~/Desktop`, `~/Documents`, ...) under a fixed short-name convention (`~/.desktop`, `~/doc`, ...). |
 | `dot <git>`             | Everything else is passed to `git`.                                                      |
 
 See [CLAUDE.md](../.config/dot/CLAUDE.md) for the `dot` tool's internal
