@@ -353,35 +353,49 @@ dot kde save kwinrc.Windows.BorderSize >/dev/null 2>&1
 set -l declared_count_before_freeform (cat $manifest | count)
 
 # a setting whose rc file never appears in the mapping table falls to the
-# freeform branch, which the dispatch structure accounts for but does not
-# implement yet
+# freeform branch: read/write directly via kreadconfig6/kwriteconfig6, with
+# "default" meaning "the key is absent" rather than any schema value
+printf '[Group]\nKey=FreeformValue\n' >$HOME/.config/somefreeform
 dot kde save somefreeform.Group.Key >/dev/null 2>&1
-set -l unmapped_status $status
+set -l freeform_save_status $status
 set -l declared_count_after_freeform (cat $manifest | count)
 
-@test "an unmapped rc file is not silently treated as schema-backed" $unmapped_status -ne 0
-@test "a rejected freeform save adds no manifest entry" $declared_count_after_freeform -eq $declared_count_before_freeform
+@test "dot kde save succeeds for a freeform (unmapped rc file) identifier" $freeform_save_status -eq 0
+@test "declares the freeform identifier with its real live value" (string match -q '*somefreeform.Group.Key=FreeformValue*' -- (cat $manifest); echo $status) -eq 0
+@test "a freeform save adds exactly one manifest entry" $declared_count_after_freeform -eq (math $declared_count_before_freeform + 1)
 
 # an arg="true" schema *absent* from the exceptions list (unmapped.kcfg)
 # must not be guessed at (e.g. from its own filename) -- it contributes
-# nothing to the mapping table, so its settings fall to freeform too
+# nothing to the mapping table, so its settings fall to freeform too. Proven
+# here by reading with the key absent: a schema-backed read would fall back
+# to the schema's declared default ("Unreachable"); freeform's "default" is
+# instead "the key is absent", so it reads empty.
 dot kde save unmapped.Whatever.Setting >/dev/null 2>&1
 set -l unlisted_arg_true_status $status
-set -l declared_count_after_unlisted (cat $manifest | count)
 
-@test "an arg=true schema missing from the exceptions list resolves to freeform, not schema" $unlisted_arg_true_status -ne 0
-@test "a rejected unlisted-arg=true save adds no manifest entry" $declared_count_after_unlisted -eq $declared_count_before_freeform
+@test "an arg=true schema missing from the exceptions list resolves to freeform, not schema" $unlisted_arg_true_status -eq 0
+@test "a freeform read never falls back to another schema's default" (string match -q '*Unreachable*' -- (cat $manifest); echo $status) -eq 1
+@test "a freeform read of an absent key stores an empty value" (string match -q '*unmapped.Whatever.Setting=*' -- (cat $manifest); echo $status) -eq 0
+
+# misuse: shortcuts settings remain unsupported until a later task
+dot kde save kglobalshortcutsrc.someComponent.someAction >/dev/null 2>&1
+set -l shortcuts_save_status $status
+@test "dot kde save rejects a shortcuts identifier (not yet supported)" $shortcuts_save_status -ne 0
+
+set -l declared_count_before_refresh (cat $manifest | count)
 
 # --- dot kde save with no arguments refreshes every already-declared entry ---
 printf '[General]\nGreeting=Changed\n' >$HOME/.config/testrc
+printf '[Group]\nKey=RefreshedFreeform\n' >$HOME/.config/somefreeform
 dot kde save >/dev/null 2>&1
 set -l refresh_status $status
 set -l declared_count_after_refresh (cat $manifest | count)
 
 @test "dot kde save with no arguments succeeds" $refresh_status -eq 0
-@test "refreshes an already-declared entry's value from the live system" (string match -q '*testrc.General.Greeting=Changed*' -- (cat $manifest); echo $status) -eq 0
+@test "refreshes an already-declared schema-backed entry's value from the live system" (string match -q '*testrc.General.Greeting=Changed*' -- (cat $manifest); echo $status) -eq 0
+@test "refreshes an already-declared freeform entry's value from the live system" (string match -q '*somefreeform.Group.Key=RefreshedFreeform*' -- (cat $manifest); echo $status) -eq 0
 @test "refresh leaves other already-declared entries untouched" (string match -q '*testrc.General.RealKey=AliasDefault*' -- (cat $manifest); echo $status) -eq 0
-@test "refresh adds no new undeclared entries" $declared_count_after_refresh -eq $declared_count_before_freeform
+@test "refresh adds no new undeclared entries" $declared_count_after_refresh -eq $declared_count_before_refresh
 
 # --- misuse: too many arguments / a malformed identifier ---
 dot kde save one two >/dev/null 2>&1
@@ -444,12 +458,26 @@ set -l testrc_after_reapply (cat $HOME/.config/testrc)
 @test "re-running dot kde apply succeeds" $reapply_status -eq 0
 @test "re-running dot kde apply against an already-applied system is idempotent" "$testrc_after_reapply" = "$testrc_after_apply"
 
-# a manifest entry whose rc file isn't schema-backed (freeform, not yet
-# implemented) is rejected rather than silently mis-applied
+# a manifest entry whose rc file has no schema (freeform) is written
+# directly via kwriteconfig6, idempotently, just like a schema-backed entry
 printf 'testrc.General.Greeting=Applied Greeting\nsomefreeform.Group.Key=Value\n' >$HOME/.config/dot/kde-manifest
 dot kde apply >/dev/null 2>&1
 set -l apply_freeform_status $status
-@test "dot kde apply rejects a manifest entry whose mechanism isn't schema-backed yet" $apply_freeform_status -ne 0
+set -l freeformrc_after_apply (cat $HOME/.config/somefreeform)
+
+@test "dot kde apply succeeds for a manifest with a freeform entry" $apply_freeform_status -eq 0
+@test "dot kde apply writes a freeform entry via kwriteconfig6" (string match -q '*Key=Value*' -- $freeformrc_after_apply; echo $status) -eq 0
+
+dot kde apply >/dev/null 2>&1
+set -l freeformrc_after_reapply (cat $HOME/.config/somefreeform)
+@test "re-running dot kde apply against an already-applied freeform entry is idempotent" "$freeformrc_after_reapply" = "$freeformrc_after_apply"
+
+# a manifest entry whose mechanism is shortcuts (not yet implemented) is
+# rejected rather than silently mis-applied
+printf 'testrc.General.Greeting=Applied Greeting\nkglobalshortcutsrc.someComponent.someAction=Value\n' >$HOME/.config/dot/kde-manifest
+dot kde apply >/dev/null 2>&1
+set -l apply_shortcuts_status $status
+@test "dot kde apply rejects a manifest entry whose mechanism isn't implemented yet (shortcuts)" $apply_shortcuts_status -ne 0
 
 # misuse: apply takes no arguments
 printf 'testrc.General.Greeting=Applied Greeting\n' >$HOME/.config/dot/kde-manifest
@@ -498,9 +526,15 @@ mkdir -p $HOME/.config/dot
 # RealKey differs from its default but has never been declared; Some.Key With
 # Spaces is left unset, so it falls back to (and matches) its schema default,
 # and kwinrc.Windows.BorderSize likewise matches its default via the
-# arg=true/exceptions-list mapping -- neither should be reported.
+# arg=true/exceptions-list mapping -- neither should be reported. On the
+# freeform side: Group.Key is declared and present live (a mismatch against
+# freeform's "absent" default); Group.AbsentKey is declared but never applied
+# live, so it matches the absent default and isn't reported; Other.Undeclared
+# is present live but never declared, and must never surface via broad scan
+# since freeform has no schema to enumerate from.
 printf '[General]\nGreeting=Bonjour\nRealKey=ChangedAlias\n' >$HOME/.config/testrc
-printf 'testrc.General.Greeting=Bonjour\n' >$HOME/.config/dot/kde-manifest
+printf '[Group]\nKey=CustomValue\n\n[Other]\nUndeclared=ShouldNeverAppear\n' >$HOME/.config/somefreeform
+printf 'testrc.General.Greeting=Bonjour\nsomefreeform.Group.Key=CustomValue\nsomefreeform.Group.AbsentKey=NeverApplied\n' >$HOME/.config/dot/kde-manifest
 set -l manifest_before_diff (cat $HOME/.config/dot/kde-manifest | string collect)
 
 set -l diff_output (dot kde diff)
@@ -512,6 +546,9 @@ set -l manifest_after_diff (cat $HOME/.config/dot/kde-manifest | string collect)
 @test "dot kde diff tags a never-declared mismatch as undeclared" (string match -q '*undeclared testrc.General.RealKey = ChangedAlias (default: AliasDefault)*' -- $diff_output; echo $status) -eq 0
 @test "dot kde diff does not report a setting matching its default (unset key)" (string match -q '*Some.Key With Spaces*' -- $diff_output; echo $status) -eq 1
 @test "dot kde diff does not report a setting matching its default (arg=true mapping)" (string match -q '*BorderSize*' -- $diff_output; echo $status) -eq 1
+@test "dot kde diff reports an already-declared freeform mismatch (default is absent)" (string match -q '*declared somefreeform.Group.Key = CustomValue (default: )*' -- $diff_output; echo $status) -eq 0
+@test "dot kde diff does not report a declared freeform entry matching its absent default" (string match -q '*AbsentKey*' -- $diff_output; echo $status) -eq 1
+@test "dot kde diff never surfaces an undeclared freeform setting via broad scan" (string match -q '*Undeclared*' -- $diff_output; echo $status) -eq 1
 @test "dot kde diff makes no writes to the manifest" "$manifest_after_diff" = "$manifest_before_diff"
 
 dot kde diff extra-arg >/dev/null 2>&1

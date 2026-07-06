@@ -31,8 +31,10 @@ DIFF_USAGE = """usage: dot kde diff
   Scans every schema-backed setting reachable through the kcfg mapping
   table and reports each one whose live value differs from its
   schema-declared default, tagged declared (present in the manifest)
-  or undeclared. Read-only -- never writes the manifest or the live
-  system.
+  or undeclared. Also reports already-declared freeform settings whose
+  live value is present (freeform has no schema to scan, so it is only
+  checked when already declared). Read-only -- never writes the
+  manifest or the live system.
   help         show this message"""
 
 Setting = namedtuple("Setting", ["file", "group", "key"])
@@ -171,7 +173,7 @@ def write_live_value(setting, value):
 def save_one(identifier, kcfg_map):
     setting = parse_identifier(identifier)
     mechanism, default = resolve_mechanism(setting, kcfg_map)
-    if mechanism != "schema":
+    if mechanism == "shortcuts":
         raise RuntimeError(f"{identifier}: {mechanism} settings are not yet supported")
     return read_live_value(setting, default)
 
@@ -179,7 +181,7 @@ def save_one(identifier, kcfg_map):
 def apply_one(identifier, value, kcfg_map):
     setting = parse_identifier(identifier)
     mechanism, _default = resolve_mechanism(setting, kcfg_map)
-    if mechanism != "schema":
+    if mechanism == "shortcuts":
         raise RuntimeError(f"{identifier}: {mechanism} settings are not yet supported")
     write_live_value(setting, value)
 
@@ -258,6 +260,25 @@ def cmd_diff(args, manifest_path, schema_dir):
 
         tag = "declared" if identifier in manifest else "undeclared"
         print(f"{tag} {identifier} = {live} (default: {default})")
+
+    # Freeform settings have no schema to enumerate, so unlike the schema-backed
+    # loop above, this can only walk identifiers already in the manifest -- it
+    # never surfaces an undeclared freeform setting via broad scan.
+    for identifier in manifest:
+        try:
+            setting = parse_identifier(identifier)
+            mechanism, default = resolve_mechanism(setting, kcfg_map)
+            if mechanism != "freeform":
+                continue
+            live = read_live_value(setting, default)
+        except (ValueError, RuntimeError) as e:
+            print(f"dot kde diff: {e}", file=sys.stderr)
+            continue
+
+        if live == "":
+            continue
+
+        print(f"declared {identifier} = {live} (default: {default or ''})")
 
     return 0
 

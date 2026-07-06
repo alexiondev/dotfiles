@@ -35,3 +35,5 @@ Comma-separated keys are pressed in sequence, not together.
 | `Ctrl` + `h` / `j` / `k` / `l`                        | neovim  | Move focus between splits left / down / up / right |
 | `Esc`                                                  | neovim  | Clear search highlight                             |
 | `Space`, `e`                                           | neovim  | Toggle file explorer (netrw)                       |
+| `CapsLock`                                             | KDE     | Acts as `Esc` (`kxkbrc` `Options=caps:escape_shifted_capslock`) |
+| `Shift` + `CapsLock`                                   | KDE     | Toggles Caps Lock                                  |
