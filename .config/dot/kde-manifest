@@ -29,3 +29,4 @@ kglobalshortcutsrc.plasmashell.activate task manager entry 8=
 kglobalshortcutsrc.plasmashell.activate task manager entry 9=
 kglobalshortcutsrc.Alacritty.desktop._launch=Meta+Return
 kglobalshortcutsrc.org.kde.konsole.desktop._launch=
+kglobalshortcutsrc.kwin.Window Close=Meta+Shift+Q
