@@ -27,6 +27,8 @@ fish -c 'dot init'
 | `dot kde save`          | Refreshes every already-declared manifest entry's value from the live system.            |
 | `dot setup`             | Runs every machine-setup task (currently just `folders`).                                |
 | `dot setup folders`     | Brings the 8 standard XDG user directories (`~/Desktop`, `~/Documents`, ...) under a fixed short-name convention (`~/.desktop`, `~/doc`, ...). |
+| `dot vpn up`            | Brings the `UDM-PRO-Laptop` WireGuard connection up via NetworkManager.                  |
+| `dot vpn down`          | Brings the `UDM-PRO-Laptop` WireGuard connection down.                                   |
 | `dot <git>`             | Everything else is passed to `git`.                                                      |
 
 See [CLAUDE.md](../.config/dot/CLAUDE.md) for the `dot` tool's internal

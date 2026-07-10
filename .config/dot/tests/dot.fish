@@ -925,3 +925,76 @@ set -l xdg_called_for_help (test -s $XDG_UPDATE_LOG; and echo yes; or echo no)
 # --- dot help discovers dot setup ---
 set -l help_with_setup (dot help)
 @test "dot help lists the setup subcommand" (string match -q '*setup*' -- $help_with_setup; echo $status) -eq 0
+
+# --- dot vpn ---
+# nmcli is faked out via a PATH-prepended bin that logs each invocation and
+# fails only when $NMCLI_FAIL is set, mirroring dot install's fake pacman.
+set -l fake_bin_vpn (mktemp -d)
+echo '#!/bin/sh
+echo "$@" >>"$NMCLI_LOG"
+if [ -n "$NMCLI_FAIL" ]; then
+    exit 1
+fi
+exit 0' >$fake_bin_vpn/nmcli
+chmod +x $fake_bin_vpn/nmcli
+set -gx PATH $fake_bin_vpn $PATH
+
+set -gx HOME (mktemp -d)
+dot init --url $remote >/dev/null 2>&1
+mkdir -p $HOME/.config/dot/commands
+cp $commands_dir/vpn.fish $HOME/.config/dot/commands/vpn.fish
+set -gx NMCLI_LOG (mktemp)
+
+dot vpn up >/dev/null 2>&1
+set -l vpn_up_status $status
+set -l vpn_up_called (string match -q '*connection up UDM-PRO-Laptop*' -- (cat $NMCLI_LOG); and echo yes; or echo no)
+
+@test "dot vpn up succeeds" $vpn_up_status -eq 0
+@test "dot vpn up calls nmcli connection up UDM-PRO-Laptop" $vpn_up_called = yes
+
+set -gx NMCLI_LOG (mktemp)
+dot vpn down >/dev/null 2>&1
+set -l vpn_down_status $status
+set -l vpn_down_called (string match -q '*connection down UDM-PRO-Laptop*' -- (cat $NMCLI_LOG); and echo yes; or echo no)
+
+@test "dot vpn down succeeds" $vpn_down_status -eq 0
+@test "dot vpn down calls nmcli connection down UDM-PRO-Laptop" $vpn_down_called = yes
+
+# --- dot vpn help touches nmcli not at all ---
+set -gx NMCLI_LOG (mktemp)
+set -l vpn_help_output (dot vpn help)
+set -l vpn_help_status $status
+set -l nmcli_called_for_vpn_help (test -s $NMCLI_LOG; and echo yes; or echo no)
+
+@test "dot vpn help succeeds" $vpn_help_status -eq 0
+@test "dot vpn help mentions up" (string match -q '*up*' -- $vpn_help_output; echo $status) -eq 0
+@test "dot vpn help mentions down" (string match -q '*down*' -- $vpn_help_output; echo $status) -eq 0
+@test "dot vpn help never invokes nmcli" $nmcli_called_for_vpn_help = no
+
+# --- an unrecognized subcommand prints usage and fails, without calling nmcli ---
+set -gx NMCLI_LOG (mktemp)
+dot vpn bogus >/dev/null 2>&1
+set -l vpn_bogus_status $status
+set -l nmcli_called_for_bogus (test -s $NMCLI_LOG; and echo yes; or echo no)
+
+@test "dot vpn with an unrecognized subcommand fails" $vpn_bogus_status -ne 0
+@test "an unrecognized dot vpn subcommand never invokes nmcli" $nmcli_called_for_bogus = no
+
+# --- bare `dot vpn` (no subcommand) also prints usage and fails ---
+set -gx NMCLI_LOG (mktemp)
+dot vpn >/dev/null 2>&1
+set -l vpn_bare_status $status
+
+@test "bare dot vpn fails" $vpn_bare_status -ne 0
+
+# --- a failing nmcli call propagates its exit status ---
+set -gx NMCLI_FAIL 1
+dot vpn up >/dev/null 2>&1
+set -l vpn_up_fail_status $status
+set -e NMCLI_FAIL
+
+@test "dot vpn up fails when nmcli fails" $vpn_up_fail_status -ne 0
+
+# --- dot help discovers dot vpn ---
+set -l help_with_vpn (dot help)
+@test "dot help lists the vpn subcommand" (string match -q '*vpn*' -- $help_with_vpn; echo $status) -eq 0
