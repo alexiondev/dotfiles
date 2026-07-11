@@ -1,1 +1,18 @@
-/home/alexion/wrk/claude/settings.json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/attention-bell.sh" }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/attention-bell.sh" }
+        ]
+      }
+    ]
+  }
+}
