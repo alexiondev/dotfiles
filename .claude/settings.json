@@ -3,16 +3,23 @@
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "~/.claude/hooks/attention-bell.sh" }
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/attention-bell.sh"
+          }
         ]
       }
     ],
     "Notification": [
       {
         "hooks": [
-          { "type": "command", "command": "~/.claude/hooks/attention-bell.sh" }
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/attention-bell.sh"
+          }
         ]
       }
     ]
-  }
+  },
+  "model": "opus"
 }
