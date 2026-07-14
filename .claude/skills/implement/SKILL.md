@@ -30,7 +30,7 @@ Always branch off `main`, never off a sibling task branch.
 
 ### 3. Implement
 
-Build the work described in the task's "What to build" section, satisfying its acceptance criteria. Use `/test-driven-development` where possible, at the seams already agreed when the spec or task was written.
+Build the work described in the task's "What to build" section, satisfying its acceptance criteria. ALWAYS use `/test-driven-development`, at the seams already agreed when the spec or task was written.
 
 Run typechecking regularly, single test files regularly, and the full test suite once at the end.
 
