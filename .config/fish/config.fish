@@ -13,5 +13,3 @@ set -gx VISUAL nvim
 set --export BUN_INSTALL "$HOME/.bun"
 set --export PATH $BUN_INSTALL/bin $PATH
 
-# Pi
-fish_add_path "/home/alexion/.local/opt/node-v24.18.0-linux-x64/bin"
