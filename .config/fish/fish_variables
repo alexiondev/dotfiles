@@ -6,7 +6,7 @@ SETUVAR __fish_initialized:4300
 SETUVAR _fisher_jorgebucaran_2F_fishtape_files:\x7e/\x2econfig/fish/functions/fishtape\x2efish\x1e\x7e/\x2econfig/fish/completions/fishtape\x2efish
 SETUVAR _fisher_plugins:jorgebucaran/fishtape
 SETUVAR _fisher_upgraded_to_4_4:\x1d
-SETUVAR fish_user_paths:/home/alexion/\x2elocal/bin\x1e/home/alexion/\x2elocal/opt/node\x2dv24\x2e18\x2e0\x2dlinux\x2dx64/bin\x1e/home/alexion/Android/Sdk/platform\x2dtools
+SETUVAR fish_user_paths:/home/alexion/\x2elocal/bin\x1e/home/alexion/Android/Sdk/platform\x2dtools
 SETUVAR pure_begin_prompt_with_current_directory:true
 SETUVAR pure_check_for_new_release:false
 SETUVAR pure_color_at_sign:pure_color_mute
