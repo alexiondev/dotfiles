@@ -4,33 +4,49 @@
   pkgs,
   ...
 }:
-# fish for the primary user, configured natively through home-manager and set
-# as their default login shell. Wires the done and bang-bang plugins, a
-# fastfetch greeting, a bat-backed manpager, helper functions, and the eza and
-# navigation aliases.
+# fish for the primary user, configured natively through home-manager. Wires the
+# done and bang-bang plugins, a fastfetch greeting, a bat-backed manpager, helper
+# functions, the eza aliases, and vi-style command-line editing. Set fish as the
+# default login shell by also turning on `modules.fish.defaultShell`.
 let
   cfg = config.modules.fish;
   user = config.user.name;
 in
 {
-  options.modules.fish.enable = lib.mkEnableOption "fish as the user's shell, configured via home-manager";
+  options.modules.fish = {
+    enable = lib.mkEnableOption "fish as the user's shell, configured via home-manager";
+
+    defaultShell = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Set fish as the user's default login shell.";
+    };
+  };
 
   config = lib.mkIf cfg.enable {
     # System-level fish: registers it in /etc/shells and installs vendor
     # completions.
     programs.fish.enable = true;
-    users.users.${user}.shell = pkgs.fish;
+    users.users.${user}.shell = lib.mkIf cfg.defaultShell pkgs.fish;
 
     home-manager.users.${user} = {
       home.packages = with pkgs; [
-        eza
-        bat
-        fastfetch
-        wget
+        eza # modern ls with git awareness and icons; backs the ls aliases
+        bat # syntax-highlighting cat/pager; backs the manpager below
+        fastfetch # system-info banner printed as the shell greeting
+        wget # non-interactive HTTP downloader; backs the wget abbreviation
       ];
 
       programs.fish = {
         enable = true;
+
+        # Relied-on upstream defaults, pinned so a future change can't silently
+        # alter behaviour.
+        generateCompletions = true;
+
+        # Prefer abbreviations over aliases when other modules wire up fish
+        # shortcuts, matching the abbreviation-first style below.
+        preferAbbrs = true;
 
         # done notifies when a long command finishes; bang-bang restores the !!
         # and !$ history bindings.
@@ -45,20 +61,20 @@ in
           }
         ];
 
+        # Only the eza listings stay aliases; everything else is an abbreviation.
         shellAliases = {
-          # Replace ls with eza.
           ls = "eza -al --color=always --group-directories-first --icons";
           la = "eza -a --color=always --group-directories-first --icons";
           ll = "eza -l --color=always --group-directories-first --icons";
           lt = "eza -aT --color=always --group-directories-first --icons";
           "l." = "eza -a | grep -e '^\\.'";
+        };
 
+        shellAbbrs = {
           # Walk up the tree.
           ".." = "cd ..";
           "..." = "cd ../..";
           "...." = "cd ../../..";
-          "....." = "cd ../../../..";
-          "......" = "cd ../../../../..";
 
           vi = "nvim";
           vim = "nvim";
@@ -68,15 +84,10 @@ in
           tarnow = "tar -acf ";
           untar = "tar -zxvf ";
           wget = "wget -c ";
-          psmem = "ps auxf | sort -nr -k 4";
-          psmem10 = "ps auxf | sort -nr -k 4 | head -10";
-          dir = "dir --color=auto";
-          vdir = "vdir --color=auto";
           grep = "grep --color=auto";
           fgrep = "fgrep --color=auto";
           egrep = "egrep --color=auto";
           jctl = "journalctl -p 3 -xb";
-          please = "sudo";
 
           # Rebuild the system, and reclaim disk from old generations.
           update = "sudo nixos-rebuild switch";
@@ -114,6 +125,9 @@ in
         };
 
         interactiveShellInit = ''
+          # vi-style modal editing on the command line.
+          set -g fish_key_bindings fish_vi_key_bindings
+
           set -gx EDITOR nvim
           set -gx VISUAL nvim
 

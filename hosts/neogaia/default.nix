@@ -37,6 +37,7 @@
 
   # fish as the login shell.
   modules.fish.enable = true;
+  modules.fish.defaultShell = true;
 
   # Locale preferences for the base system.
   time.timeZone = "America/New_York";

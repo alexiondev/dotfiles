@@ -32,3 +32,10 @@ Configure the plugins natively through home-manager rather than a fish plugin ma
 - **`copy` kept verbatim** (including the upstream `trim-right` call) to preserve exact parity with the current shell.
 - **Verification.** The `neogaia` system toplevel builds (the spec's primary seam).
   The rendered `~/.config/fish/` was inspected in the build output: aliases, the three helper functions, the `fastfetch` greeting, the bat manpager, the `done` tuning vars, and the `conf.d/plugin-done.fish` + `conf.d/plugin-bang-bang.fish` plugin files are all present; `users.users.alexion.shell` resolves to `pkgs.fish`.
+
+### Post-review adjustments
+
+- **`defaultShell` option.** Setting fish as the login shell moved behind `modules.fish.defaultShell` (default `false`, gated with `mkIf`); `neogaia` opts in explicitly. Enabling the Module alone no longer changes the login shell.
+- **Abbreviation-first.** Every non-eza alias is now a `shellAbbr` (the eza `ls` family stays an alias), `preferAbbrs = true`, and `generateCompletions = true` is pinned rather than left to the upstream default.
+- **vi command-line editing.** `interactiveShellInit` sets `fish_key_bindings fish_vi_key_bindings`; the `bang-bang` plugin re-binds `!`/`$` in insert mode via its own `--on-variable fish_key_bindings` handler, so the switch keeps them working.
+- **Trimmed aliases.** Navigation capped at four dots (`.....`/`......` dropped); `psmem`, `psmem10`, `dir`, `vdir`, and `please` removed.
