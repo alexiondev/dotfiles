@@ -23,10 +23,8 @@ in
       type = types.str;
       default = "alexion";
       description = ''
-        The primary interactive user this Host is built for. An explicit option
-        with no impure environment lookup, so the config is reproducible and
-        honest about who the user is. Drives both the system account and the
-        home-manager user in lockstep.
+        The primary interactive user this Host is built for. Drives both the
+        system account and the home-manager user in lockstep.
       '';
     };
     description = mkOption {
@@ -55,9 +53,7 @@ in
     ];
     environment.systemPackages = [ pkgs.git ];
 
-    # Primary user, in wheel. The bootstrap password is set by hand at install
-    # time and never committed; moving it to a sops-backed hashedPasswordFile is
-    # the first post-boot task (out of scope for the MVI).
+    # Primary user, in wheel. No password is set here.
     users.users.${user.name} = {
       isNormalUser = true;
       description = user.description;

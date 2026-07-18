@@ -1,10 +1,8 @@
 { ... }:
 # neogaia — Dell XPS 13 9380 laptop.
 #
-# Minimum viable Host: enough to evaluate and build the system toplevel. The
-# real disk layout (disko: LUKS + btrfs + zram), the CachyOS kernel, networking,
-# and the terminal Modules arrive in later tasks; the placeholders below are
-# replaced by disko in task 0002.
+# The filesystems and hardware profile below are placeholder values, not the
+# machine's real encrypted layout.
 {
   imports = [ ./hardware-configuration.nix ];
 
@@ -13,8 +11,7 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  # Placeholder filesystems so the toplevel builds; superseded by the disko
-  # layout in task 0002.
+  # Placeholder label-based filesystems.
   fileSystems."/" = {
     device = "/dev/disk/by-label/nixos";
     fsType = "ext4";

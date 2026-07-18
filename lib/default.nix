@@ -15,8 +15,8 @@ let
 
   # --- Auto-loader ---------------------------------------------------------
   # Recursively collect every `.nix` file under `dir`, returned as a flat list
-  # of paths suitable for a module `imports`. No null-placeholder traversal
-  # hack: a directory recurses, a `.nix` file is taken, anything else is skipped.
+  # of paths suitable for a module `imports`: a directory recurses, a `.nix`
+  # file is taken, anything else is skipped.
   collectNixFiles =
     dir:
     flatten (

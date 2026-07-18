@@ -1,7 +1,6 @@
 { lib, modulesPath, ... }:
-# Placeholder hardware profile — regenerated on the target machine at install
-# time (`nixos-generate-config` / `disko-install`). Carries only enough for the
-# toplevel to evaluate: the host platform and the XPS 13's initrd modules.
+# Placeholder hardware profile for the XPS 13: the host platform and the initrd
+# modules the machine needs to evaluate and boot.
 {
   imports = [ (modulesPath + "/installer/scan/not-detected.nix") ];
 
