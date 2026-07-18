@@ -37,6 +37,9 @@ in
         wget # non-interactive HTTP downloader; backs the wget abbreviation
       ];
 
+      # done's tuning lives in its own conf.d snippet, mirroring ~/.config/fish.
+      xdg.configFile."fish/conf.d/done.fish".source = ./conf.d/done.fish;
+
       programs.fish = {
         enable = true;
 
@@ -111,11 +114,11 @@ in
 
           copy = {
             description = "Copy a file, or recursively copy a source directory into a destination";
-            body = builtins.readFile ./fish/copy.fish;
+            body = builtins.readFile ./functions/copy.fish;
           };
         };
 
-        interactiveShellInit = builtins.readFile ./fish/interactive-init.fish;
+        interactiveShellInit = builtins.readFile ./config.fish;
       };
     };
   };
