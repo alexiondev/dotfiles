@@ -9,6 +9,9 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   Do not write comments about history ("used to be X", "now moved here"), about how a value is consumed in other files, or that justify the choice against alternatives.
   Never reference agent-facing state (anything under `.claude/` or `CLAUDE.md`) from a code comment: that state is not part of understanding the code.
   A reader looking at only that file should find every comment accurate and self-contained.
+- Comments posted to Gitea (pull requests, issues, reviews) go out under the operator's account, so sign every one to make clear the author is the agent, not the operator.
+  End the comment with a `— Claude` sign-off.
+  (A dedicated bot account may replace this later; until then, the sign-off is the only marker.)
 
 ## Gotchas
 
