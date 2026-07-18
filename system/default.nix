@@ -77,7 +77,7 @@ in
       users.${user.name} = {
         home.username = user.name;
         home.homeDirectory = "/home/${user.name}";
-        home.stateVersion = "25.05";
+        home.stateVersion = "26.05";
       };
     };
   };

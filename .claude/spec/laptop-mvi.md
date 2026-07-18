@@ -46,7 +46,7 @@ The install itself is done from the NixOS live ISO by cloning the repo from my G
 - Hand-rolled flake, rewritten and trimmed; no flake-parts.
 - `Auto-loader` rewritten: recursively discovers and imports every `Module` under the modules tree without the old null-placeholder traversal hack; a single discovery helper feeds the `Host` imports. The old `nixosModules` flake output is dropped.
 - Helper lib trimmed to the `Auto-loader`, the host-builder, and the script-from-file helper. `with lib.my` replaced by explicit `inherit`s throughout. `enable` flags use the stdlib enable-option helper rather than bespoke sugar.
-- `nixos-unstable` as the base channel. An `unstable overlay` exposes `nixpkgs-unstable` packages; a `stable overlay` exposes the latest stable release (`nixos-25.05`). chaotic-nyx added as an input with its overlay and binary cache from the start.
+- `nixos-unstable` as the base channel. An `unstable overlay` exposes `nixpkgs-unstable` packages; a `stable overlay` exposes the latest stable release (`nixos-26.05`). chaotic-nyx added as an input with its overlay and binary cache from the start.
 - home-manager sourced from `nix-community`, tracking master with nixpkgs followed, integrated as a NixOS module with global packages and user packages.
 - User modelled as an explicit option defaulting to `alexion`, in `wheel`, driving the system user and the home-manager user in lockstep.
 

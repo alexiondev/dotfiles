@@ -29,5 +29,5 @@ The overlay exposing `nixpkgs-unstable` packages as `unstable.<name>`, used to p
 _Avoid_: bleeding-edge, latest
 
 **stable overlay**:
-The overlay exposing the latest stable release (`nixos-25.05`) as `stable.<name>`, used to pin an individual package to the rock-solid release from the `nixos-unstable` base.
+The overlay exposing the latest stable release (`nixos-26.05`) as `stable.<name>`, used to pin an individual package to the rock-solid release from the `nixos-unstable` base.
 _Avoid_: LTS, release channel

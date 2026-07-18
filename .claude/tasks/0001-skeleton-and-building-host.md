@@ -6,7 +6,7 @@ spec: laptop-mvi
 
 Stand up the `Skeleton` and a minimal `neogaia` `Host` that evaluates and whose system toplevel builds — the walking skeleton every later slice extends and re-verifies against.
 
-The `Skeleton` is a hand-rolled flake (no flake-parts): `nixos-unstable` base channel, an `unstable overlay` exposing `nixpkgs-unstable` as `unstable.<name>`, a `stable overlay` exposing `nixos-25.05` as `stable.<name>`, and chaotic-nyx wired as an input with its overlay and binary cache.
+The `Skeleton` is a hand-rolled flake (no flake-parts): `nixos-unstable` base channel, an `unstable overlay` exposing `nixpkgs-unstable` as `unstable.<name>`, a `stable overlay` exposing `nixos-26.05` as `stable.<name>`, and chaotic-nyx wired as an input with its overlay and binary cache.
 The helper lib is trimmed to three pieces: the `Auto-loader` (recursively discovers and imports every `Module` under `modules/` and every `Host` under `hosts/` with no null-placeholder traversal hack), the host-builder, and the script-from-file helper.
 `with lib.my` is not used — dependencies are `inherit`ed explicitly.
 The `Enable convention` uses the stdlib enable-option helper; every `Module` is imported unconditionally and guards its body with `mkIf config.modules.<path>.enable`.
