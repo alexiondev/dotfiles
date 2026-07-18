@@ -17,10 +17,7 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  # Kernel is a per-Host choice, expressed through boot.kernelPackages: neogaia
-  # runs the CachyOS kernel from chaotic-nyx (fetched from the chaotic binary
-  # cache wired in system/, not compiled from source). Other Hosts pick their
-  # own kernel the same way, so the choice never leaves the Host.
+  # neogaia runs the CachyOS kernel, selected per-Host via boot.kernelPackages.
   boot.kernelPackages = pkgs.linuxPackages_cachyos;
 
   # Intel CPU microcode updates for the XPS 13's Core i7-8565U.
@@ -29,7 +26,6 @@
   # Redistributable firmware — carries the ath10k blobs the QCA6174 wifi needs.
   hardware.enableRedistributableFirmware = true;
 
-  # Swap is RAM-backed zram (the zram Module) rather than an on-disk partition,
-  # matching the disko layout, which declares no swap partition.
-  modules.zram.enable = true;
+  # Swap is RAM-backed zram rather than an on-disk partition.
+  zramSwap.enable = true;
 }

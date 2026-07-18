@@ -3,6 +3,13 @@
 One flake that builds every machine the user owns.
 The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overlays) lives in `.claude/CONTEXT.md`; the current deliverable's spec is `.claude/spec/laptop-mvi.md`.
 
+## Conventions
+
+- In-file comments describe only the current content and behaviour of the file they sit in.
+  Do not write comments about history ("used to be X", "now moved here"), about how a value is consumed in other files, or that justify the choice against alternatives.
+  Never reference agent-facing state (anything under `.claude/` or `CLAUDE.md`) from a code comment: that state is not part of understanding the code.
+  A reader looking at only that file should find every comment accurate and self-contained.
+
 ## Gotchas
 
 - Nix on the dev host needs experimental features passed per-command.
