@@ -48,20 +48,19 @@ in
         # shortcuts, matching the abbreviation-first style below.
         preferAbbrs = true;
 
-        # done notifies when a long command finishes; bang-bang restores the !!
-        # and !$ history bindings.
         plugins = [
+          # Notify when a long command finishes.
           {
             name = "done";
             src = pkgs.fishPlugins.done.src;
           }
+          # Restore the !! and !$ history bindings.
           {
             name = "bang-bang";
             src = pkgs.fishPlugins.bang-bang.src;
           }
         ];
 
-        # Only the eza listings stay aliases; everything else is an abbreviation.
         shellAliases = {
           ls = "eza -al --color=always --group-directories-first --icons";
           la = "eza -a --color=always --group-directories-first --icons";
