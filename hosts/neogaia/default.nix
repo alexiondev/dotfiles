@@ -28,4 +28,15 @@
 
   # Swap is RAM-backed zram rather than an on-disk partition.
   zramSwap.enable = true;
+
+  # NetworkManager drives the wifi so it can be joined from the console.
+  networking.networkmanager.enable = true;
+
+  # An SSH daemon so the rest of the setup can be driven over the network.
+  services.openssh.enable = true;
+
+  # Locale preferences for the base system.
+  time.timeZone = "America/New_York";
+  i18n.defaultLocale = "en_GB.UTF-8";
+  console.keyMap = "us";
 }
