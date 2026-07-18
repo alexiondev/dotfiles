@@ -8,6 +8,10 @@ set -gx VISUAL nvim
 set -x MANROFFOPT "-c"
 set -x MANPAGER "sh -c 'col -bx | bat -l man -p'"
 
+# Tune the done plugin: only notify for commands past 10s, at low urgency.
+set -g __done_min_cmd_duration 10000
+set -g __done_notification_urgency_level low
+
 # Prepend ~/.local/bin to PATH when it exists.
 if test -d ~/.local/bin
     fish_add_path ~/.local/bin

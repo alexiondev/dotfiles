@@ -37,9 +37,6 @@ in
         wget # non-interactive HTTP downloader; backs the wget abbreviation
       ];
 
-      # done's tuning lives in its own conf.d snippet, mirroring ~/.config/fish.
-      xdg.configFile."fish/conf.d/done.fish".source = ./conf.d/done.fish;
-
       programs.fish = {
         enable = true;
 
