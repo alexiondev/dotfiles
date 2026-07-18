@@ -51,6 +51,18 @@ in
       "nix-command"
       "flakes"
     ];
+
+    # The chaotic binary cache, declared explicitly on the built system so the
+    # CachyOS kernel is substituted rather than compiled. chaotic's own module
+    # also provides these, but stating them here keeps the built system's cache
+    # config visible and independent of that module. Added via the `extra-`
+    # options so they only append — cache.nixos.org and any other substituter
+    # are never dropped. (Fetching at install time depends on the installing
+    # daemon's substituters, not this — see the chaotic gotcha in CLAUDE.md.)
+    nix.settings.extra-substituters = [ "https://nyx-cache.chaotic.cx/" ];
+    nix.settings.extra-trusted-public-keys = [
+      "nyx-cache.chaotic.cx:dJxTrgMC3V3cFfyIiBQDQorG6k1LsqurH/srpMSq7qk="
+    ];
     environment.systemPackages = [ pkgs.git ];
 
     # Primary user, in wheel. No password is set here.
