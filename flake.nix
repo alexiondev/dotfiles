@@ -16,6 +16,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Declarative disk partitioning. Each Host declares its own layout; a Host
+    # that preserves an existing pool simply declares none.
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # CachyOS kernel + binary cache. Deliberately NOT following our nixpkgs, so the
     # chaotic cache stays usable and the kernel is fetched rather than compiled.
     chaotic.url = "github:chaotic-cx/nyx/nyxpkgs-unstable";
