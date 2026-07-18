@@ -115,7 +115,15 @@ in
           };
         };
 
-        interactiveShellInit = builtins.readFile ./config.fish;
+        # config.fish is assembled here, in order, from the fragments under
+        # ./config so each concern stays an editable fish file while
+        # home-manager still writes a single ~/.config/fish/config.fish.
+        interactiveShellInit = lib.concatMapStringsSep "\n" builtins.readFile [
+          ./config/bindings.fish
+          ./config/env.fish
+          ./config/done.fish
+          ./config/path.fish
+        ];
       };
     };
   };
