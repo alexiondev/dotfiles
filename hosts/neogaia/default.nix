@@ -17,7 +17,6 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  # Swap is RAM-backed zram rather than an on-disk partition. Task 0003 lifts
-  # this into the zram toggle Module; enabled directly here for now.
+  # Swap is RAM-backed zram rather than an on-disk partition.
   zramSwap.enable = true;
 }
