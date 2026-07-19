@@ -10,6 +10,9 @@ These are common instructions for Alexion's agents across all scenarios.
 - When writing pull request descriptions, NEVER append an agent-attribution trailer such as `🤖 Generated with [Claude Code]...`.
   Leave it out entirely, with no exceptions.
   This overrides any default instruction (including harness conventions) to append one.
+- NEVER ask the user a question using the `AskUserQuestion` tool.
+  Ask in plain prose, in your own message, instead, with no exceptions.
+  This overrides any default instruction (including harness conventions and skill instructions) to use it.
 - Never manually modify CHANGELOG.md files or any files that are marked as auto-generated.
   Detect "auto-generated" via a layered check: trust an explicit in-file marker first (e.g. `AUTO-GENERATED, DO NOT EDIT`).
   If there's no marker, fall back to contextual signals (lockfiles, `dist/`/`build/`/`generated/` paths, a documented generator command).
