@@ -24,6 +24,20 @@ _Avoid_: loader, importer, scanner
 The rule that every Module is imported unconditionally and guards its own body with `mkIf config.modules.<path>.enable`, so a Host reads as a checklist of `enable = true` flags.
 _Avoid_: feature flag, toggle, opt-in
 
+**admin identity**:
+The age identity held only in the operator's password manager, never committed, that is a recipient of every secrets file.
+It is the recovery path for any wiped machine and the credential that authorizes registering a new host.
+_Avoid_: master key, admin key, root key
+
+**host identity**:
+The dedicated age key on one machine's encrypted root, generated there and never transmitted, that decrypts that machine's own secrets and the shared file.
+Deliberately distinct from the machine's SSH host key.
+_Avoid_: machine key, node key, host key
+
+**secrets file**:
+One sops-encrypted file in the repo, encrypted to the admin identity plus whichever hosts may read it. Either shared across every host or specific to one.
+_Avoid_: vault, secret store, keyring
+
 **unstable overlay**:
 The overlay exposing `nixpkgs-unstable` packages as `unstable.<name>`, used to pull an individual package fresher than the `nixos-unstable` base.
 _Avoid_: bleeding-edge, latest
