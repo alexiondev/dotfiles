@@ -65,17 +65,11 @@ let
       hostNames = attrNames (filterAttrs (_name: type: type == "directory") (builtins.readDir hostsDir));
     in
     genAttrs hostNames (hostName: mkHost { inherit hostName; });
-
-  # --- Script-from-file helper --------------------------------------------
-  # Turn a standalone script file into a package on PATH, keeping the script
-  # itself editable as a real file rather than an inlined heredoc.
-  scriptFromFile = pkgs: name: path: pkgs.writeShellScriptBin name (builtins.readFile path);
 in
 {
   inherit
     collectNixFiles
     mkHost
     mkHosts
-    scriptFromFile
     ;
 }
