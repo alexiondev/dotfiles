@@ -42,6 +42,9 @@
   # tmux as the terminal multiplexer.
   modules.tmux.enable = true;
 
+  # Neovim, configured declaratively via nixvim.
+  modules.nvim.enable = true;
+
   # Locale preferences for the base system.
   time.timeZone = "America/New_York";
   i18n.defaultLocale = "en_GB.UTF-8";

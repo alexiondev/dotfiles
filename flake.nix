@@ -16,6 +16,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Neovim configured declaratively in Nix. Must follow our nixpkgs so its
+    # plugins build against the same package set.
+    nixvim = {
+      url = "github:nix-community/nixvim";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Declarative disk partitioning. Each Host declares its own layout; a Host
     # that preserves an existing pool simply declares none.
     disko = {
