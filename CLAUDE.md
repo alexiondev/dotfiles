@@ -18,6 +18,9 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
 - Comments posted to Gitea (pull requests, issues, reviews) go out under the operator's account, so sign every one to make clear the author is the agent, not the operator.
   End the comment with a `— Claude` sign-off.
   (A dedicated bot account may replace this later; until then, the sign-off is the only marker.)
+- Commit messages follow Conventional Commits, specified in `docs/conventional-commits.md`.
+  Scope is the module or host the change belongs to (`fish`, `nvim`, `neogaia`), omitted for repo-wide changes.
+  Keep messages free of Gitea-specific references: this repository is mirrored to GitHub, where issue and pull-request numbers resolve to unrelated things.
 
 ## Gotchas
 
