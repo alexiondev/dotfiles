@@ -58,6 +58,14 @@ in
     ];
     environment.systemPackages = [ pkgs.git ];
 
+    # Caps Lock is a second Escape; Shift+Caps Lock still toggles Caps Lock.
+    services.xserver.xkb.layout = "us";
+    services.xserver.xkb.options = "caps:escape_shifted_capslock";
+
+    # Compile the console keymap from the layout above, so the remap holds on a
+    # bare TTY and not only under a graphical session.
+    console.useXkbConfig = true;
+
     # Primary user, in the wheel group. No password set here.
     users.users.${user.name} = {
       isNormalUser = true;
