@@ -14,32 +14,27 @@ The microcode setting the `Host` currently declares is dropped, because the prof
 - [x] The Dell XPS 13 9380 profile is imported by the `neogaia` `Host`
 - [x] The `Host`'s own Intel microcode setting is removed, now that the profile supplies it
 - [x] `nix flake check` builds the `neogaia` toplevel
-- [ ] Manual confirmation after a rebuild: the default sleep mode is deep rather than s2idle
-- [ ] Manual confirmation after a rebuild: the thermal and power management services are active, and the PS/2 mouse driver is no longer loaded
+- [x] Manual confirmation after a rebuild: the default sleep mode is deep rather than s2idle
+- [x] Manual confirmation after a rebuild: the thermal and power management services are active, and the PS/2 mouse driver is no longer loaded
 
 ## Implementation Notes
 
-The two manual criteria are left unresolved deliberately, and this task is not
-finished until the operator resolves them. Both require a `nixos-rebuild switch`
-followed by a **reboot**, neither of which can be performed here: the rebuild
-needs root, and the sleep-mode and module-blacklist changes only take effect on a
-fresh boot rather than on activation, since the modules in question are already
-loaded.
+Both manual criteria were confirmed on the rebooted machine. The selected sleep
+mode moved from s2idle to deep, with the kernel parameter visible on the boot
+command line; the thermal and power management services came up active; and the
+PS/2 mouse module is no longer loaded. The booted system, the running system and
+the freshly built toplevel are all the same store path, so these readings come
+from this configuration rather than a surviving older generation.
 
-The strongest evidence obtainable short of that reboot was gathered from the
-evaluated configuration, and all of it agrees with the intent: the deep-sleep
-kernel parameter is present, the PS/2 mouse module is blacklisted, the thermal,
-power and firmware services are enabled, and Intel microcode updates remain on
-through the profile's default now that the `Host` no longer sets them. That
-confirms what was built, not what the machine does.
+The firmware update service reads as inactive, which is correct rather than a
+failure: it is activated on demand over D-Bus. Its unit is present, its refresh
+timer is enabled, and its command-line tool is on the path.
 
 The input follows the base nixpkgs. Locking it without that pulled a second
 nixpkgs into the lock file, which nothing evaluates — only the NixOS modules are
 consumed — and which would drift silently. Following matches every other input
 here except chaotic, whose separate pin is deliberate.
 
-Verify after rebooting:
-
-    cat /sys/power/mem_sleep          # expect [deep], currently [s2idle] deep
-    systemctl is-active thermald tlp  # expect active, currently inactive
-    lsmod | grep psmouse              # expect no output, currently loaded
+Intel microcode updates now rest on the profile's default rather than an explicit
+setting here. The default is overridable, so a `Host` that disables redistributable
+firmware would silently lose microcode updates too.
