@@ -10,6 +10,12 @@ the current project's `.claude/skills/`, tracked in
 Only ever adds — checking already-installed skills for updates is
 [`update-skills`](../update-skills/SKILL.md)'s job, not this one's.
 
+The library is a tree of read-only symlinks into the Nix store, so every
+copy out of it must dereference (`cp -rL`) and then restore write
+permission (`chmod -R u+w`). A plain `cp -r` copies the symlinks
+themselves, putting store paths into the project that break on any other
+machine.
+
 ## Steps
 
 1. Read `.claude/skills-lock.yaml` in the current project, if it exists.
@@ -35,7 +41,8 @@ Only ever adds — checking already-installed skills for updates is
      skill already lives there and isn't tracked — remove or rename it
      first if they want the library version).
    - Otherwise, copy `~/.claude/skills/library/<name>/` to
-     `.claude/skills/<name>/` in the project, run
+     `.claude/skills/<name>/` in the project with
+     `cp -rL` followed by `chmod -R u+w`, run
      `~/.claude/skills/setup-skills/hash-dir.sh .claude/skills/<name>`,
      and append `{name, hash: <output>}` to `.claude/skills-lock.yaml`
      (create the file, an empty YAML list, if it doesn't exist yet).

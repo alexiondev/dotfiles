@@ -36,8 +36,11 @@ skill that isn't already there — that's
    already included an explicit go-ahead argument (e.g. `-y`, `yes`), in
    which case apply them without asking. Applying means: delete
    `.claude/skills/<name>/` entirely and copy
-   `~/.claude/skills/library/<name>/` in its place, so no file the project
-   copy had but the library no longer has can survive — then recompute its
+   `~/.claude/skills/library/<name>/` in its place with `cp -rL` followed
+   by `chmod -R u+w` (the library is read-only symlinks into the Nix store;
+   a plain `cp -r` would put store paths into the project), so no file the
+   project copy had but the library no longer has can survive — then
+   recompute its
    hash and overwrite that entry's `hash` in `.claude/skills-lock.yaml` in
    place.
 
