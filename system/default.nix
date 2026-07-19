@@ -5,13 +5,12 @@
   inputs,
   ...
 }:
-# The Skeleton's shared base config: the pieces every Host carries regardless of
-# which Modules it enables — overlays, the `user`, flakes, and home-manager.
+# Shared base config carried by every host.
 let
   inherit (lib) mkOption types;
   user = config.user;
 
-  # Instantiate an extra nixpkgs source for the same platform as the base pkgs.
+  # Args to instantiate an extra nixpkgs source on the base platform.
   pinArgs = prev: {
     inherit (prev.stdenv.hostPlatform) system;
     config.allowUnfree = true;
@@ -23,7 +22,7 @@ in
       type = types.str;
       default = "alexion";
       description = ''
-        The primary interactive user this Host is built for. Drives both the
+        The primary interactive user this host is built for. Drives both the
         system account and the home-manager user in lockstep.
       '';
     };
@@ -35,9 +34,8 @@ in
   };
 
   config = {
-    # Base is nixos-unstable; reach a package fresher with `unstable.<name>` or
-    # pin it rock-solid with `stable.<name>`. chaotic's overlay is added by its
-    # own NixOS module, imported by the host-builder.
+    # Reach fresher packages with `unstable.<name>` or pin with `stable.<name>`.
+    # chaotic's overlay is added by its own module, not here.
     nixpkgs.overlays = [
       (_final: prev: {
         unstable = import inputs.nixpkgs-unstable (pinArgs prev);
@@ -46,22 +44,21 @@ in
     ];
     nixpkgs.config.allowUnfree = true;
 
-    # Flakes + a baseline so `nixos-rebuild switch` works from the console.
+    # Flakes, so `nixos-rebuild switch` works from the console.
     nix.settings.experimental-features = [
       "nix-command"
       "flakes"
     ];
 
-    # The chaotic binary cache, so the CachyOS kernel is substituted rather than
-    # compiled. Appended with the `extra-` options so cache.nixos.org and any
-    # other substituter are kept alongside it.
+    # chaotic's binary cache, so the CachyOS kernel is fetched rather than
+    # compiled. The `extra-` prefix keeps cache.nixos.org alongside it.
     nix.settings.extra-substituters = [ "https://nyx-cache.chaotic.cx/" ];
     nix.settings.extra-trusted-public-keys = [
       "nyx-cache.chaotic.cx:dJxTrgMC3V3cFfyIiBQDQorG6k1LsqurH/srpMSq7qk="
     ];
     environment.systemPackages = [ pkgs.git ];
 
-    # Primary user, in wheel. No password is set here.
+    # Primary user, in the wheel group. No password set here.
     users.users.${user.name} = {
       isNormalUser = true;
       description = user.description;
@@ -69,8 +66,8 @@ in
     };
 
     # home-manager as a NixOS module: one `nixos-rebuild switch` builds the
-    # system and the user environment atomically, sharing the system's pkgs
-    # (with our overlays) and installing user packages into the system profile.
+    # system and user environment together, sharing the system's pkgs and
+    # installing user packages into the system profile.
     home-manager = {
       useGlobalPkgs = true;
       useUserPackages = true;

@@ -4,10 +4,7 @@
   pkgs,
   ...
 }:
-# fish for the primary user, configured natively through home-manager. Wires the
-# done and bang-bang plugins, a fastfetch greeting, a bat-backed manpager, helper
-# functions, the eza aliases, and vi-style command-line editing. Set fish as the
-# default login shell by also turning on `modules.fish.defaultShell`.
+# fish for the primary user, configured through home-manager.
 let
   cfg = config.modules.fish;
   user = config.user.name;
@@ -24,28 +21,21 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # System-level fish: registers it in /etc/shells and installs vendor
-    # completions.
+    # System-level fish registers it in /etc/shells and installs vendor completions.
     programs.fish.enable = true;
     users.users.${user}.shell = lib.mkIf cfg.defaultShell pkgs.fish;
 
     home-manager.users.${user} = {
       home.packages = with pkgs; [
-        eza # modern ls with git awareness and icons; backs the ls aliases
-        bat # syntax-highlighting cat/pager; backs the manpager below
-        fastfetch # system-info banner printed as the shell greeting
-        wget # non-interactive HTTP downloader; backs the wget abbreviation
+        eza # backs the ls/la/ll aliases
+        bat # backs the manpager
+        fastfetch # the shell greeting
+        wget # backs the wget abbreviation
       ];
 
       programs.fish = {
         enable = true;
 
-        # Relied-on upstream defaults, pinned so a future change can't silently
-        # alter behaviour.
-        generateCompletions = true;
-
-        # Prefer abbreviations over aliases when other modules wire up fish
-        # shortcuts, matching the abbreviation-first style below.
         preferAbbrs = true;
 
         plugins = [
@@ -94,7 +84,6 @@ in
         };
 
         functions = {
-          # Run fastfetch as the welcome message.
           fish_greeting = "fastfetch";
 
           history = {
@@ -114,8 +103,7 @@ in
           };
         };
 
-        # Read from a real fish file, which home-manager renders into
-        # ~/.config/fish/config.fish.
+        # Rendered by home-manager into ~/.config/fish/config.fish.
         interactiveShellInit = builtins.readFile ./config.fish;
       };
     };

@@ -1,11 +1,11 @@
 {
-  description = "Alexion's NixOS configuration — one flake for every Host";
+  description = "Alexion's NixOS configuration — one flake for every host";
 
   inputs = {
-    # Base channel: nixos-unstable (rolling, but gated by the NixOS test suite).
+    # Base channel.
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
-    # Fresher-than-base packages, reachable per-package as `unstable.<name>`.
+    # Fresher packages, reachable per-package as `unstable.<name>`.
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
     # Latest stable release, reachable per-package as `stable.<name>`.
@@ -16,22 +16,20 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Neovim configured declaratively in Nix. Must follow our nixpkgs so its
-    # plugins build against the same package set.
+    # Follows our nixpkgs so its plugins build against the same package set.
     nixvim = {
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Declarative disk partitioning. Each Host declares its own layout; a Host
-    # that preserves an existing pool simply declares none.
+    # Declarative disk partitioning; each host declares its own layout.
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # CachyOS kernel + binary cache. Deliberately NOT following our nixpkgs, so the
-    # chaotic cache stays usable and the kernel is fetched rather than compiled.
+    # CachyOS kernel and binary cache. Pins its own nixpkgs so its cache stays
+    # usable and the kernel is fetched from it.
     chaotic.url = "github:chaotic-cx/nyx/nyxpkgs-unstable";
   };
 
@@ -42,13 +40,13 @@
       my = import ./lib { inherit lib inputs self; };
     in
     {
-      # The trimmed helper lib: the Auto-loader, the host-builder, the script-from-file helper.
+      # Helper functions for discovering and building hosts.
       lib = my;
 
-      # Every Host under hosts/ is auto-discovered and built.
+      # Every host under hosts/ is discovered and built.
       nixosConfigurations = my.mkHosts (self + "/hosts");
 
-      # `nix flake check` builds each Host's toplevel — the primary test seam.
+      # `nix flake check` builds each host's toplevel.
       checks.x86_64-linux = lib.mapAttrs (
         _name: host: host.config.system.build.toplevel
       ) self.nixosConfigurations;

@@ -13,10 +13,8 @@ let
     mapAttrsToList
     ;
 
-  # --- Auto-loader ---------------------------------------------------------
-  # Recursively collect every `.nix` file under `dir`, returned as a flat list
-  # of paths suitable for a module `imports`: a directory recurses, a `.nix`
-  # file is taken, anything else is skipped.
+  # Recursively collect every `.nix` file under `dir` as a flat list, for a
+  # module's `imports`.
   collectNixFiles =
     dir:
     flatten (
@@ -34,10 +32,9 @@ let
       ) (builtins.readDir dir)
     );
 
-  # --- Host-builder --------------------------------------------------------
-  # Build one Host: every Module is imported unconditionally (inert until its
-  # `enable` flag is set), alongside home-manager, chaotic, the shared base,
-  # and the Host's own directory.
+  # Build one host: every module is imported unconditionally (inert until its
+  # `enable` flag is set), alongside home-manager, chaotic, the shared base, and
+  # the host's own directory.
   mkHost =
     {
       hostName,
@@ -61,7 +58,7 @@ let
         ];
     };
 
-  # Discover every Host (a subdirectory of `hostsDir`) and build each one.
+  # Discover every host (a subdirectory of `hostsDir`) and build each one.
   mkHosts =
     hostsDir:
     let

@@ -5,12 +5,8 @@
   inputs,
   ...
 }:
-# Neovim for the primary user, configured declaratively through nixvim. Options,
-# keymaps, and plugin settings are typed Nix; the imperative remainder (the
-# colorscheme call and the Neogit blame-toggle autocmd) lives in ./config.lua.
-# Plugins come from nixpkgs — no plugin manager and no runtime cloning — and
-# treesitter grammars are built by Nix, so no compiler is needed at runtime. git
-# backs the git plugins; ripgrep and fd back the picker.
+# Neovim for the primary user, configured declaratively through nixvim. The
+# imperative remainder (colorscheme, Neogit blame autocmd) lives in ./config.lua.
 let
   cfg = config.modules.nvim;
   user = config.user.name;
@@ -32,7 +28,7 @@ in
         ];
 
         globals.mapleader = " ";
-        globals.clipboard = "osc52"; # neovim's built-in OSC 52 provider, no external binary needed
+        globals.clipboard = "osc52"; # built-in OSC 52 provider, no external binary needed
 
         opts = {
           clipboard = "unnamedplus";
@@ -180,8 +176,8 @@ in
           };
         };
 
-        # gbprod/nord.nvim; nixvim's colorschemes.nord is a different plugin. Set
-        # up in ./config.lua.
+        # gbprod/nord.nvim (nixvim's colorschemes.nord is a different plugin);
+        # set up in ./config.lua.
         extraPlugins = [ pkgs.vimPlugins.gbprod-nord ];
 
         extraConfigLua = builtins.readFile ./config.lua;

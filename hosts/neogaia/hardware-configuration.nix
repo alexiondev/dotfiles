@@ -1,6 +1,5 @@
 { lib, modulesPath, ... }:
-# Placeholder hardware profile for the XPS 13: the host platform and the initrd
-# modules the machine needs to evaluate and boot.
+# Placeholder: regenerate with nixos-generate-config on the target machine.
 {
   imports = [ (modulesPath + "/installer/scan/not-detected.nix") ];
 
