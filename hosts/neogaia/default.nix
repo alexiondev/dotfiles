@@ -39,6 +39,9 @@
   modules.fish.enable = true;
   modules.fish.defaultShell = true;
 
+  # tmux as the terminal multiplexer.
+  modules.tmux.enable = true;
+
   # Locale preferences for the base system.
   time.timeZone = "America/New_York";
   i18n.defaultLocale = "en_GB.UTF-8";
