@@ -59,16 +59,16 @@ Confirm you have connectivity (`ping -c1 github.com`) before continuing.
 Clone this repo onto the live ISO and work from that local checkout:
 
 ```console
-$ git clone ssh://gitea@git.alexion.dev:2022/alexion/dotfiles-nixos.git
-$ cd dotfiles-nixos
+$ git clone ssh://gitea@git.alexion.dev:2022/alexion/dotfiles.git
+$ cd dotfiles
 ```
 
 Cloning over SSH needs your Gitea SSH key present in the live session, since the ISO starts with none.
 If getting the key onto the ISO is inconvenient, clone over HTTPS instead and tell git to skip the self-signed certificate:
 
 ```console
-$ git -c http.sslVerify=false clone https://git.alexion.dev/alexion/dotfiles-nixos.git
-$ cd dotfiles-nixos
+$ git -c http.sslVerify=false clone https://git.alexion.dev/alexion/dotfiles.git
+$ cd dotfiles
 ```
 
 Do **not** point `disko-install` straight at the Gitea flake URL.
