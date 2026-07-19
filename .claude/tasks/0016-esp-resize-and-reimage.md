@@ -20,10 +20,42 @@ One thing must be true before the disk is erased: every branch worth keeping has
 
 ## Acceptance criteria
 
-- [ ] The `Host`'s disk layout declares a 2 GiB EFI system partition
-- [ ] Every local branch worth keeping exists on the remote before the disk is erased
+- [x] The `Host`'s disk layout declares a 2 GiB EFI system partition
+- [x] Every local branch worth keeping exists on the remote before the disk is erased
 - [ ] The reimage is performed from a configuration carrying the hardware profile, following the existing install documentation
 - [ ] The install documentation is corrected wherever the procedure diverged from what it describes
 - [ ] Manual confirmation: the machine boots, the encrypted root unlocks, and console login succeeds
 - [ ] Manual confirmation: reported free space on the boot partition is consistent with its 2 GiB size, resolving the discrepancy observed before the reimage — where a 512 MiB partition reported 1022 MiB
-- [ ] The project's agent instructions record that a flake only sees git-tracked files, so an untracked file is invisible to evaluation
+- [x] The project's agent instructions record that a flake only sees git-tracked files, so an untracked file is invisible to evaluation
+
+## Implementation Notes
+
+This task is **blocked on an operator action**, not finished. Three of seven
+criteria are satisfied: the declaration, the branch check, and the recorded
+gotcha. The remaining four all depend on erasing the disk, which is not an
+action taken on the operator's behalf.
+
+The branch check was verified rather than assumed — no local branch holds a
+commit absent from the remote, so nothing is lost to the wipe. Two items that
+live outside the repo do not survive it and are not covered by any criterion:
+the agent memory directory, and the wifi credentials.
+
+Criterion 4 is deliberately left open despite four corrections already landing
+on the main branch — a wrong repository name in both clone commands, a closing
+section describing a superseded key-derivation design, a stale enumeration of
+flake inputs, and a bootstrap-ordering sentence contradicting a later one. All
+four were found by reading the procedure. The criterion asks for divergences
+found by *running* it, which has not happened. The wrong repository name would
+have stopped the install at the clone step, so the reading pass was worth doing;
+it is just not the same evidence.
+
+**Ordering hazard.** Between merging this and completing the reimage, the
+repository asserts a partition layout the physical disk does not have, and disko
+reconciles nothing on a running machine. The declaration should reach the branch
+the install reads immediately before the install, not days ahead of it. If the
+reimage is deferred, this is the file that quietly lies about the only laptop.
+
+One correction outside this task's scope also landed here: the gotcha claiming
+git identity was unconfigured, which a hand-written `~/.gitconfig` had made
+false. Moving that identity into the flake belongs to the commit-identity work
+this task's description explicitly fences off.

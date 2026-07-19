@@ -29,9 +29,12 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   Both were true only while the machine still ran CachyOS against a distro Nix daemon.
 - The substituters a `nix build` fetches from are the **daemon's** (`/etc/nix/nix.conf`), *not* the `nix.settings` of the config being built — those only govern the built system.
   The two coincide here because the dev host runs this flake; they diverge on any machine that does not.
-- Git identity is not configured anywhere yet — no `programs.git` in the flake and no `~/.gitconfig`, so `git commit` fails with "Author identity unknown".
-  History uses `alexion <contact@alexion.dev>`; pass it per-commit with `git -c user.name=… -c user.email=…` rather than writing config outside the flake.
+- Git identity is not declared in the flake — there is no `programs.git` — but commits do work: identity comes from a hand-written `~/.gitconfig` plus this checkout's `.git/config`.
+  Both sit outside the flake, so neither survives a reimage nor reaches another machine; history uses `alexion <contact@alexion.dev>`.
 - The primary build/verify seam for any Host is `nix flake check`, which builds `checks.x86_64-linux.<host>` (the system toplevel); cheap targeted checks use `nix eval .#nixosConfigurations.<host>.config...`.
+- A flake only sees **git-tracked** files, so a new file that has not been `git add`ed is invisible to evaluation even though it exists on disk.
+  The failure names the path and reads as if the file were missing: `error: Path 'secrets/shared.yaml' does not exist in Git repository`.
+  Staging is enough; the file need not be committed.
 - chaotic-nyx must **not** follow our `nixpkgs`, and its packages are built against chaotic's own pinned nixpkgs (its overlay defaults to `onTopOf = "flake-nixpkgs"`, the cache-friendly path).
   That is what lets the `nyx-cache.chaotic.cx` binary cache hit instead of compiling the CachyOS kernel from source; the tradeoff is that chaotic packages do not see our `unstable`/`stable` overlays.
 - The remote is self-hosted Gitea (`git.alexion.dev`), and the intended CLI is `gitea-axi` rather than `tea`.

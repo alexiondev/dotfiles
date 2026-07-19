@@ -10,7 +10,9 @@
       type = "gpt";
       partitions = {
         ESP = {
-          size = "512M";
+          # Each generation stores a kernel and initrd here and the CachyOS
+          # kernel is large; an exhausted partition fails bootloader installs.
+          size = "2G";
           type = "EF00";
           content = {
             type = "filesystem";
