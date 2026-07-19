@@ -10,7 +10,7 @@ Everything the installed system needs — the LUKS layout, the CachyOS kernel, t
 
 ## Bootstrap ordering
 
-The install consumes the flake from Gitea, so **the flake must already be on Gitea before you start** — the repo cannot pull a config that hasn't been pushed.
+The install builds from a clone of this repo, so **the flake must already be on Gitea before you start** — the live ISO cannot clone a config that has not been pushed.
 The bootstrap login password is likewise set by hand at the end and is **never committed**, which is what keeps the public repo free of any secret while still yielding a working login on first boot.
 
 Two secrets are set by hand during this install, both entered interactively and neither stored in the repo:
@@ -74,7 +74,7 @@ $ cd dotfiles
 Do **not** point `disko-install` straight at the Gitea flake URL.
 Gitea serves HTTPS with a self-signed certificate and expects authentication, and Nix's flake fetcher has no easy way to skip certificate verification or supply those credentials mid-install.
 A plain `git clone` sidesteps that entirely — over SSH there is no TLS, and over HTTPS git takes the `sslVerify=false` above that the flake fetcher won't — and then `disko-install` consumes the flake from a local path, where no fetch of our repo happens during the build.
-(The public flake inputs — `nixpkgs`, `chaotic`, `disko` — are still fetched from GitHub over ordinary, valid TLS; only our own repo is the problem the local clone solves.)
+(Every other flake input is public and still fetched from GitHub over ordinary, valid TLS; only our own repo is the problem the local clone solves.)
 
 ## 3. Run `disko-install`
 
