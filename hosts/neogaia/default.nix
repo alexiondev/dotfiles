@@ -1,8 +1,9 @@
-{ pkgs, ... }:
+{ inputs, pkgs, ... }:
 # neogaia — Dell XPS 13 9380 laptop.
 # Disk layout is in ./disk.nix; `fileSystems` are derived from it, none declared here.
 {
   imports = [
+    inputs.nixos-hardware.nixosModules.dell-xps-13-9380
     ./hardware-configuration.nix
     ./disk.nix
   ];
@@ -15,9 +16,8 @@
 
   boot.kernelPackages = pkgs.linuxPackages_cachyos;
 
-  hardware.cpu.intel.updateMicrocode = true;
-
   # Redistributable firmware for the QCA6174 wifi (ath10k blobs).
+  # Intel microcode updates follow from this; none declared here.
   hardware.enableRedistributableFirmware = true;
 
   # RAM-backed swap; no on-disk swap partition.
