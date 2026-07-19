@@ -1,9 +1,1 @@
-.dotfiles
-.DS_Store
-*.swp
-*.swo
-*~
-Thumbs.db
-**/__pycache__
-.config/fish/conf.d/secrets.fish
 /reference/
