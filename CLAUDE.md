@@ -29,8 +29,9 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   Both were true only while the machine still ran CachyOS against a distro Nix daemon.
 - The substituters a `nix build` fetches from are the **daemon's** (`/etc/nix/nix.conf`), *not* the `nix.settings` of the config being built — those only govern the built system.
   The two coincide here because the dev host runs this flake; they diverge on any machine that does not.
-- Git identity is not declared in the flake — there is no `programs.git` — but commits do work: identity comes from a hand-written `~/.gitconfig` plus this checkout's `.git/config`.
-  Both sit outside the flake, so neither survives a reimage nor reaches another machine; history uses `alexion <contact@alexion.dev>`.
+- Git identity is not declared in the flake — there is no `programs.git` — so it must be set by hand before the first commit on a fresh machine.
+  The July 2026 reimage confirmed this: it wiped the hand-written `~/.gitconfig`, and the next commit failed with `Author identity unknown`, auto-detecting `alexion@neogaia.(none)`.
+  It now lives in this checkout's `.git/config`, which reaches no other machine and does not survive the next reimage either; history uses `alexion <contact@alexion.dev>`.
 - The primary build/verify seam for any Host is `nix flake check`, which builds `checks.x86_64-linux.<host>` (the system toplevel); cheap targeted checks use `nix eval .#nixosConfigurations.<host>.config...`.
 - A flake only sees **git-tracked** files, so a new file that has not been `git add`ed is invisible to evaluation even though it exists on disk.
   The failure names the path and reads as if the file were missing: `error: Path 'secrets/shared.yaml' does not exist in Git repository`.

@@ -22,40 +22,38 @@ One thing must be true before the disk is erased: every branch worth keeping has
 
 - [x] The `Host`'s disk layout declares a 2 GiB EFI system partition
 - [x] Every local branch worth keeping exists on the remote before the disk is erased
-- [ ] The reimage is performed from a configuration carrying the hardware profile, following the existing install documentation
-- [ ] The install documentation is corrected wherever the procedure diverged from what it describes
-- [ ] Manual confirmation: the machine boots, the encrypted root unlocks, and console login succeeds
-- [ ] Manual confirmation: reported free space on the boot partition is consistent with its 2 GiB size, resolving the discrepancy observed before the reimage — where a 512 MiB partition reported 1022 MiB
+- [x] The reimage is performed from a configuration carrying the hardware profile, following the existing install documentation
+- [x] The install documentation is corrected wherever the procedure diverged from what it describes
+- [x] Manual confirmation: the machine boots, the encrypted root unlocks, and console login succeeds
+- [x] Manual confirmation: reported free space on the boot partition is consistent with its 2 GiB size, resolving the discrepancy observed before the reimage — where a 512 MiB partition reported 1022 MiB
 - [x] The project's agent instructions record that a flake only sees git-tracked files, so an untracked file is invisible to evaluation
 
 ## Implementation Notes
 
-This task is **blocked on an operator action**, not finished. Three of seven
-criteria are satisfied: the declaration, the branch check, and the recorded
-gotcha. The remaining four all depend on erasing the disk, which is not an
-action taken on the operator's behalf.
+Done. The reimage was performed by the operator and the machine now runs the
+configuration this repository declares.
 
-The branch check was verified rather than assumed — no local branch holds a
-commit absent from the remote, so nothing is lost to the wipe. Two items that
-live outside the repo do not survive it and are not covered by any criterion:
-the agent memory directory, and the wifi credentials.
+The install ran clean: the operator reports no step diverged from
+`docs/install.md`, so criterion 4 is satisfied with no further corrections. The
+four corrections that landed earlier came from reading the procedure; the run
+itself found nothing to add. That is the reproducibility evidence the task was
+after — the document is a procedure, not a record of one improvised session.
 
-Criterion 4 is deliberately left open despite four corrections already landing
-on the main branch — a wrong repository name in both clone commands, a closing
-section describing a superseded key-derivation design, a stale enumeration of
-flake inputs, and a bootstrap-ordering sentence contradicting a later one. All
-four were found by reading the procedure. The criterion asks for divergences
-found by *running* it, which has not happened. The wrong repository name would
-have stopped the install at the clone step, so the reading pass was worth doing;
-it is just not the same evidence.
+Verified on the running machine rather than assumed:
 
-**Ordering hazard.** Between merging this and completing the reimage, the
-repository asserts a partition layout the physical disk does not have, and disko
-reconciles nothing on a running machine. The declaration should reach the branch
-the install reads immediately before the install, not days ahead of it. If the
-reimage is deferred, this is the file that quietly lies about the only laptop.
+- `/dev/nvme0n1p1` is 2.0 GiB and `df` reports 2.0 GiB. The pre-reimage
+  discrepancy, where a 512 MiB partition reported 1022 MiB, is gone.
+- The hardware profile is live — `mem_sleep_default=deep` is on the kernel
+  command line and `psmouse` is blacklisted and not loaded.
+- `cryptroot` is open on `nvme0n1p2` with btrfs mounted, reached through a
+  console login, so the boot-unlock-login path is exercised end to end.
+- One generation exists (`system-1-link`), confirming a fresh install rather
+  than a rebuild of the prior system.
 
-One correction outside this task's scope also landed here: the gotcha claiming
-git identity was unconfigured, which a hand-written `~/.gitconfig` had made
-false. Moving that identity into the flake belongs to the commit-identity work
-this task's description explicitly fences off.
+The ordering hazard closed favourably: the declaration and the install landed
+close enough together that the repository never asserted a layout the disk
+lacked for long.
+
+Two items outside the repo did not survive the wipe, as anticipated, and neither
+is covered by a criterion: the wifi credentials, and the agent memory directory
+— confirmed empty after the reimage.
