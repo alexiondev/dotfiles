@@ -148,6 +148,12 @@ At boot you are prompted for the LUKS passphrase from step 3; after unlocking, l
 Setting the login password by hand is a bootstrap shortcut, not the end state.
 The first thing to do on the running laptop is to move that password to a `hashedPasswordFile` backed by a `sops-nix` secret, so it is declared and reproducible like everything else.
 
-This is deliberately out of scope for the install itself.
-Per ADR 0001, each `Host`'s secrets are encrypted to an age key derived from that `Host`'s SSH host key — and that host key does not exist until this first install generates it.
-So the sops wiring can only happen *after* the machine is up, which is exactly why it is the first follow-up rather than part of this procedure.
+Per ADR 0002, secrets are decrypted by two tiers of age identity: an admin identity held in a password manager, which is a recipient of every secrets file, and a per-`Host` identity generated on that machine's encrypted root.
+A `Host` identity is deliberately *not* derived from its SSH host key, which is what allows the SSH host keys to become secrets in their own right and survive a reimage.
+
+That wiring is out of scope here because this procedure is what produces the machine the identity is generated on.
+
+**Once the password is a secret, step 4 of this procedure stops working.**
+`hashedPasswordFile` takes precedence over every other password option, so `passwd` under `nixos-enter` no longer yields a login, and no fallback setting can override it.
+From that point on, a `Host` must have its identity provisioned and registered as a recipient *before* its first boot, or it boots with no usable password.
+Anyone reinstalling after the secrets work lands should follow the secrets provisioning procedure rather than step 4 as written.
