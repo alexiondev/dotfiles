@@ -85,6 +85,10 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   Warming it with `sudo -v` through the agent's own shell — including the `!` prefix — never works: that shell has no controlling terminal, and sudo reports `a terminal is required to read the password`.
   It has to be a separate terminal.
   A `PreToolUse` hook refuses privileged commands while the cache is cold, so a cold cache announces itself instead of stalling; a failure *without* that message is the sandbox, not the cache.
+- An `mkOption` of a list or attribute-set type is **not** mandatory the way a scalar one is.
+  Those types carry an `emptyValue`, so an option declared with no `default` and never set evaluates to `[ ]` or `{ }` instead of failing with "option used but not defined".
+  A declaration that is genuinely required cannot be expressed by omitting the default — it needs an assertion, or a default chosen so that the silent case is the safe one.
+  This bites hardest where the empty value is itself dangerous, such as a list of authorized SSH keys, where it means a machine nobody can reach.
 - `home-manager.users.<user>` cannot be assigned twice at the same level in one module: `home-manager.users.${user}.home.packages` alongside `home-manager.users.${user}.programs.x` fails with `error: dynamic attribute 'alexion' already defined`.
   The interpolated key makes it a dynamic attribute, which nix will not merge the way it merges static paths.
   Nest both under a single `home-manager.users.${user} = { ... }`.

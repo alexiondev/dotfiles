@@ -52,21 +52,30 @@ Note that the fallback only becomes real once a second machine exists to connect
 
 ## Implementation Notes
 
-The fleet is a plain data file, `fleet/default.nix`, mapping each machine to its role and client public key.
-The ssh module reads it, looks this machine up by hostname, and derives the authorized set, so a machine's own configuration never names another's key.
+The whole policy is three options on the ssh module.
+Two are the lists of client public keys, one for the machines the operator works from and one for the machines that serve.
+The third is the set a machine admits, which a host declares in its own file by naming the lists it draws from.
 
-The role policy is one attribute set: a workstation authorizes workstation keys alone, a server authorizes both.
-Only `neogaia` exists, so the server half cannot be exercised by the real fleet.
-It was verified by temporarily adding a synthetic server and a second workstation, evaluating the authorized set with `neogaia` as a workstation and again as a server, and reverting.
-A workstation excluded the server's key; a server admitted all three.
+Two earlier designs were discarded as more machinery than the problem has.
+The first was a separate fleet declaration mapping each machine to a role and a key, which the module looked up by hostname.
+The second kept the two lists but derived the admitted set from a role enum.
+Authorizing a key needs the key text and nothing else, so the per-machine names, the hostname lookup and the role all existed to reconstruct a grouping that the two lists simply are.
+A host now states what it admits rather than stating a category that something else maps to keys.
 
-Two assertions guard the derivation.
-One rejects a machine absent from the fleet or carrying a role no policy defines.
-The other rejects any fleet entry whose role is undefined, because such an entry matches no policy and would lose its access everywhere without failing anything.
-Both were confirmed to fire.
+`authorizedKeys` defaults to the workstation keys.
+An option of a list type is not required in the way a scalar one is: leaving it undeclared yields the empty list rather than an evaluation error, and a machine admitting no key is unreachable over SSH.
+The default makes the safe case the silent one.
+
+Only `neogaia` exists, so the server half has nothing to act on.
+It was verified by temporarily adding a synthetic server key and declaring both lists on the host, then reverting.
+A host drawing on the workstation keys alone excluded the server key, and one drawing on both admitted it.
+Omitting the declaration entirely was confirmed to fall back to the workstation keys rather than to none.
 
 Home-manager's `matchBlocks` is deprecated in favour of `settings`, so the client uses the latter.
 `enableDefaultConfig = false` drops home-manager's own default directives, leaving the generated `~/.ssh/config` at two lines and every other directive at the value OpenSSH itself ships.
+
+The committed public key carries the comment `alexion@neogaia` rather than the adopted key's own `contact@alexion.dev`, so the list says which machine each key belongs to.
+An authorized-keys comment is free text and independent of the private key.
 
 Manual confirmation was performed after a `nixos-rebuild switch`.
 The secret materialized as `-r--------` owned by the primary user, and the public half derived from it matches the committed fleet entry.

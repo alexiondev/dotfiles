@@ -1,4 +1,9 @@
-{ inputs, pkgs, ... }:
+{
+  config,
+  inputs,
+  pkgs,
+  ...
+}:
 # neogaia — Dell XPS 13 9380 laptop.
 # Disk layout is in ./disk.nix; `fileSystems` are derived from it, none declared here.
 {
@@ -32,6 +37,9 @@
   modules.ssh.enable = true;
   modules.ssh.hostKeys.sopsFile = ../../secrets/neogaia.yaml;
   modules.ssh.userKey.sopsFile = ../../secrets/neogaia.yaml;
+
+  # A machine the operator works from, so it admits the workstation keys alone.
+  modules.ssh.authorizedKeys = config.modules.ssh.workstationKeys;
 
   # fish as the login shell.
   modules.fish.enable = true;

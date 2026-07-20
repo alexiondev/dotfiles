@@ -8,39 +8,50 @@ let
   cfg = config.modules.ssh;
   user = config.user.name;
 
-  fleet = import ../fleet;
-
   hostKeySecret = type: "ssh-host-${type}-key";
   userKeySecret = "ssh-user-ed25519-key";
 
-  # The roles whose keys a machine of the given role authorizes.
-  # A workstation admits workstations alone, so a server that is compromised
-  # reaches no machine of the operator's own.
-  authorizedRoles = {
-    workstation = [ "workstation" ];
-    server = [
-      "workstation"
-      "server"
-    ];
-  };
-
-  machine = fleet.${config.networking.hostName} or null;
-
-  # Guarded so that an unregistered machine fails the assertion below with a
-  # readable message, rather than on a missing attribute here.
-  registered = machine != null && authorizedRoles ? ${machine.role};
-
-  authorizedKeys = lib.optionals registered (
-    lib.mapAttrsToList (_name: m: m.sshPublicKey) (
-      lib.filterAttrs (_name: m: lib.elem m.role authorizedRoles.${machine.role}) fleet
-    )
-  );
-
-  undefinedRoles = lib.attrNames (lib.filterAttrs (_name: m: !(authorizedRoles ? ${m.role})) fleet);
 in
 {
   options.modules.ssh = {
     enable = lib.mkEnableOption "the OpenSSH daemon, with host keys restored from secrets";
+
+    workstationKeys = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGxQ4kWsBo2OGYIPOkFe0vNEcB3yoJwAu0y9wrdQzALE alexion@neogaia"
+      ];
+      description = ''
+        Client public keys of the machines the operator works from.
+
+        Every machine admits these, so any of them reaches the whole fleet.
+      '';
+    };
+
+    serverKeys = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = ''
+        Client public keys of the machines that serve.
+
+        Only other servers admit these, so one that is compromised reaches no
+        machine the operator works from.
+      '';
+    };
+
+    authorizedKeys = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = cfg.workstationKeys;
+      defaultText = lib.literalExpression "config.modules.ssh.workstationKeys";
+      description = ''
+        Client public keys this machine admits for the primary user, drawn from
+        the lists above.
+
+        A machine the operator works from takes the workstation keys. One that
+        serves takes both, so servers reach each other. The default admits the
+        workstation keys, since a machine admitting none is unreachable.
+      '';
+    };
 
     hostKeys.sopsFile = lib.mkOption {
       type = lib.types.path;
@@ -84,24 +95,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    assertions = [
-      {
-        assertion = registered;
-        message = ''
-          modules.ssh: ${config.networking.hostName} is not in the fleet under a
-          defined role, so the keys it authorizes cannot be derived.
-        '';
-      }
-      {
-        # An undefined role matches no policy, which would drop that machine's
-        # access everywhere without failing anything.
-        assertion = undefinedRoles == [ ];
-        message = ''
-          modules.ssh: fleet entries carry a role no policy defines: ${lib.concatStringsSep ", " undefinedRoles}.
-        '';
-      }
-    ];
-
     services.openssh.enable = true;
 
     sops.secrets =
@@ -130,7 +123,7 @@ in
     ) cfg.hostKeys.types;
 
     # The primary user is the only account reachable over SSH.
-    users.users.${user}.openssh.authorizedKeys.keys = authorizedKeys;
+    users.users.${user}.openssh.authorizedKeys.keys = cfg.authorizedKeys;
 
     # The client reads the decrypted key where it is written, so no copy of it
     # lives in the user's home to drift from the secret.
