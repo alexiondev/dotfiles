@@ -79,7 +79,7 @@ in
           jctl = "journalctl -p 3 -xb";
 
           # Rebuild the system, and reclaim disk from old generations.
-          update = "sudo nixos-rebuild switch";
+          update = "sudo nixos-rebuild switch --flake .#${config.networking.hostName}";
           cleanup = "sudo nix-collect-garbage -d";
         };
 
