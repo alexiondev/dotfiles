@@ -29,11 +29,14 @@ Enabling it is therefore a step when adding a host.
 The commit name is the literal `"alexion"` rather than `config.user.name`, which review raised as duplication.
 A Unix login and a commit display name are separate concepts that merely coincide here, so binding them would let a host overriding its login silently rewrite the operator's commit identity.
 
-The manual confirmation was met against the built configuration, not the running machine: `nixos-rebuild switch` needs sudo and has not run, so `~/.config/git/config` does not yet exist on `neogaia`.
-The generated gitconfig was built from the `neogaia` toplevel and a commit driven under `env -i` with a scratch `HOME`, producing `alexion <contact@alexion.dev>` with no per-command override.
-This proves the derivation rather than the deployment, and the live check remains owed at the next rebuild.
+The manual confirmation is met on the running machine.
+The operator rebuilt `neogaia`, `~/.config/git/config` is now a home-manager symlink, and a commit in a repository outside this checkout was authored `alexion <contact@alexion.dev>` in the real environment with no per-command override and no identity in the test repository's own config.
 
 Review surfaced an unanticipated hazard that proved harmless.
-Home-manager writes `~/.config/git/config`, while an undeclared `~/.gitconfig` also exists and outranks it per key.
-It holds only a `tea` credential helper and no `user.*`, so it does not shadow the identity, confirmed by re-running the commit test with both files present.
+Home-manager writes `~/.config/git/config`, while an undeclared `~/.gitconfig` also exists and outranks it on any key set in both.
+It holds only a `tea` credential helper and no `user.*`, so it does not shadow the identity, confirmed against the deployed configuration.
 Declaring that credential helper is a reasonable follow-up, since it will not survive a reimage.
+
+This checkout's `.git/config` still sets the same identity, now redundant.
+Removing it would let the module govern here too, so a future breakage surfaces instead of being masked.
+It is local, untracked state, so it is left alone rather than changed as part of this task.

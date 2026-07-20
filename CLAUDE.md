@@ -38,10 +38,14 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   The two coincide here because the dev host runs this flake; they diverge on any machine that does not.
 - Git identity is declared in the flake by `modules/git.nix`, which writes `alexion <contact@alexion.dev>` — the identity all history uses — on any host enabling `modules.git`.
   Every new host has to enable it, so that a host reads as a full checklist of what it carries.
-  Once such a host has been rebuilt, a checkout on it needs no hand-written identity and keeps one across a reimage.
-  Two things mask a broken module, so neither is evidence it works: this checkout's `.git/config` carries the same identity, and home-manager writes `~/.config/git/config` while a `~/.gitconfig` also exists and outranks it per key.
-  That `~/.gitconfig` holds only a `tea` credential helper and no `user.*`, so it does not shadow the identity today, but it is undeclared and will not survive a reimage.
-  Verify the module by committing in a repository outside this checkout.
+  It is deployed on `neogaia` and verified: a commit in a repository outside this checkout is authored `alexion <contact@alexion.dev>` with no override.
+  Verify it that way rather than from this checkout, whose `.git/config` carries the same identity and would mask a broken module.
+  Home-manager writes `~/.config/git/config`, and `~/.gitconfig` is a second global file that git also reads, outranking it on any key set in both.
+  `~/.gitconfig` currently holds only a `tea` credential helper and no `user.*`, so it does not shadow the identity, but it is undeclared and will not survive a reimage.
+- `git config --global` is a listing and writing filter over `~/.gitconfig` alone, **not** a view of what git resolves.
+  With both global files present it prints only `~/.gitconfig`, which reads as proof that `~/.config/git/config` is being ignored entirely.
+  It is not: drop `--global` and both files appear, each key resolving to the last file that sets it.
+  A `git config --global <key> <value>` write also lands in `~/.gitconfig`, the file that outranks the flake-managed one.
 - The primary build/verify seam for any Host is `nix flake check`, which builds `checks.x86_64-linux.<host>` (the system toplevel); cheap targeted checks use `nix eval .#nixosConfigurations.<host>.config...`.
 - A flake only sees **git-tracked** files, so a new file that has not been `git add`ed is invisible to evaluation even though it exists on disk.
   The failure names the path and reads as if the file were missing: `error: Path 'secrets/shared.yaml' does not exist in Git repository`.
