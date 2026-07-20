@@ -10,9 +10,21 @@ Retained boot configurations are capped at 15. Each generation stores a kernel a
 
 ## Acceptance criteria
 
-- [ ] Automatic garbage collection is enabled weekly, deleting generations older than 30 days
-- [ ] Store optimisation is scheduled weekly, rather than performed at build time
-- [ ] Retained boot configurations are capped at 15
-- [ ] These are declared as plumbing in the shared base config, so every future `Host` inherits them
-- [ ] `nix flake check` builds the `neogaia` toplevel
+- [x] Automatic garbage collection is enabled weekly, deleting generations older than 30 days
+- [x] Store optimisation is scheduled weekly, rather than performed at build time
+- [x] Retained boot configurations are capped at 15
+- [x] These are declared as plumbing in the shared base config, so every future `Host` inherits them
+- [x] `nix flake check` builds the `neogaia` toplevel
 - [ ] Manual confirmation after a rebuild: the collection and optimisation timers exist and are scheduled
+
+## Implementation Notes
+
+The two schedules are named days rather than the bare `weekly` keyword.
+systemd expands `weekly` to `Mon *-*-* 00:00:00`, which would have started collection and deduplication at the same instant every week, leaving `nix-optimise` hard-linking paths `nix-gc` was concurrently deleting.
+Collection now runs `Mon 03:15` and optimisation `Thu 03:45`, which keeps both weekly and keeps them apart.
+
+The boot configuration cap sits in the shared base as the task asks, and is inert rather than an error on a host that does not use systemd-boot.
+A future host on another bootloader therefore inherits no cap, which is the one place the "every future host inherits them" promise does not reach.
+
+The last criterion is left open: confirming the timers on a running system needs a `nixos-rebuild switch`, which needs a sudo credential this session did not have.
+It closes the way tasks 0013, 0016 and 0017 did, in a follow-up commit once the operator has switched the machine and read `systemctl list-timers`.

@@ -58,6 +58,26 @@ in
     nix.settings.extra-trusted-public-keys = [
       "nyx-cache.chaotic.cx:dJxTrgMC3V3cFfyIiBQDQorG6k1LsqurH/srpMSq7qk="
     ];
+
+    # A month of generations is kept, because on a rolling channel with a
+    # third-party kernel an old generation is a known-good system to boot when
+    # an update breaks something.
+    nix.gc.automatic = true;
+    nix.gc.dates = "Mon 03:15";
+    nix.gc.options = "--delete-older-than 30d";
+
+    # Deduplication runs on a timer, off the rebuild path, so it never adds
+    # latency to a `nixos-rebuild switch`.
+    # It falls on a different day from collection, so the two never contend.
+    nix.optimise.automatic = true;
+    nix.optimise.dates = [ "Thu 03:45" ];
+
+    # The EFI system partition holds a kernel and an initrd per entry at roughly
+    # 70 MiB apiece, and is fixed in size.
+    # An exhausted one fails at bootloader installation, after the build has
+    # already succeeded.
+    boot.loader.systemd-boot.configurationLimit = 15;
+
     environment.systemPackages = [ pkgs.git ];
 
     # Caps Lock is a second Escape; Shift+Caps Lock still toggles Caps Lock.
