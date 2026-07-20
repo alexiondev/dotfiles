@@ -52,6 +52,7 @@ let
           inputs.home-manager.nixosModules.home-manager
           inputs.chaotic.nixosModules.default
           inputs.disko.nixosModules.disko
+          inputs.sops-nix.nixosModules.sops
           (self + "/system")
           (self + "/hosts/${hostName}")
           { networking.hostName = hostName; }

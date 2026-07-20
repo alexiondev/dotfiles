@@ -34,6 +34,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Decrypts committed secrets at activation, from an age identity on the host.
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # CachyOS kernel and binary cache. Pins its own nixpkgs so its cache stays
     # usable and the kernel is fetched from it.
     chaotic.url = "github:chaotic-cx/nyx/nyxpkgs-unstable";

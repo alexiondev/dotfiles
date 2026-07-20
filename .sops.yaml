@@ -1,0 +1,17 @@
+# Recipients for the encrypted files under secrets/.
+keys:
+  # A recipient of every file.
+  # One readable only by machines becomes unrecoverable once they are wiped.
+  # Adding a recipient requires decrypting first.
+  # No private half here, only in the operator's password manager.
+  - &admin age1m0pk94ysjlw3lmf6pyuv5l5pepvdjss8w0vxjv90dq6ndp02tdgsdwdvue
+  # Generated on the machine it names.
+  - &neogaia age14a04vphzjq74epfrz9a09wjw8lzchtru84awzuq2n45d8f42ychqjs89qe
+
+creation_rules:
+  # Material common to every machine, so it is stored once rather than per host.
+  - path_regex: secrets/shared\.yaml$
+    key_groups:
+      - age:
+          - *admin
+          - *neogaia

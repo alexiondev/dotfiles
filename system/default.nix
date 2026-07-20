@@ -10,6 +10,8 @@ let
   inherit (lib) mkOption types;
   user = config.user;
 
+  passwordSecret = "${user.name}-password";
+
   # Args to instantiate an extra nixpkgs source on the base platform.
   pinArgs = prev: {
     inherit (prev.stdenv.hostPlatform) system;
@@ -66,11 +68,32 @@ in
     # bare TTY and not only under a graphical session.
     console.useXkbConfig = true;
 
-    # Primary user, in the wheel group. No password set here.
+    # Decryption machinery every host depends on.
+    # The identity sits on the encrypted root, which is mounted early enough to
+    # satisfy the secret below.
+    # Clearing both `sshKeyPaths` defaults keeps the SSH host keys out of the
+    # decryption path.
+    sops.defaultSopsFile = ../secrets/shared.yaml;
+    sops.age.keyFile = "/var/lib/sops-nix/key.txt";
+    sops.age.sshKeyPaths = [ ];
+    sops.gnupg.sshKeyPaths = [ ];
+
+    # A password set by hand on a running machine otherwise takes precedence.
+    # That leaves the declared `hashedPasswordFile` below silently inert.
+    # Root has no declared password and is therefore locked.
+    # `sudo` from the wheel group is the way in.
+    users.mutableUsers = false;
+
+    # Decrypted in an earlier activation stage than ordinary secrets.
+    # That is early enough to precede the account that reads it.
+    sops.secrets.${passwordSecret}.neededForUsers = true;
+
+    # Primary user, in the wheel group.
     users.users.${user.name} = {
       isNormalUser = true;
       description = user.description;
       extraGroups = [ "wheel" ];
+      hashedPasswordFile = config.sops.secrets.${passwordSecret}.path;
     };
 
     # home-manager as a NixOS module: one `nixos-rebuild switch` builds the

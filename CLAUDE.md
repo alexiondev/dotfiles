@@ -15,6 +15,13 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   A file-top header is one concise purpose line, added only where the filename or path does not already say it — never a feature inventory of the code below.
   For a placeholder, say so plainly plus any actionable present-tense directive ("Placeholder: regenerate with nixos-generate-config on the target machine"), never "placeholder for <missing feature>".
   Option `description`/`mkEnableOption` strings are user-facing documentation rather than comments, so they may describe behaviour more fully — but the self-contained rule and the bans on glossary terms and agent-state references still apply.
+- Start each sentence of a comment on its own line, as with Markdown prose.
+  A sentence needing more than one line is first a prompt to ask whether it should be two sentences.
+  Only when it genuinely cannot be split does it wrap, and then it wraps normally at the right margin.
+  Never break a line early at a comma or clause boundary to make it read as a unit.
+  Never use a semicolon, in a comment or in authored prose.
+  Recast as two sentences instead.
+  Only reformat comments you are actually writing or changing.
 - Comments posted to Gitea (pull requests, issues, reviews) go out under the operator's account, so sign every one to make clear the author is the agent, not the operator.
   End the comment with a `— Claude` sign-off.
   (A dedicated bot account may replace this later; until then, the sign-off is the only marker.)
