@@ -9,6 +9,15 @@ keys:
   - &neogaia age14a04vphzjq74epfrz9a09wjw8lzchtru84awzuq2n45d8f42ychqjs89qe
 
 creation_rules:
+  # Material belonging to one machine.
+  # No machine other than the one named is a recipient, so a host that is
+  # compromised cannot decrypt another's material.
+  - path_regex: secrets/neogaia\.yaml$
+    key_groups:
+      - age:
+          - *admin
+          - *neogaia
+
   # Material common to every machine, so it is stored once rather than per host.
   - path_regex: secrets/shared\.yaml$
     key_groups:
