@@ -49,7 +49,7 @@
     { self, nixpkgs, ... }@inputs:
     let
       inherit (nixpkgs) lib;
-      my = import ./lib { inherit lib inputs self; };
+      my = import ./lib.nix { inherit lib inputs self; };
     in
     {
       # Helper functions for discovering and building hosts.

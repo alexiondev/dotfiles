@@ -46,17 +46,15 @@ let
         inherit inputs;
         my = self.lib;
       };
-      modules =
-        (collectNixFiles (self + "/modules"))
-        ++ [
-          inputs.home-manager.nixosModules.home-manager
-          inputs.chaotic.nixosModules.default
-          inputs.disko.nixosModules.disko
-          inputs.sops-nix.nixosModules.sops
-          (self + "/system")
-          (self + "/hosts/${hostName}")
-          { networking.hostName = hostName; }
-        ];
+      modules = (collectNixFiles (self + "/modules")) ++ [
+        inputs.home-manager.nixosModules.home-manager
+        inputs.chaotic.nixosModules.default
+        inputs.disko.nixosModules.disko
+        inputs.sops-nix.nixosModules.sops
+        (self + "/system.nix")
+        (self + "/hosts/${hostName}")
+        { networking.hostName = hostName; }
+      ];
     };
 
   # Discover every host (a subdirectory of `hostsDir`) and build each one.

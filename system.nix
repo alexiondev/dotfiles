@@ -93,7 +93,7 @@ in
     # satisfy the secret below.
     # Clearing both `sshKeyPaths` defaults keeps the SSH host keys out of the
     # decryption path.
-    sops.defaultSopsFile = ../secrets/shared.yaml;
+    sops.defaultSopsFile = ./secrets/shared.yaml;
     sops.age.keyFile = "/var/lib/sops-nix/key.txt";
     sops.age.sshKeyPaths = [ ];
     sops.gnupg.sshKeyPaths = [ ];
