@@ -9,17 +9,8 @@ let
   user = config.user.name;
 in
 {
-  options.modules.git.enable = lib.mkOption {
-    type = lib.types.bool;
-    default = true;
-    description = ''
-      Whether to configure git for the primary user, carrying the operator's
-      commit identity.
-
-      On by default, so every host can commit without restating it. A host that
-      should not carry a personal commit identity sets this to false.
-    '';
-  };
+  options.modules.git.enable =
+    lib.mkEnableOption "git for the primary user, carrying the operator's commit identity";
 
   config = lib.mkIf cfg.enable {
     home-manager.users.${user}.programs.git = {
