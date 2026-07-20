@@ -31,6 +31,7 @@
   # publishing them is their purpose.
   modules.ssh.enable = true;
   modules.ssh.hostKeys.sopsFile = ../../secrets/neogaia.yaml;
+  modules.ssh.userKey.sopsFile = ../../secrets/neogaia.yaml;
 
   # fish as the login shell.
   modules.fish.enable = true;

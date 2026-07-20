@@ -38,14 +38,41 @@ Note that the fallback only becomes real once a second machine exists to connect
 
 ## Acceptance criteria
 
-- [ ] `neogaia` has its own client SSH identity, distinct from its host keys, adopted from the key already on the machine
-- [ ] Its private half is stored in `neogaia`'s own secrets file, encrypted to the admin identity and `neogaia` alone
-- [ ] Its public half is committed in plaintext
-- [ ] The private half decrypts at activation, readable only by the primary user and not by other accounts
-- [ ] The SSH client uses the decrypted key with no hand-placed copy in the user's home directory
-- [ ] Each machine declares a role, and the keys it authorizes follow from that role rather than from a per-host list
-- [ ] Workstation keys are authorized on every machine
-- [ ] Server keys are authorized on servers only, and on no workstation
-- [ ] Registering a new machine is a role declaration in one place, requiring no edit to any other host
-- [ ] `nix flake check` builds the `neogaia` toplevel
-- [ ] Manual confirmation: the key materializes with the declared ownership and mode, an authenticated push to the remote still succeeds, and `neogaia` accepts an SSH connection offering the adopted key
+- [x] `neogaia` has its own client SSH identity, distinct from its host keys, adopted from the key already on the machine
+- [x] Its private half is stored in `neogaia`'s own secrets file, encrypted to the admin identity and `neogaia` alone
+- [x] Its public half is committed in plaintext
+- [x] The private half decrypts at activation, readable only by the primary user and not by other accounts
+- [x] The SSH client uses the decrypted key with no hand-placed copy in the user's home directory
+- [x] Each machine declares a role, and the keys it authorizes follow from that role rather than from a per-host list
+- [x] Workstation keys are authorized on every machine
+- [x] Server keys are authorized on servers only, and on no workstation
+- [x] Registering a new machine is a role declaration in one place, requiring no edit to any other host
+- [x] `nix flake check` builds the `neogaia` toplevel
+- [x] Manual confirmation: the key materializes with the declared ownership and mode, an authenticated push to the remote still succeeds, and `neogaia` accepts an SSH connection offering the adopted key
+
+## Implementation Notes
+
+The fleet is a plain data file, `fleet/default.nix`, mapping each machine to its role and client public key.
+The ssh module reads it, looks this machine up by hostname, and derives the authorized set, so a machine's own configuration never names another's key.
+
+The role policy is one attribute set: a workstation authorizes workstation keys alone, a server authorizes both.
+Only `neogaia` exists, so the server half cannot be exercised by the real fleet.
+It was verified by temporarily adding a synthetic server and a second workstation, evaluating the authorized set with `neogaia` as a workstation and again as a server, and reverting.
+A workstation excluded the server's key; a server admitted all three.
+
+Two assertions guard the derivation.
+One rejects a machine absent from the fleet or carrying a role no policy defines.
+The other rejects any fleet entry whose role is undefined, because such an entry matches no policy and would lose its access everywhere without failing anything.
+Both were confirmed to fire.
+
+Home-manager's `matchBlocks` is deprecated in favour of `settings`, so the client uses the latter.
+`enableDefaultConfig = false` drops home-manager's own default directives, leaving the generated `~/.ssh/config` at two lines and every other directive at the value OpenSSH itself ships.
+
+Manual confirmation was performed after a `nixos-rebuild switch`.
+The secret materialized as `-r--------` owned by the primary user, and the public half derived from it matches the committed fleet entry.
+The hand-placed `~/.ssh/id_ed25519` was moved aside for the test, so both directions were exercised against the decrypted secret alone: `ssh -v` to the remote reported `Server accepts key: /run/secrets/ssh-user-ed25519-key`, and an inbound connection to `neogaia` authenticated and returned a shell.
+
+One follow-up is outstanding.
+Deleting the now-redundant `~/.ssh/id_ed25519` and its public half was refused by the agent's permission layer, so both files remain on the machine.
+They are superseded rather than needed: the same key is in `secrets/neogaia.yaml`, and the client is pointed at the decrypted path.
+Removing them is a one-line manual step, and the key is recoverable from the secrets file if it is ever wanted back.
