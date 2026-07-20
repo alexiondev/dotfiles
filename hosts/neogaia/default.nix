@@ -36,7 +36,6 @@
   modules.fish.enable = true;
   modules.fish.defaultShell = true;
 
-  modules.git.enable = true;
   modules.tmux.enable = true;
   modules.nvim.enable = true;
   modules.claude-code.enable = true;

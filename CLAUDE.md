@@ -36,7 +36,8 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   Both were true only while the machine still ran CachyOS against a distro Nix daemon.
 - The substituters a `nix build` fetches from are the **daemon's** (`/etc/nix/nix.conf`), *not* the `nix.settings` of the config being built — those only govern the built system.
   The two coincide here because the dev host runs this flake; they diverge on any machine that does not.
-- Git identity is declared in the flake by `modules/git.nix`, which writes `alexion <contact@alexion.dev>` — the identity all history uses — on any host enabling `modules.git`.
+- Git identity is declared in the flake by `modules/git.nix`, which writes `alexion <contact@alexion.dev>` — the identity all history uses.
+  It is one of the few modules defaulting to on, so a host carries it without restating it and declines by setting `modules.git.enable = false`.
   Once such a host has been rebuilt, a checkout on it needs no hand-written identity and keeps one across a reimage.
   Two things mask a broken module, so neither is evidence it works: this checkout's `.git/config` carries the same identity, and home-manager writes `~/.config/git/config` while a `~/.gitconfig` also exists and outranks it per key.
   That `~/.gitconfig` holds only a `tea` credential helper and no `user.*`, so it does not shadow the identity today, but it is undeclared and will not survive a reimage.

@@ -22,6 +22,10 @@ It is a `Module` rather than base plumbing because a `Host` that should not carr
 The module uses `settings.user.name`/`settings.user.email`.
 Do not "fix" it back.
 
+Review on the pull request asked for the module on every host, so `enable` defaults to true rather than being restated per host, and the explicit line in `hosts/neogaia/default.nix` is gone as redundant.
+Defaulting the option keeps the opt-out this task's rationale asked for, where moving the identity into the shared base config would not.
+The `neogaia` toplevel hashes identically before and after the change.
+
 The commit name is the literal `"alexion"` rather than `config.user.name`, which review raised as duplication.
 A Unix login and a commit display name are separate concepts that merely coincide here, so binding them would let a host overriding its login silently rewrite the operator's commit identity.
 
