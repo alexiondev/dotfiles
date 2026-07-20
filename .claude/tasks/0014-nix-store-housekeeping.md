@@ -15,7 +15,7 @@ Retained boot configurations are capped at 15. Each generation stores a kernel a
 - [x] Retained boot configurations are capped at 15
 - [x] These are declared as plumbing in the shared base config, so every future `Host` inherits them
 - [x] `nix flake check` builds the `neogaia` toplevel
-- [ ] Manual confirmation after a rebuild: the collection and optimisation timers exist and are scheduled
+- [x] Manual confirmation after a rebuild: the collection and optimisation timers exist and are scheduled
 
 ## Implementation Notes
 
@@ -26,5 +26,5 @@ Collection now runs `Mon 03:15` and optimisation `Thu 03:45`, which keeps both w
 The boot configuration cap sits in the shared base as the task asks, and is inert rather than an error on a host that does not use systemd-boot.
 A future host on another bootloader therefore inherits no cap, which is the one place the "every future host inherits them" promise does not reach.
 
-The last criterion is left open: confirming the timers on a running system needs a `nixos-rebuild switch`, which needs a sudo credential this session did not have.
-It closes the way tasks 0013, 0016 and 0017 did, in a follow-up commit once the operator has switched the machine and read `systemctl list-timers`.
+Confirmed on `neogaia` after a switch: `systemctl list-timers 'nix-*'` lists both units, `nix-optimise` next on Thursday and `nix-gc` next on Monday, each `Persistent=true` so a suspended laptop catches up on a missed firing.
+`/boot` reports 2 GiB with 113 MiB used, so the cap of 15 sits against the enlarged partition it assumes.
