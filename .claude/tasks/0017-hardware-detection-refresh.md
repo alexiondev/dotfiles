@@ -35,6 +35,6 @@ Both were checked rather than assumed: after the change the LUKS device, all fou
 Its first form enumerated the file's three attributes, which the repo's comment convention names as a feature inventory and forbids in a file-top header.
 It now carries provenance and the absence pointer only.
 
-**Not verified by a boot.**
-`nix flake check` proves the configuration evaluates and builds, not that the initrd it produces can unlock LUKS and mount root.
-Only a rebuild and reboot establishes that, with the previous generation available at the bootloader as the fallback.
+**Verified by a boot.**
+`nix flake check` proves only that the configuration evaluates and builds, so the reduced initrd was exercised on the machine: it unlocked LUKS and mounted the btrfs root unaided.
+The running system's store path matches this configuration's build exactly, confirming the boot used it rather than an earlier generation.
