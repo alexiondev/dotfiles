@@ -86,6 +86,10 @@ in
         functions = {
           fish_greeting = "fastfetch";
 
+          # vi insert mode omits the emacs ctrl-f binding, so accepting an
+          # autosuggestion needs it restored.
+          fish_user_key_bindings = "bind -M insert ctrl-f forward-char";
+
           history = {
             description = "Show command history with timestamps";
             body = "builtin history --show-time='%F %T '";
