@@ -52,10 +52,11 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   Staging is enough; the file need not be committed.
 - chaotic-nyx must **not** follow our `nixpkgs`, and its packages are built against chaotic's own pinned nixpkgs (its overlay defaults to `onTopOf = "flake-nixpkgs"`, the cache-friendly path).
   That is what lets the `nyx-cache.chaotic.cx` binary cache hit instead of compiling the CachyOS kernel from source; the tradeoff is that chaotic packages do not see our `unstable`/`stable` overlays.
-- The remote is self-hosted Gitea (`git.alexion.dev`), and the intended CLI is `gitea-axi` rather than `tea`.
-  `gitea-axi` resolves the repository from the `origin` remote and takes credentials from the `axi` tea login, so both are implicit inside a checkout.
-  **No forge CLI is installed on the NixOS build.** No `gitea-axi`, no `tea`, no `gh` on `PATH` — the flake names `gitea-axi` only as the claude-code module's `SessionStart` hook command and never packages it, so that hook invokes a binary that is not there.
-  Credentials, however, do exist: `~/.config/tea/config.yml` holds a token-bearing login named `alexion` (not `axi`), so pull requests **can** be opened with `nix run nixpkgs#tea -- pr create --login alexion --repo alexion/dotfiles --base main --head <branch> ...`.
+- The remote is self-hosted Gitea (`git.alexion.dev`), and the forge CLI is `gitea-axi` rather than `tea`.
+  `gitea-axi` resolves the repository from the `origin` remote and discovers credentials from a `tea` login whose host matches the remote, so both are implicit inside a checkout.
+  It is installed on `neogaia` by `modules.gitea-axi`, and verified: `gitea-axi` run from this checkout renders the `alexion/dotfiles` dashboard authenticated, so the claude-code `SessionStart` hook that runs it now resolves to a real binary rather than a missing one.
+  The package wraps the binary so `git` and `tea` are reachable without being on `PATH`, while still preferring the operator's own where present.
+  Credentials: `~/.config/tea/config.yml` holds a token-bearing login named `alexion`, which `gitea-axi` uses and which also opens pull requests directly with `nix run nixpkgs#tea -- pr create --login alexion --repo alexion/dotfiles --base main --head <branch> ...`.
   The `--repo` flag is required on that path, since `tea` resolves `origin` only for a login whose SSH host matches.
   The same token reads PR discussion, which `tea` itself does poorly: `tea pr <n> --comments` prints only the body, and `-f comments` returns no comments field at all.
   Use the API instead, taking the token from `.logins[] | select(.name=="alexion") | .token`.

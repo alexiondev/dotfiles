@@ -40,6 +40,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Agent-ergonomic CLI for Gitea, with its home-manager module wiring in the
+    # Claude Code context where that harness is present.
+    gitea-axi = {
+      url = "git+https://git.alexion.dev/alexion/gitea-axi";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # CachyOS kernel and binary cache. Pins its own nixpkgs so its cache stays
     # usable and the kernel is fetched from it.
     chaotic.url = "github:chaotic-cx/nyx/nyxpkgs-unstable";

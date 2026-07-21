@@ -77,18 +77,6 @@ in
                 ];
               }
             ];
-            SessionStart = [
-              {
-                matcher = "";
-                hooks = [
-                  {
-                    type = "command";
-                    command = "gitea-axi";
-                    timeout = 10;
-                  }
-                ];
-              }
-            ];
           };
         };
       };

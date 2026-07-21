@@ -49,6 +49,7 @@
   modules.tmux.enable = true;
   modules.nvim.enable = true;
   modules.claude-code.enable = true;
+  modules.gitea-axi.enable = true;
 
   time.timeZone = "America/New_York";
   i18n.defaultLocale = "en_GB.UTF-8";
