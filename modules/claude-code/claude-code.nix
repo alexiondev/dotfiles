@@ -10,18 +10,6 @@
 let
   cfg = config.modules.claude-code;
   user = config.user.name;
-
-  # Rings the terminal bell so tmux flags the background pane.
-  bellHook = [
-    {
-      hooks = [
-        {
-          type = "command";
-          command = "~/.claude/hooks/attention-bell.sh";
-        }
-      ];
-    }
-  ];
 in
 {
   options.modules.claude-code.enable = lib.mkEnableOption ''
@@ -57,14 +45,11 @@ in
         skills = ./skills;
 
         # Installed under ~/.claude/hooks, referenced by the settings below.
-        hooks."attention-bell.sh" = builtins.readFile ./hooks/attention-bell.sh;
         hooks."agent-sudo-guard.sh" = builtins.readFile ./hooks/agent-sudo-guard.sh;
 
         settings = {
           model = "opus";
           hooks = {
-            Stop = bellHook;
-            Notification = bellHook;
             PreToolUse = [
               {
                 matcher = "Bash";
