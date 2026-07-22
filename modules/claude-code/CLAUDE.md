@@ -38,3 +38,23 @@ These are common instructions for Alexion's agents across all scenarios.
   Briefly mention the edit in your response rather than making it silently.
   If an existing entry is later found to be wrong or stale, correct or remove it the same way.
 
+## Comments
+
+- Write comments only where they earn their place, and keep them concise.
+  Assume the reader can read code: comment the "why", not the "what", and explain "what" only when it is genuinely non-obvious.
+  A comment must be self-contained to its file — accurate to a reader looking at that file alone.
+  Do not write about history ("used to be X", "now moved here") or future state, about how a value is consumed elsewhere, or to justify the choice against alternatives; state the positive reason a thing exists, keeping any real stakes as a present-tense consequence.
+  The only permitted cross-file mention is a bare pointer explaining why something is *absent* here (e.g. a value another tool derives, which this file therefore does not declare), never narrating what the other file or tool does.
+  Do not use a project's domain-model or ubiquitous-language capitalized terms as glossary references; describe things in plain language, using ordinary lowercase nouns.
+  Never reference agent-facing state (anything under `.claude/` or `CLAUDE.md`).
+  A file-top header is one concise purpose line, added only where the filename or path does not already say it — never a feature inventory of the code below.
+  For a placeholder, say so plainly plus any actionable present-tense directive ("Placeholder: regenerate with <tool> on the target machine"), never "placeholder for <missing feature>".
+  User-facing documentation strings (an option's `description`, a generated help string) are documentation rather than comments, so they may describe behaviour more fully — but the self-contained rule and the bans on glossary terms and agent-state references still apply.
+- Start each sentence of a comment on its own line, as with Markdown prose.
+  A sentence needing more than one line is first a prompt to ask whether it should be two sentences.
+  Only when it genuinely cannot be split does it wrap, and then it wraps normally at the right margin.
+  Never break a line early at a comma or clause boundary to make it read as a unit.
+  Never use a semicolon, in a comment or in authored prose.
+  Recast as two sentences instead.
+  Only reformat comments you are actually writing or changing.
+
