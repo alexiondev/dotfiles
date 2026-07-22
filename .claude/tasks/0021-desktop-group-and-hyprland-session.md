@@ -52,6 +52,11 @@ Enable the desktop on neogaia.
 - **Greeter session command.**
   greetd's `default_session` runs `uwsm start -e -D Hyprland hyprland.desktop`, mirroring the Exec line of the uwsm session the Hyprland package itself ships, so the session goes through the universal Wayland session manager deterministically.
 
+- **Terminal: Alacritty, not Ghostty.**
+  The spec named Ghostty, but on neogaia's integrated graphics its GTK4 window construction made every launch feel sluggish (~440 ms to map, versus a lightweight terminal's near-instant open), which a head-to-head comparison confirmed.
+  The terminal is therefore Alacritty, whose OpenGL renderer opens fast on the iGPU.
+  The choice is easily reversible per host, so a capable host such as zeus could still adopt Ghostty later.
+
 - **Dropped from the plan.**
   Mouse drag-to-move and drag-to-resize (`bindm`) were removed: they fall outside the task's enumerated keyboard bindings, and `resizeactive`/`movewindow` already cover floating windows from the keyboard.
   Hardware media/brightness keys (the spec table's `XF86` row) are likewise deferred, since they depend on audio and backlight tooling not yet in scope.

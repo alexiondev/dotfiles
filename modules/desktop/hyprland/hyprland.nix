@@ -50,7 +50,7 @@ in
 
       settings = {
         "$mod" = "SUPER";
-        "$terminal" = "ghostty";
+        "$terminal" = "alacritty";
 
         input = {
           kb_layout = "us";
