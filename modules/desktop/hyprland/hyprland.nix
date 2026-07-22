@@ -137,6 +137,20 @@ in
           "$mod CTRL, Q, forcekillactive,"
         ]
         ++ workspaceBinds;
+
+        # Volume keys repeat while held, capped at 150 percent.
+        binde = [
+          ", XF86AudioRaiseVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+"
+          ", XF86AudioLowerVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+        ];
+
+        # Mute and media transport still fire while the session is locked.
+        bindl = [
+          ", XF86AudioMute, exec, ${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+          ", XF86AudioPlay, exec, ${pkgs.playerctl}/bin/playerctl play-pause"
+          ", XF86AudioNext, exec, ${pkgs.playerctl}/bin/playerctl next"
+          ", XF86AudioPrev, exec, ${pkgs.playerctl}/bin/playerctl previous"
+        ];
       };
     };
   };
