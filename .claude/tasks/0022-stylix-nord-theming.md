@@ -16,7 +16,7 @@ The theming is reversible per target, so individual surfaces can migrate toward 
 - [x] Stylix is a flake input, wired into the host build.
 - [x] A desktop theming module resolves a single Nord base16 scheme and applies it to GTK, Qt, cursor, and system fonts.
 - [x] A single static Nord wallpaper is set by Stylix; no dynamic, animated, or cycling wallpaper.
-- [x] Stylix targets for nvim, tmux, and fish are off, leaving their existing themes untouched.
+- [x] The Stylix target for nvim is off, leaving its existing theme untouched (narrowed from nvim + tmux + fish during review, see notes).
 - [x] neogaia builds green under `nix flake check`, and an eval probe confirms the resolved scheme is Nord.
 
 ## Implementation Notes
@@ -31,9 +31,12 @@ The theming is reversible per target, so individual surfaces can migrate toward 
   nvim here is configured through nixvim, so the Stylix target that would theme it is `nixvim`.
   Disabling `neovim` would have been a no-op and left nvim themed.
 
-- **fish is disabled at two levels.**
-  fish is enabled both at system level (`programs.fish`, for `/etc/shells` and vendor completions) and in home-manager, so its theming has a target in each scope.
-  Both are turned off, so the hand-written fish theme stands.
+- **Only nvim is excluded from Stylix (narrowed during review).**
+  The task first turned the nvim, tmux, and fish targets all off.
+  In review the operator narrowed that to nvim alone, so tmux and fish are now Stylix-managed.
+  nvim stays off because its `gbprod/nord.nvim` colorscheme is a purpose-built, treesitter-aware theme, richer than the generic base16 mapping Stylix's neovim target would apply.
+  fish had no colour theme of its own, so handing it to Stylix is a clean addition.
+  tmux carried a hand-written Nord status bar, so its colour lines are removed from `extra.conf` and Stylix now themes the status and pane styles, while the operator's minimal layout (session name plus window list, empty right side) is kept and reapplied after Stylix so it still wins.
 
 - **Cursor generation switched on explicitly.**
   home-manager now wants `home.pointerCursor.enable` set explicitly rather than inferring it from the presence of cursor settings, so the module sets it to silence the deprecation and keep the build warning-clean (bar the pre-existing benign nixvim `nixpkgs.follows` notice).

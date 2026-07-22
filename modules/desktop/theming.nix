@@ -42,10 +42,6 @@ in
         package = pkgs.jetbrains-mono;
         name = "JetBrains Mono";
       };
-
-      # fish is also installed at system level, so its theming has a target
-      # here of its own.
-      targets.fish.enable = false;
     };
 
     home-manager.users.${user} = {
@@ -53,13 +49,9 @@ in
       # whose generation must be switched on explicitly.
       home.pointerCursor.enable = true;
 
-      # nvim, tmux, and fish are configured through home-manager and keep their
-      # own hand-written themes, so their Stylix targets stay off.
-      stylix.targets = {
-        fish.enable = false;
-        tmux.enable = false;
-        nixvim.enable = false;
-      };
+      # nvim keeps its dedicated Nord colorscheme, which is richer than the
+      # base16 mapping Stylix would apply, so its target stays off.
+      stylix.targets.nixvim.enable = false;
     };
   };
 }
