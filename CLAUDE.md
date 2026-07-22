@@ -98,3 +98,7 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   `raichu`, a server with no desktop, is the only Nvidia machine.
   `laptop-mvi.md`'s out-of-scope line calls zeus Nvidia, but that is stale and the document is kept historical and unchanged, so do not infer any host's GPU from it.
   The corrected fact lives in ADR 0003 and the `hyprland-desktop` spec.
+- The home-manager `wayland.windowManager.hyprland` module defaults `configType` to `"lua"` at `home.stateVersion` >= 26.05, writing `hyprland.lua` through an `hl.*` Lua API instead of the native `hyprland.conf`.
+  The Lua backend mangles `$mod`-style variables and INI `bind=` strings into invalid Lua (`hl.$mod("SUPER")`), and does not fail the build, since the config is only text.
+  Set `configType = "hyprlang"` to get the native `hyprland.conf` whose variable and bind syntax the usual settings are written in.
+  Render the file to check which format is in effect: `nix build --print-out-paths .#nixosConfigurations.<host>.config.home-manager.users.<user>.xdg.configFile.\"hypr/hyprland.conf\".source` (only the enabled `configType`'s key exists).
