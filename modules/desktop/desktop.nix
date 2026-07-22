@@ -13,5 +13,7 @@ in
     modules.desktop.login.enable = lib.mkDefault true;
     modules.desktop.terminal.enable = lib.mkDefault true;
     modules.desktop.theming.enable = lib.mkDefault true;
+    modules.desktop.waybar.enable = lib.mkDefault true;
+    modules.desktop.audio.enable = lib.mkDefault true;
   };
 }
