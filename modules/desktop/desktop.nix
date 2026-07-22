@@ -10,6 +10,8 @@ in
   # any one of them while the single flag above enables the whole desktop.
   config = lib.mkIf cfg.enable {
     modules.desktop.hyprland.enable = lib.mkDefault true;
+    modules.desktop.hyprlock.enable = lib.mkDefault true;
+    modules.desktop.hypridle.enable = lib.mkDefault true;
     modules.desktop.login.enable = lib.mkDefault true;
     modules.desktop.mako.enable = lib.mkDefault true;
     modules.desktop.rofi.enable = lib.mkDefault true;
