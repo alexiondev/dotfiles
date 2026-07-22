@@ -94,7 +94,6 @@ in
         };
 
         dwindle = {
-          pseudotile = true;
           preserve_split = true;
         };
 
@@ -121,7 +120,8 @@ in
 
           "$mod, Space, togglefloating,"
           "$mod, F, fullscreen,"
-          "$mod, T, togglesplit,"
+          # togglesplit is a dwindle layout message, reached through layoutmsg.
+          "$mod, T, layoutmsg, togglesplit"
           "$mod SHIFT, Q, killactive,"
           "$mod CTRL, Q, forcekillactive,"
         ]

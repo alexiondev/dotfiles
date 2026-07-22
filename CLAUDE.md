@@ -102,3 +102,7 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   The Lua backend mangles `$mod`-style variables and INI `bind=` strings into invalid Lua (`hl.$mod("SUPER")`), and does not fail the build, since the config is only text.
   Set `configType = "hyprlang"` to get the native `hyprland.conf` whose variable and bind syntax the usual settings are written in.
   Render the file to check which format is in effect: `nix build --print-out-paths .#nixosConfigurations.<host>.config.home-manager.users.<user>.xdg.configFile.\"hypr/hyprland.conf\".source` (only the enabled `configType`'s key exists).
+- An invalid Hyprland dispatcher or config-option name never fails the nix build, since `hyprland.conf` is only text, so it surfaces only when the compositor loads the file at login.
+  The build/render check is therefore blind to it, and the real test is a running session (or reading `~/.config/hypr/hyprland.conf` against the running package's own names).
+  Two that bit on 0.55.4: the dwindle split actions `togglesplit`, `swapsplit`, and `pseudo` are layout messages reached through the `layoutmsg` dispatcher (`bind = $mod, T, layoutmsg, togglesplit`), not top-level dispatchers, and the old `dwindle:pseudotile` option is gone.
+  Confirm names against the pinned package rather than the wiki, whose "latest" drifts from it.
