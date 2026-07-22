@@ -94,3 +94,7 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   The interpolated key makes it a dynamic attribute, which nix will not merge the way it merges static paths.
   Nest both under a single `home-manager.users.${user} = { ... }`.
 - **Verifying a nixvim change headless:** `programs.nixvim.build.package`'s wrapper has **no `-u`**, so running `$OUT/bin/nvim` loads the caller's `~/.config/nvim` (the dev host's real config), *not* the built config — silently. To exercise the built config, launch with `-u "$(nix build --no-link --print-out-paths .#…programs.nixvim.build.initFile)"` and a scratch `HOME`/`XDG_CONFIG_HOME`. `conceallevel` is window-local: set it with `opt_local`/`vim.wo`, never `vim.bo[buf]` (which errors).
+- Host GPUs: `neogaia` is Intel and `zeus` (the desktop) is **AMD**.
+  `raichu`, a server with no desktop, is the only Nvidia machine.
+  `laptop-mvi.md`'s out-of-scope line calls zeus Nvidia, but that is stale and the document is kept historical and unchanged, so do not infer any host's GPU from it.
+  The corrected fact lives in ADR 0003 and the `hyprland-desktop` spec.
