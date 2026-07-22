@@ -60,3 +60,8 @@ Enable the desktop on neogaia.
 - **Dropped from the plan.**
   Mouse drag-to-move and drag-to-resize (`bindm`) were removed: they fall outside the task's enumerated keyboard bindings, and `resizeactive`/`movewindow` already cover floating windows from the keyboard.
   Hardware media/brightness keys (the spec table's `XF86` row) are likewise deferred, since they depend on audio and backlight tooling not yet in scope.
+
+- **Added beyond the plan.**
+  `Super+Shift+T` toggles the tiling strategy between the dwindle and master layouts, added at the operator's request during review.
+  Neither a dispatcher nor a keyword flips the layout on its own, so a small script reads the current layout and sets the other through `hyprctl keyword`.
+  It is not in the spec keybind table.

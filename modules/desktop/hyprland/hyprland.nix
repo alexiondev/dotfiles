@@ -14,6 +14,16 @@ let
     "$mod, ${toString n}, workspace, ${toString n}"
     "$mod SHIFT, ${toString n}, movetoworkspace, ${toString n}"
   ]) (lib.range 1 9);
+
+  # Flip the tiling strategy between the two built-in layouts, since neither a
+  # dispatcher nor a keyword toggles it on its own.
+  toggleLayout = pkgs.writeShellScript "hypr-toggle-layout" ''
+    if [ "$(hyprctl getoption -j general:layout | ${pkgs.jq}/bin/jq -r .str)" = dwindle ]; then
+      hyprctl keyword general:layout master
+    else
+      hyprctl keyword general:layout dwindle
+    fi
+  '';
 in
 {
   options.modules.desktop.hyprland = {
@@ -122,6 +132,7 @@ in
           "$mod, F, fullscreen,"
           # togglesplit is a dwindle layout message, reached through layoutmsg.
           "$mod, T, layoutmsg, togglesplit"
+          "$mod SHIFT, T, exec, ${toggleLayout}"
           "$mod SHIFT, Q, killactive,"
           "$mod CTRL, Q, forcekillactive,"
         ]
