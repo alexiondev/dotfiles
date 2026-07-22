@@ -28,6 +28,9 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
 - Commit messages follow Conventional Commits, specified in `docs/conventional-commits.md`.
   Scope is the module or host the change belongs to (`fish`, `nvim`, `neogaia`), omitted for repo-wide changes.
   Keep messages free of Gitea-specific references: this repository is mirrored to GitHub, where issue and pull-request numbers resolve to unrelated things.
+- When a graphical application is added, give it a `window-rewrite` icon mapping in `modules/desktop/waybar.nix`.
+  Without one its windows fall back to the generic default glyph on the workspace indicator instead of showing a recognisable per-application icon.
+  Match on the window class, which `hyprctl clients -j | jq -r '.[].class' | sort -u` lists for the running session.
 
 ## Gotchas
 
