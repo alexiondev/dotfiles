@@ -40,6 +40,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Themes the graphical layer from one base16 scheme.
+    # Follows our nixpkgs so it themes the same package set the host builds.
+    stylix = {
+      url = "github:danth/stylix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Agent-ergonomic CLI for Gitea, with its home-manager module wiring in the
     # Claude Code context where that harness is present.
     gitea-axi = {

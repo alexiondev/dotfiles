@@ -51,6 +51,7 @@ let
         inputs.chaotic.nixosModules.default
         inputs.disko.nixosModules.disko
         inputs.sops-nix.nixosModules.sops
+        inputs.stylix.nixosModules.stylix
         (self + "/system.nix")
         (self + "/hosts/${hostName}")
         { networking.hostName = hostName; }

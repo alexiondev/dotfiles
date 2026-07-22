@@ -12,5 +12,6 @@ in
     modules.desktop.hyprland.enable = lib.mkDefault true;
     modules.desktop.login.enable = lib.mkDefault true;
     modules.desktop.terminal.enable = lib.mkDefault true;
+    modules.desktop.theming.enable = lib.mkDefault true;
   };
 }
