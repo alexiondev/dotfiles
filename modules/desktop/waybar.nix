@@ -77,6 +77,11 @@ in
         clock = {
           format = "{:%a %d %b  %H:%M}";
           tooltip-format = "<tt>{calendar}</tt>";
+          calendar = {
+            mode = "month";
+            # Underline the current day so it stands out in the grid.
+            format.today = "<b><u>{}</u></b>";
+          };
         };
 
         mpris = {
