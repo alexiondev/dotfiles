@@ -98,6 +98,9 @@ in
           animation = [
             "windows, 1, 3, ease"
             "fade, 1, 3, ease"
+            # Layer surfaces like the launcher fade in a touch quicker than windows.
+            "layersIn, 1, 2, ease"
+            "fadeLayersIn, 1, 2, ease"
             "workspaces, 1, 3, ease"
             "border, 1, 3, ease"
           ];
