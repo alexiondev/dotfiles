@@ -54,6 +54,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Personal agent skills, packaged as per-skill derivations with a
+    # home-manager module that places them under Claude Code's skills directory.
+    skills = {
+      url = "git+https://git.alexion.dev/alexion/skills";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # CachyOS kernel and binary cache. Pins its own nixpkgs so its cache stays
     # usable and the kernel is fetched from it.
     chaotic.url = "github:chaotic-cx/nyx/nyxpkgs-unstable";
