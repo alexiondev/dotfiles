@@ -37,6 +37,12 @@ in
 
   config = lib.mkIf cfg.enable {
     home-manager.users.${user} = {
+      # satty is a one-shot annotation surface, so float it rather than letting
+      # it claim a tile in the layout.
+      wayland.windowManager.hyprland.settings.windowrule = [
+        "float, class:^(com\\.gabm\\.satty)$"
+      ];
+
       # Print with plain/Shift/Ctrl for region/window/full.
       # Super+L, the spec's chosen key, is already the hjkl focus and movement
       # bind, so screenshots take the Print key instead.
