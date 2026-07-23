@@ -52,10 +52,10 @@ in
         ];
 
         shellAliases = {
-          ls = "eza -al --color=always --group-directories-first --icons";
-          la = "eza -a --color=always --group-directories-first --icons";
-          ll = "eza -l --color=always --group-directories-first --icons";
-          lt = "eza -aT --color=always --group-directories-first --icons";
+          ls = "eza -al --color=always --group-directories-first --icons=always";
+          la = "eza -a --color=always --group-directories-first --icons=always";
+          ll = "eza -l --color=always --group-directories-first --icons=always";
+          lt = "eza -aT --color=always --group-directories-first --icons=always";
           "l." = "eza -a | grep -e '^\\.'";
         };
 
