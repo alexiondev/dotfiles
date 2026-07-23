@@ -28,6 +28,16 @@ let
     ${pkgs.mako}/bin/makoctl mode -t dnd >/dev/null 2>&1
     ${pkgs.procps}/bin/pkill -RTMIN+8 waybar
   '';
+
+  # Lit while a wf-recorder capture is running.
+  # Empty text collapses the widget when idle, so it shows nothing until then.
+  recStatus = pkgs.writeShellScript "waybar-recording-status" ''
+    if ${pkgs.procps}/bin/pgrep -x wf-recorder >/dev/null; then
+      printf '{"text":"${g "f03d"}","tooltip":"Recording","class":"recording"}\n'
+    else
+      printf '{"text":"","class":"idle"}\n'
+    fi
+  '';
 in
 {
   options.modules.desktop.waybar.enable = lib.mkEnableOption "the Waybar status bar";
@@ -52,6 +62,7 @@ in
         modules-left = [ "hyprland/workspaces" ];
         modules-center = [ "clock" ];
         modules-right = [
+          "custom/recording"
           "mpris"
           "wireplumber"
           "network"
@@ -133,6 +144,14 @@ in
           on-click = "${dndToggle}";
           interval = "once";
           signal = 8;
+        };
+
+        # Recording state has no event to hook, so the widget samples the
+        # wf-recorder process once a second.
+        "custom/recording" = {
+          return-type = "json";
+          exec = "${recStatus}";
+          interval = 1;
         };
       };
     };
