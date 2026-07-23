@@ -24,6 +24,12 @@ _Avoid_: loader, importer, scanner
 The rule that every Module is imported unconditionally and guards its own body with `mkIf config.modules.<path>.enable`, so a Host reads as a checklist of `enable = true` flags.
 _Avoid_: feature flag, toggle, opt-in
 
+**Namespace convention**:
+The rule that a Module's option path mirrors its directory path under `modules/`, so a file's location is its namespace.
+A file whose name matches its enclosing directory is that directory's index node, declaring the directory's own segment rather than a doubled one.
+A directory with no such file is a pure namespace prefix that carries no aggregate enable.
+_Avoid_: option tree, module path, config key
+
 **admin identity**:
 The age identity held only in the operator's password manager, never committed, that is a recipient of every secrets file.
 It is the recovery path for any wiped machine and the credential that authorizes registering a new host.
