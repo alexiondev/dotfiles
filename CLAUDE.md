@@ -92,3 +92,8 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   The build/render check is therefore blind to it, and the real test is a running session (or reading `~/.config/hypr/hyprland.conf` against the running package's own names).
   Two that bit on 0.55.4: the dwindle split actions `togglesplit`, `swapsplit`, and `pseudo` are layout messages reached through the `layoutmsg` dispatcher (`bind = $mod, T, layoutmsg, togglesplit`), not top-level dispatchers, and the old `dwindle:pseudotile` option is gone.
   Confirm names against the pinned package rather than the wiki, whose "latest" drifts from it.
+  The config can in fact be checked offline: `Hyprland --verify-config -c <rendered-conf>` parses the file and prints `config ok` or the exact `line N:` error without a running compositor, so a rule change is provable before login rather than only at it.
+- Hyprland 0.55.4 uses windowrule v3 syntax, which is not the `windowrule = float, class:^(re)$` form the wiki still shows.
+  A flat `windowrule =` entry is a comma-separated list of `field value` tokens, each of which **must** carry a value: matchers take a `match:` prefix and effects are bare, so floating one app is `windowrule = float 1, match:class ^(com\.gabm\.satty)$`.
+  The old form fails at load with `invalid field float: missing a value`, because the effect token has no value.
+  `windowrulev2` is removed and errors as deprecated.

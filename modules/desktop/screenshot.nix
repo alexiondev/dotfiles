@@ -39,8 +39,10 @@ in
     home-manager.users.${user} = {
       # satty is a one-shot annotation surface, so float it rather than letting
       # it claim a tile in the layout.
+      # windowrule v3 syntax: space-separated field/value tokens, comma
+      # separated, with matchers under a match: prefix and effects bare.
       wayland.windowManager.hyprland.settings.windowrule = [
-        "float, class:^(com\\.gabm\\.satty)$"
+        "float 1, match:class ^(com\\.gabm\\.satty)$"
       ];
 
       # Print with plain/Shift/Ctrl for region/window/full.
