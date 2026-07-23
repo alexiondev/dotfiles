@@ -16,6 +16,7 @@ in
     modules.desktop.login.enable = lib.mkDefault true;
     modules.desktop.mako.enable = lib.mkDefault true;
     modules.desktop.rofi.enable = lib.mkDefault true;
+    modules.desktop.screenshot.enable = lib.mkDefault true;
     modules.desktop.terminal.enable = lib.mkDefault true;
     modules.desktop.theming.enable = lib.mkDefault true;
     modules.desktop.waybar.enable = lib.mkDefault true;
