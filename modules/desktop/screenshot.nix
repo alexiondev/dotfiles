@@ -13,8 +13,7 @@ let
   grimblast = "${pkgs.grimblast}/bin/grimblast";
   satty = "${pkgs.satty}/bin/satty";
   wl-copy = "${pkgs.wl-clipboard}/bin/wl-copy";
-
-  shotDir = "$HOME/Pictures/Screenshots";
+  xdgUserDir = "${pkgs.xdg-user-dirs}/bin/xdg-user-dir";
 
   # satty is the annotation step, and its copy action is set to save as well,
   # so a single keystroke through it lands the shot in both the clipboard and a
@@ -22,10 +21,11 @@ let
   capture =
     target:
     pkgs.writeShellScript "screenshot-${target}" ''
-      mkdir -p ${shotDir}
+      dir="$(${xdgUserDir} PICTURES)/Screenshots"
+      mkdir -p "$dir"
       ${grimblast} save ${target} - \
         | ${satty} --filename - \
-          --output-filename "${shotDir}/screenshot-%Y%m%d-%H%M%S.png" \
+          --output-filename "$dir/screenshot-%Y%m%d-%H%M%S.png" \
           --copy-command ${wl-copy} \
           --save-after-copy \
           --early-exit \

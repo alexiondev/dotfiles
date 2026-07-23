@@ -34,7 +34,9 @@ No audio capture and no full-screen recording variant.
 - **No waybar `window-rewrite` icon.**
   wf-recorder is headless and slurp is a transient selection overlay, so neither owns a workspace window and the per-application icon convention does not apply.
 
-- **Recordings land in `~/Videos/Recordings`**, timestamped `recording-<date>.mp4`, with the directory created on first capture.
+- **Output paths follow XDG user-dirs.**
+  A new `modules.desktop.userdirs` declares the XDG user directories (home-manager `xdg.userDirs`), and the recorder resolves its base with `xdg-user-dir VIDEOS`, writing timestamped `recording-<date>.mp4` under `<Videos>/Recordings` (created on first capture).
+  The screenshot module (task 0028) was aligned to the same convention (`xdg-user-dir PICTURES` → `<Pictures>/Screenshots`), so relocating a directory is a one-line change to `xdg.userDirs` rather than an edit in each tool.
 
 - **Live capture is the irreducible manual step.**
   The build is green, the config parses under `Hyprland --verify-config`, and the indicator's idle/recording transitions are verified against a stand-in process; exercising a real slurp selection and wf-recorder capture needs a running session.

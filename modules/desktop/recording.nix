@@ -16,8 +16,7 @@ let
   pkill = "${pkgs.procps}/bin/pkill";
   date = "${pkgs.coreutils}/bin/date";
   mkdir = "${pkgs.coreutils}/bin/mkdir";
-
-  recDir = "$HOME/Videos/Recordings";
+  xdgUserDir = "${pkgs.xdg-user-dirs}/bin/xdg-user-dir";
 
   # A single key both starts and stops.
   # A running wf-recorder is stopped with SIGINT so it finalises the file.
@@ -32,8 +31,9 @@ let
     fi
 
     region=$(${slurp}) || exit 0
-    ${mkdir} -p "${recDir}"
-    file="${recDir}/recording-$(${date} +%Y%m%d-%H%M%S).mp4"
+    dir="$(${xdgUserDir} VIDEOS)/Recordings"
+    ${mkdir} -p "$dir"
+    file="$dir/recording-$(${date} +%Y%m%d-%H%M%S).mp4"
 
     ${notify-send} -a "Screen recording" "Recording started" "Region capture, no audio."
     ${wf-recorder} -g "$region" -f "$file"
