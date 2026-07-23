@@ -86,9 +86,14 @@ in
         functions = {
           fish_greeting = "fastfetch";
 
-          # vi insert mode omits the emacs ctrl-f binding, so accepting an
-          # autosuggestion needs it restored.
-          fish_user_key_bindings = "bind -M insert ctrl-f forward-char";
+          # vi insert mode omits the emacs ctrl-f and ctrl-r bindings, so
+          # restore both.
+          # ctrl-f accepts an autosuggestion and ctrl-r opens the history pager.
+          # Only insert mode is bound: vi normal mode keeps ctrl-r as redo.
+          fish_user_key_bindings = ''
+            bind -M insert ctrl-f forward-char
+            bind -M insert ctrl-r history-pager
+          '';
 
           history = {
             description = "Show command history with timestamps";
