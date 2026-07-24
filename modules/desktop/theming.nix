@@ -34,6 +34,8 @@ in
 
       cursor = {
         package = pkgs.bibata-cursors;
+        # Solid white with a dark outline, so it stays easy to spot against the
+        # dark Nord wallpaper.
         name = "Bibata-Modern-Ice";
         size = 24;
       };

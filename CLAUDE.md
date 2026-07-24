@@ -109,3 +109,8 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   To actually remove a builtin, list it explicitly with `<engine>.metaData.hidden = true` — an engine entry carrying only `metaData` is treated as a builtin rather than a custom engine.
   Engines are referenced by their current id, which the module maps from the old display names, so the default is `default = "ddg"`, not `"DuckDuckGo"` (the latter only warns and migrates).
   Prove the result by decoding the built file: `mozlz4a -d <search.json.mozlz4>` shows the `_metaData.hidden` flags and `defaultEngineId`.
+- `home.sessionVariables` do **not** reach the Hyprland session, so anything the compositor reads from its environment (cursor theme, toolkit hints) has to be declared elsewhere.
+  home-manager writes those variables to `hm-session-vars.sh`, which only a login shell sources; UWSM starts the graphical session without it, so the compositor's environment never gains them.
+  This is why a Stylix cursor (`XCURSOR_THEME`/`XCURSOR_SIZE` via `home.pointerCursor`) silently fails to apply and Hyprland draws its built-in cursor: the variables exist in `sessionVariables` but not in the running session (`tr '\0' '\n' < /proc/$(pgrep -x Hyprland)/environ` shows them absent).
+  The fix is Hyprland's own `env = KEY,VALUE` directive in `settings`, read at compositor startup regardless of the shell profile; `modules/desktop/hyprland/hyprland.nix` sets the cursor that way, sourced from `config.stylix.cursor`.
+  Bibata ships XCursor format only (no `hyprcursor/` dir), which Hyprland renders through its XCursor fallback, so both `XCURSOR_*` and `HYPRCURSOR_*` naming the same theme are safe.

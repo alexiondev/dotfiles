@@ -8,6 +8,7 @@
 let
   cfg = config.modules.desktop.hyprland;
   user = config.user.name;
+  cursor = config.stylix.cursor;
 
   # Numbered-workspace switch and move for 1..9, the operator's i3 muscle memory.
   workspaceBinds = lib.concatMap (n: [
@@ -61,6 +62,19 @@ in
       settings = {
         "$mod" = "SUPER";
         "$terminal" = "alacritty";
+
+        # Hand the cursor theme to the compositor directly. UWSM launches the
+        # session without the shell profile that carries the pointer-cursor
+        # variables, so without this Hyprland never sees a theme and falls back
+        # to its built-in cursor. Bibata ships XCursor only; the hyprcursor
+        # variables name the same theme, which Hyprland resolves through its
+        # XCursor fallback.
+        env = lib.optionals (cursor != null) [
+          "XCURSOR_THEME,${cursor.name}"
+          "XCURSOR_SIZE,${toString cursor.size}"
+          "HYPRCURSOR_THEME,${cursor.name}"
+          "HYPRCURSOR_SIZE,${toString cursor.size}"
+        ];
 
         input = {
           kb_layout = "us";
