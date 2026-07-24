@@ -142,10 +142,10 @@ in
         ++ workspaceBinds;
 
         # Volume and brightness keys repeat while held, each raising a popup
-        # through the OSD client. Volume is capped at 150 percent; the client
+        # through the OSD client. Volume is capped at 100 percent; the client
         # floors brightness so a full hold cannot black the screen out.
         binde = [
-          ", XF86AudioRaiseVolume, exec, ${pkgs.swayosd}/bin/swayosd-client --output-volume raise --max-volume 150"
+          ", XF86AudioRaiseVolume, exec, ${pkgs.swayosd}/bin/swayosd-client --output-volume raise --max-volume 100"
           ", XF86AudioLowerVolume, exec, ${pkgs.swayosd}/bin/swayosd-client --output-volume lower"
           ", XF86MonBrightnessUp, exec, ${pkgs.swayosd}/bin/swayosd-client --brightness raise"
           ", XF86MonBrightnessDown, exec, ${pkgs.swayosd}/bin/swayosd-client --brightness lower"
