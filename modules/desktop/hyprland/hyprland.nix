@@ -141,19 +141,19 @@ in
         ]
         ++ workspaceBinds;
 
-        # Volume and brightness keys repeat while held. Volume is capped at 150
-        # percent; brightnessctl floors the panel at its minimum so a full hold
-        # cannot black the screen out.
+        # Volume and brightness keys repeat while held, each raising a popup
+        # through the OSD client. Volume is capped at 150 percent; the client
+        # floors brightness so a full hold cannot black the screen out.
         binde = [
-          ", XF86AudioRaiseVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+"
-          ", XF86AudioLowerVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
-          ", XF86MonBrightnessUp, exec, ${pkgs.brightnessctl}/bin/brightnessctl set 5%+"
-          ", XF86MonBrightnessDown, exec, ${pkgs.brightnessctl}/bin/brightnessctl set 5%-"
+          ", XF86AudioRaiseVolume, exec, ${pkgs.swayosd}/bin/swayosd-client --output-volume raise --max-volume 150"
+          ", XF86AudioLowerVolume, exec, ${pkgs.swayosd}/bin/swayosd-client --output-volume lower"
+          ", XF86MonBrightnessUp, exec, ${pkgs.swayosd}/bin/swayosd-client --brightness raise"
+          ", XF86MonBrightnessDown, exec, ${pkgs.swayosd}/bin/swayosd-client --brightness lower"
         ];
 
         # Mute and media transport still fire while the session is locked.
         bindl = [
-          ", XF86AudioMute, exec, ${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+          ", XF86AudioMute, exec, ${pkgs.swayosd}/bin/swayosd-client --output-volume mute-toggle"
           ", XF86AudioPlay, exec, ${pkgs.playerctl}/bin/playerctl play-pause"
           ", XF86AudioNext, exec, ${pkgs.playerctl}/bin/playerctl next"
           ", XF86AudioPrev, exec, ${pkgs.playerctl}/bin/playerctl previous"
