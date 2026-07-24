@@ -51,6 +51,19 @@ in
           # owns the extension-settings store, overwriting runtime changes to it.
           extensions.force = true;
 
+          # Stylix's Nord mapping paints the selected address-bar result a
+          # near-white grey, leaving its light text unreadable. Darken that one
+          # highlight to the Nord selection grey, from the same scheme.
+          extensions.settings."FirefoxColor@mozilla.com".settings.theme.colors.popup_highlight =
+            let
+              c = hm.config.lib.stylix.colors;
+            in
+            lib.mkForce {
+              r = c."base03-rgb-r";
+              g = c."base03-rgb-g";
+              b = c."base03-rgb-b";
+            };
+
           settings = {
             # Auto-enable the sideloaded Firefox Color add-on that carries the
             # Nord chrome theme, which Firefox otherwise leaves disabled.
