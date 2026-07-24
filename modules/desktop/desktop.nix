@@ -10,6 +10,7 @@ in
   # any one of them while the single flag above enables the whole desktop.
   config = lib.mkIf cfg.enable {
     modules.desktop.clipboard.enable = lib.mkDefault true;
+    modules.desktop.firefox.enable = lib.mkDefault true;
     modules.desktop.hyprland.enable = lib.mkDefault true;
     modules.desktop.hyprland.hyprlock.enable = lib.mkDefault true;
     modules.desktop.hyprland.hypridle.enable = lib.mkDefault true;
