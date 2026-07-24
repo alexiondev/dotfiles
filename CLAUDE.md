@@ -103,3 +103,8 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
 - A `nix build` or `nix flake check` on a **dirty** tree evaluates the working-copy content of tracked files, not what is committed, and only warns `Git tree ... is dirty`.
   A green check on a dirty tree therefore proves nothing about the commit.
   To verify a commit, build once on a clean tree (nothing uncommitted), where the absence of the dirty warning confirms the build reflects `HEAD`.
+- home-manager's `programs.firefox` declarative `search` with `force = true` does **not** prune Firefox's built-in engines by omission.
+  The overwrite writes `search.json.mozlz4` with only the engines listed, but Firefox reconciles its locale's app-provided engines back in for any not present in the file, so Google, Bing, and the rest reappear.
+  To actually remove a builtin, list it explicitly with `<engine>.metaData.hidden = true` — an engine entry carrying only `metaData` is treated as a builtin rather than a custom engine.
+  Engines are referenced by their current id, which the module maps from the old display names, so the default is `default = "ddg"`, not `"DuckDuckGo"` (the latter only warns and migrates).
+  Prove the result by decoding the built file: `mozlz4a -d <search.json.mozlz4>` shows the `_metaData.hidden` flags and `defaultEngineId`.
