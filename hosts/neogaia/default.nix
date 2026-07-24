@@ -47,6 +47,7 @@
   modules.fish.defaultShell = true;
 
   modules.git.enable = true;
+  modules.direnv.enable = true;
   modules.tmux.enable = true;
   modules.nvim.enable = true;
   modules.agents.claude-code.enable = true;
