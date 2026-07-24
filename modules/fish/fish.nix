@@ -84,9 +84,9 @@ in
         };
 
         functions = {
-          # Pick the logo that fits the terminal so the greeting never wraps:
-          # the full logo needs about 118 columns beside the info block, the
-          # compact one about 89, and the info block alone about 71.
+          # Pick the logo that fits the terminal so the greeting never wraps.
+          # The full logo needs about 118 columns beside the info block, the
+          # compact one about 89, the info block alone about 71.
           fish_greeting = ''
             if test "$COLUMNS" -ge 118
                 fastfetch
@@ -97,10 +97,9 @@ in
             end
           '';
 
-          # vi insert mode omits the emacs ctrl-f and ctrl-r bindings, so
-          # restore both.
+          # vi insert mode omits the emacs ctrl-f and ctrl-r bindings, so restore both.
           # ctrl-f accepts an autosuggestion and ctrl-r opens the history pager.
-          # Only insert mode is bound: vi normal mode keeps ctrl-r as redo.
+          # vi normal mode keeps its ctrl-r redo, since only insert mode is bound.
           fish_user_key_bindings = ''
             bind -M insert ctrl-f forward-char
             bind -M insert ctrl-r history-pager

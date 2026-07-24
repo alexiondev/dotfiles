@@ -35,8 +35,7 @@ in
             Snippets = false;
           };
 
-          # An ad and content blocker, the operator's password manager, and a
-          # video sponsor-skipper. All three are self-contained web extensions.
+          # An ad blocker, a password manager, and a video sponsor-skipper.
           ExtensionSettings = {
             "uBlock0@raymondhill.net" = forceInstalled "ublock-origin";
             "78272b6fa58f4a1abaac99321d503a20@proton.me" = forceInstalled "proton-pass";
@@ -65,16 +64,15 @@ in
             };
 
           settings = {
-            # Scale the UI and page by a fixed factor. Left at auto (-1),
-            # Firefox reads the panel's 1.5x and inflates its whole chrome on
-            # this display while point-sized apps stay put; a shade under that
-            # brings it into line without dropping to true 1:1, which reads too
-            # small at this DPI.
+            # Scale the UI and page by a fixed factor.
+            # Left at auto (-1), Firefox reads the panel's 1.5x and inflates its
+            # whole chrome while point-sized apps stay put.
+            # A shade under that brings it into line without dropping to true
+            # 1:1, which reads too small at this DPI.
             "layout.css.devPixelsPerPx" = "1.25";
 
-            # Auto-enable the sideloaded Firefox Color add-on that carries the
-            # Nord chrome theme, which Firefox otherwise leaves disabled.
-            # The functional extensions come through policy and are unaffected.
+            # Auto-enable the sideloaded Firefox Color add-on carrying the Nord
+            # chrome theme, which Firefox otherwise leaves disabled.
             "extensions.autoDisableScopes" = 0;
 
             # Sponsored surfaces the policies above do not reach.
@@ -103,9 +101,8 @@ in
         };
       };
 
-      # Nord chrome from the shared Stylix scheme, against the one profile.
-      # colorTheme recolours the toolbar and tabs, which the target does not do
-      # on its own, through the Stylix-managed Firefox Color add-on.
+      # Nord chrome for the one profile, applied through the Stylix-managed
+      # Firefox Color add-on that colorTheme enables.
       stylix.targets.firefox = {
         enable = true;
         profileNames = [ "default" ];

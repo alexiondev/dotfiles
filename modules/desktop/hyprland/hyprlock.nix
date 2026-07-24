@@ -4,13 +4,12 @@
   pkgs,
   ...
 }:
-# The lock screen: hyprlock, a session-lock client whose surface the compositor owns, so it survives a crash of the locker rather than exposing the session.
+# The lock screen: a hyprlock session-lock surface the compositor owns.
 let
   cfg = config.modules.desktop.hyprland.hyprlock;
   user = config.user.name;
 
-  # The hyprlock this module installs, so the keybind and the idle daemon lock
-  # with one package and never split versions.
+  # The hyprlock this module installs, used by the lock keybind below.
   hyprlock = "${config.home-manager.users.${user}.programs.hyprlock.package}/bin/hyprlock";
 in
 {
@@ -30,7 +29,8 @@ in
             disable_loading_bar = true;
           };
 
-          # A centered password field; its colors are the Stylix target's.
+          # A centered password field.
+          # Its colors come from the Stylix hyprlock target.
           input-field = {
             size = "260, 52";
             rounding = 8;

@@ -1,10 +1,10 @@
 #!/bin/sh
-# agent-sudo-guard.sh — refuse a privileged command while sudo's credential
-# cache is cold, naming the command that warms it.
+# Refuse a privileged command while sudo's credential cache is cold, naming the
+# command that warms it.
 #
 # Commands arrive here from subprocesses holding no terminal, so an uncached
-# sudo fails with a bare non-zero exit and no output, reading as an unexplained
-# stall. The probe below reads a cache keyed per user rather than per terminal,
+# sudo fails with a bare non-zero exit and no output, reading as an unexplained stall.
+# The probe below reads a cache keyed per user rather than per terminal,
 # so an authentication made in the operator's own terminal counts.
 
 input=$(cat)

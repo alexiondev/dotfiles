@@ -4,8 +4,7 @@
   pkgs,
   ...
 }:
-# Idle management: hypridle locks on idle, powers the displays off, and locks
-# before every suspend, so an unattended session always lands at hyprlock.
+# hypridle: idle-triggered locking and display power management.
 let
   cfg = config.modules.desktop.hyprland.hypridle;
   user = config.user.name;

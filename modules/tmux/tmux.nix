@@ -3,8 +3,8 @@
   lib,
   ...
 }:
-# tmux for the primary user, configured through home-manager. Settings without a
-# home-manager option are read from ./extra.conf.
+# tmux for the primary user, configured through home-manager.
+# Settings without a home-manager option are read from ./extra.conf.
 let
   cfg = config.modules.tmux;
   user = config.user.name;

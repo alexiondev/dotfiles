@@ -22,13 +22,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Declarative disk partitioning; each host declares its own layout.
+    # Declarative disk partitioning.
+    # Each host declares its own layout.
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Upstream per-machine hardware profiles; each host imports its own.
+    # Upstream per-machine hardware profiles.
+    # Each host imports its own.
     nixos-hardware = {
       url = "github:NixOS/nixos-hardware";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -47,22 +49,20 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Agent-ergonomic CLI for Gitea, with its home-manager module wiring in the
-    # Claude Code context where that harness is present.
+    # Agent-ergonomic CLI for Gitea, with a home-manager module for the agent context.
     gitea-axi = {
       url = "git+https://git.alexion.dev/alexion/gitea-axi";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Personal agent skills, packaged as per-skill derivations with a
-    # home-manager module that places them under Claude Code's skills directory.
+    # Personal agent skills, packaged as per-skill derivations with a home-manager module.
     skills = {
       url = "git+https://git.alexion.dev/alexion/skills";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # CachyOS kernel and binary cache. Pins its own nixpkgs so its cache stays
-    # usable and the kernel is fetched from it.
+    # CachyOS kernel and binary cache.
+    # Pins its own nixpkgs so its cache stays usable and the kernel is fetched from it.
     chaotic.url = "github:chaotic-cx/nyx/nyxpkgs-unstable";
   };
 

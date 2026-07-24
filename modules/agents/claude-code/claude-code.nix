@@ -5,8 +5,8 @@
   ...
 }:
 # Claude Code for the primary user, configured through home-manager, which ships
-# the package and manages ~/.claude. Login credentials are left unmanaged so they
-# survive rebuilds.
+# the package and manages ~/.claude.
+# Login credentials are left unmanaged so they survive rebuilds.
 let
   cfg = config.modules.agents.claude-code;
   user = config.user.name;
@@ -22,10 +22,8 @@ in
     cached credential while it lasts. Suitable for a single-user machine'';
 
   config = lib.mkIf cfg.enable {
-    # Keying sudo's credential cache per user rather than per terminal lets one
-    # authentication cover commands issued by processes holding no terminal of
-    # their own. Any process running as this user can spend that credential
-    # until it lapses, so this suits a single-user machine.
+    # Key the credential cache per user rather than per terminal, so one
+    # authentication covers the agent's terminal-less commands.
     security.sudo.extraConfig = ''
       Defaults timestamp_type=global
       Defaults timestamp_timeout=60
@@ -38,7 +36,7 @@ in
       programs.claude-code = {
         enable = true;
 
-        # Global agent instructions, rendered to ~/.claude/CLAUDE.md.
+        # The global agent-instructions file.
         context = ./CLAUDE.md;
 
         # One directory per skill, symlinked under ~/.claude/skills.

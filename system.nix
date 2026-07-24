@@ -52,8 +52,8 @@ in
       "flakes"
     ];
 
-    # chaotic's binary cache, so the CachyOS kernel is fetched rather than
-    # compiled. The `extra-` prefix keeps cache.nixos.org alongside it.
+    # chaotic's binary cache, so the CachyOS kernel is fetched rather than compiled.
+    # The `extra-` prefix keeps cache.nixos.org alongside it.
     nix.settings.extra-substituters = [ "https://nyx-cache.chaotic.cx/" ];
     nix.settings.extra-trusted-public-keys = [
       "nyx-cache.chaotic.cx:dJxTrgMC3V3cFfyIiBQDQorG6k1LsqurH/srpMSq7qk="
@@ -80,7 +80,8 @@ in
 
     environment.systemPackages = [ pkgs.git ];
 
-    # Caps Lock is a second Escape; Shift+Caps Lock still toggles Caps Lock.
+    # Caps Lock is a second Escape.
+    # Shift+Caps Lock still toggles Caps Lock.
     services.xserver.xkb.layout = "us";
     services.xserver.xkb.options = "caps:escape_shifted_capslock";
 
@@ -108,7 +109,8 @@ in
     # That is early enough to precede the account that reads it.
     sops.secrets.${passwordSecret}.neededForUsers = true;
 
-    # Primary user, in the wheel group.
+    # Primary user.
+    # The wheel group is the way in, since root is locked.
     users.users.${user.name} = {
       isNormalUser = true;
       description = user.description;

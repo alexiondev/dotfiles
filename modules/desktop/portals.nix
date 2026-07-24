@@ -10,8 +10,9 @@ in
   config = lib.mkIf cfg.enable {
     # The backend packages arrive with the compositor, so only the routing is set
     # here.
-    # GTK is the default backend, and the three compositor-native requests go to
-    # Hyprland.
+    # Screen sharing, screenshots, and global shortcuts need the compositor's
+    # own backend.
+    # Everything else uses GTK.
     xdg.portal.config.common = {
       default = [ "gtk" ];
       "org.freedesktop.impl.portal.ScreenCast" = [ "hyprland" ];

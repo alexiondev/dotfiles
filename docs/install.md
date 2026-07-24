@@ -103,7 +103,8 @@ $ cd dotfiles
 Do **not** point `disko-install` straight at the Gitea flake URL.
 Gitea serves HTTPS with a self-signed certificate and expects authentication, and Nix's flake fetcher has no easy way to skip certificate verification or supply those credentials mid-install.
 A plain `git clone` sidesteps that entirely — over SSH there is no TLS, and over HTTPS git takes the `sslVerify=false` above that the flake fetcher won't — and then `disko-install` consumes the flake from a local path, where no fetch of our repo happens during the build.
-(Every other flake input is public and still fetched from GitHub over ordinary, valid TLS; only our own repo is the problem the local clone solves.)
+(Every other flake input is public and still fetched from GitHub over ordinary, valid TLS.
+Only our own repo is the problem the local clone solves.)
 
 ### 3. Generate the host identity
 
@@ -201,17 +202,20 @@ $ sudo nix --extra-experimental-features 'nix-command flakes' run \
 What each part does:
 
 - `--flake .#neogaia` installs the `neogaia` `Host` from the local clone.
-- `--disk main /dev/nvme0n1` maps disko's `main` disk to the NVMe device; it matches the device declared in `hosts/neogaia/disk.nix` and is stated explicitly so there is no doubt about the target.
+- `--disk main /dev/nvme0n1` maps disko's `main` disk to the NVMe device.
+  It matches the device declared in `hosts/neogaia/disk.nix` and is stated explicitly so there is no doubt about the target.
 - `--write-efi-boot-entries` writes the systemd-boot entry into this machine's NVRAM, because the disk stays in the machine it was installed from.
 - The two `--option` lines are the important part: they hand the **chaotic binary cache** to the install-time Nix daemon on the live ISO.
 
 The chaotic substituter must be passed here explicitly.
-The `nix.settings` in the flake configure the substituters of the *installed* system, not the live ISO's daemon that runs this build; the ISO's daemon has no `substituters` beyond `cache.nixos.org`.
+The `nix.settings` in the flake configure the substituters of the *installed* system, not the live ISO's daemon that runs this build.
+The ISO's daemon has no `substituters` beyond `cache.nixos.org`.
 Without these two `--option` flags, the build cannot fetch the prebuilt CachyOS kernel and **compiles `linuxPackages_cachyos` (and its toolchain) from source on the USB stick** — a very long detour that the cache avoids.
 Because the install runs as root, and root is a trusted Nix user, the daemon honours these client-supplied substituter settings.
 
 Partway through, disko formats the LUKS container and **prompts for a disk-encryption passphrase**.
-This is the passphrase you will type at every boot to unlock the disk; choose it deliberately.
+This is the passphrase you will type at every boot to unlock the disk.
+Choose it deliberately.
 
 When it finishes it prints `disko-install succeeded`.
 `disko-install` unmounts the target filesystem on exit, so nothing is mounted at this point — step 6 remounts it.

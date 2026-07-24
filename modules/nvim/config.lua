@@ -1,13 +1,12 @@
--- Imperative configuration that has no typed nixvim option: the colorscheme
--- call and two autocmds. Everything expressible as Nix lives in ./nvim.nix.
+-- Imperative configuration that has no typed nixvim option: the colorscheme call and autocmds.
 
--- gbprod/nord.nvim, provided as an extra plugin from nixpkgs.
+-- gbprod/nord.nvim.
 require("nord").setup({
   transparent = true,
 })
 vim.cmd.colorscheme("nord")
 
--- Conceal markdown syntax in markdown buffers (previously an after/ftplugin).
+-- Conceal markdown syntax in markdown buffers.
 -- conceallevel is window-local, so it is set with opt_local when the filetype
 -- is applied to the buffer's window.
 vim.api.nvim_create_autocmd("FileType", {

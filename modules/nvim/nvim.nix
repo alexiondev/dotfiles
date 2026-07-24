@@ -5,8 +5,7 @@
   inputs,
   ...
 }:
-# Neovim for the primary user, configured declaratively through nixvim. The
-# imperative remainder (colorscheme, Neogit blame autocmd) lives in ./config.lua.
+# Neovim for the primary user, configured declaratively through nixvim.
 let
   cfg = config.modules.nvim;
   user = config.user.name;
@@ -176,8 +175,8 @@ in
           };
         };
 
-        # gbprod/nord.nvim (nixvim's colorschemes.nord is a different plugin);
-        # set up in ./config.lua.
+        # gbprod/nord.nvim, set up in ./config.lua.
+        # nixvim's colorschemes.nord is a different plugin.
         extraPlugins = [ pkgs.vimPlugins.gbprod-nord ];
 
         extraConfigLua = builtins.readFile ./config.lua;

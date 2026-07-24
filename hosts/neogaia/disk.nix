@@ -1,7 +1,8 @@
 { ... }:
 # neogaia's disk layout for disko: one NVMe disk, GPT, with an EFI system
-# partition and a LUKS container holding btrfs subvolumes. No swap partition;
-# swap is zram. disko derives `fileSystems` and `boot.initrd.luks.devices` from this.
+# partition and a LUKS container holding btrfs subvolumes.
+# No swap partition, since swap is zram.
+# disko derives `fileSystems` and `boot.initrd.luks.devices` from this.
 {
   disko.devices.disk.main = {
     type = "disk";
@@ -10,8 +11,8 @@
       type = "gpt";
       partitions = {
         ESP = {
-          # Each generation stores a kernel and initrd here and the CachyOS
-          # kernel is large; an exhausted partition fails bootloader installs.
+          # Each generation stores a kernel and initrd here and the CachyOS kernel is large.
+          # An exhausted partition fails bootloader installs.
           size = "2G";
           type = "EF00";
           content = {

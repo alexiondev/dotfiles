@@ -16,14 +16,13 @@ in
     environment.systemPackages = [ pkgs.swayosd ];
 
     # The udev rule chgrps each backlight's brightness node to `video` and adds
-    # group write, so the server dims the panel without root. Membership below
-    # grants the running session that access.
+    # group write, so the server dims the panel without root.
+    # Membership below grants the running session that access.
     services.udev.packages = [ pkgs.swayosd ];
     users.users.${user}.extraGroups = [ "video" ];
 
     # The server draws the popups, so it runs for the whole graphical session.
-    # Bound to the target uwsm activates, like the bar, rather than an
-    # exec-once in the compositor config.
+    # It binds to the target uwsm activates.
     home-manager.users.${user}.systemd.user.services.swayosd = {
       Unit = {
         Description = "SwayOSD on-screen display server";

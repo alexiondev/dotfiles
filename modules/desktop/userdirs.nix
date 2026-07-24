@@ -9,8 +9,7 @@ in
   options.modules.desktop.userdirs.enable = lib.mkEnableOption "XDG user directories";
 
   config = lib.mkIf cfg.enable {
-    # enable writes ~/.config/user-dirs.dirs from the option defaults, which
-    # xdg-user-dir then reads.
+    # Write ~/.config/user-dirs.dirs from the option defaults.
     home-manager.users.${user}.xdg.userDirs.enable = true;
   };
 }

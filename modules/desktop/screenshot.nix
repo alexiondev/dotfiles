@@ -15,9 +15,8 @@ let
   wl-copy = "${pkgs.wl-clipboard}/bin/wl-copy";
   xdgUserDir = "${pkgs.xdg-user-dirs}/bin/xdg-user-dir";
 
-  # satty is the annotation step, and its copy action is set to save as well,
-  # so a single keystroke through it lands the shot in both the clipboard and a
-  # file.
+  # satty's copy action also saves, so one keystroke lands the shot in both the
+  # clipboard and a file.
   capture =
     target:
     pkgs.writeShellScript "screenshot-${target}" ''
@@ -46,8 +45,8 @@ in
       ];
 
       # Print with plain/Shift/Ctrl for region/window/full.
-      # Super+L, the spec's chosen key, is already the hjkl focus and movement
-      # bind, so screenshots take the Print key instead.
+      # Super+L is already the hjkl focus and movement bind, so screenshots take
+      # the Print key instead.
       wayland.windowManager.hyprland.settings.bind = [
         ", Print, exec, ${capture "area"}"
         "SHIFT, Print, exec, ${capture "active"}"

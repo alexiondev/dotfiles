@@ -1,6 +1,6 @@
 { lib, modulesPath, ... }:
 # Hardware detected by nixos-generate-config on this machine.
-# disko derives `fileSystems` and the LUKS device; none declared here.
+# disko derives `fileSystems` and the LUKS device, none declared here.
 {
   imports = [ (modulesPath + "/installer/scan/not-detected.nix") ];
 

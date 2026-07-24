@@ -4,8 +4,7 @@
   pkgs,
   ...
 }:
-# Alacritty as the desktop terminal, a lightweight GPU renderer that opens
-# fast on the laptop's integrated graphics.
+# Alacritty as the desktop terminal.
 let
   cfg = config.modules.desktop.terminal;
   user = config.user.name;

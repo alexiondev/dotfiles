@@ -5,7 +5,8 @@
   ...
 }:
 # neogaia — Dell XPS 13 9380 laptop.
-# Disk layout is in ./disk.nix; `fileSystems` are derived from it, none declared here.
+# Disk layout is in ./disk.nix.
+# `fileSystems` are derived from it, none declared here.
 {
   imports = [
     inputs.nixos-hardware.nixosModules.dell-xps-13-9380
@@ -22,10 +23,10 @@
   boot.kernelPackages = pkgs.linuxPackages_cachyos;
 
   # Redistributable firmware for the QCA6174 wifi (ath10k blobs).
-  # Intel microcode updates follow from this; none declared here.
+  # Intel microcode updates follow from this, so none is declared here.
   hardware.enableRedistributableFirmware = true;
 
-  # RAM-backed swap; no on-disk swap partition.
+  # RAM-backed swap, no on-disk swap partition.
   zramSwap.enable = true;
 
   # So wifi can be joined from the console.

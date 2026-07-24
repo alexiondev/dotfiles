@@ -4,7 +4,7 @@
   pkgs,
   ...
 }:
-# The Hyprland compositor, sourced from nixpkgs.
+# The Hyprland compositor.
 let
   cfg = config.modules.desktop.hyprland;
   user = config.user.name;
@@ -63,12 +63,13 @@ in
         "$mod" = "SUPER";
         "$terminal" = "alacritty";
 
-        # Hand the cursor theme to the compositor directly. UWSM launches the
-        # session without the shell profile that carries the pointer-cursor
-        # variables, so without this Hyprland never sees a theme and falls back
-        # to its built-in cursor. Bibata ships XCursor only; the hyprcursor
-        # variables name the same theme, which Hyprland resolves through its
-        # XCursor fallback.
+        # Hand the cursor theme to the compositor directly.
+        # UWSM launches the session without the shell profile that carries the
+        # pointer-cursor variables, so without this Hyprland never sees a theme
+        # and falls back to its built-in cursor.
+        # Bibata ships XCursor only.
+        # The hyprcursor variables name the same theme, which Hyprland resolves
+        # through its XCursor fallback.
         env = lib.optionals (cursor != null) [
           "XCURSOR_THEME,${cursor.name}"
           "XCURSOR_SIZE,${toString cursor.size}"
@@ -81,7 +82,7 @@ in
           # Caps is a second Escape.
           # Shift+Caps still toggles a real CapsLock.
           kb_options = "caps:escape_shifted_capslock";
-          # Snappy: a short delay before repeat begins, then a fast repeat rate.
+          # Snappy key repeat.
           repeat_delay = 250;
           repeat_rate = 45;
           accel_profile = "flat";
@@ -156,8 +157,9 @@ in
         ++ workspaceBinds;
 
         # Volume and brightness keys repeat while held, each raising a popup
-        # through the OSD client. Volume is capped at 100 percent; the client
-        # floors brightness so a full hold cannot black the screen out.
+        # through the OSD client.
+        # Volume is capped at 100 percent.
+        # The client floors brightness so a full hold cannot black the screen out.
         binde = [
           ", XF86AudioRaiseVolume, exec, ${pkgs.swayosd}/bin/swayosd-client --output-volume raise --max-volume 100"
           ", XF86AudioLowerVolume, exec, ${pkgs.swayosd}/bin/swayosd-client --output-volume lower"
