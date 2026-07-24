@@ -65,6 +65,13 @@ in
             };
 
           settings = {
+            # Scale the UI and page by a fixed factor. Left at auto (-1),
+            # Firefox reads the panel's 1.5x and inflates its whole chrome on
+            # this display while point-sized apps stay put; a shade under that
+            # brings it into line without dropping to true 1:1, which reads too
+            # small at this DPI.
+            "layout.css.devPixelsPerPx" = "1.25";
+
             # Auto-enable the sideloaded Firefox Color add-on that carries the
             # Nord chrome theme, which Firefox otherwise leaves disabled.
             # The functional extensions come through policy and are unaffected.
