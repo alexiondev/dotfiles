@@ -63,19 +63,26 @@ in
         "$mod" = "SUPER";
         "$terminal" = "alacritty";
 
-        # Hand the cursor theme to the compositor directly.
-        # UWSM launches the session without the shell profile that carries the
-        # pointer-cursor variables, so without this Hyprland never sees a theme
-        # and falls back to its built-in cursor.
-        # Bibata ships XCursor only.
-        # The hyprcursor variables name the same theme, which Hyprland resolves
-        # through its XCursor fallback.
-        env = lib.optionals (cursor != null) [
-          "XCURSOR_THEME,${cursor.name}"
-          "XCURSOR_SIZE,${toString cursor.size}"
-          "HYPRCURSOR_THEME,${cursor.name}"
-          "HYPRCURSOR_SIZE,${toString cursor.size}"
-        ];
+        # Session variables handed to the compositor directly.
+        # UWSM launches the session without the shell profile that would carry
+        # them, so a variable the compositor or its children must see is set
+        # here rather than through home-manager's sessionVariables.
+        env =
+          [
+            # Chromium and Electron apps read this to select native Wayland;
+            # nixpkgs wrappers (Obsidian's included) gate their Wayland flags on
+            # it, so without it they run under XWayland and blur at this DPI.
+            "NIXOS_OZONE_WL,1"
+          ]
+          # Bibata ships XCursor only.
+          # The hyprcursor variables name the same theme, which Hyprland
+          # resolves through its XCursor fallback.
+          ++ lib.optionals (cursor != null) [
+            "XCURSOR_THEME,${cursor.name}"
+            "XCURSOR_SIZE,${toString cursor.size}"
+            "HYPRCURSOR_THEME,${cursor.name}"
+            "HYPRCURSOR_SIZE,${toString cursor.size}"
+          ];
 
         input = {
           kb_layout = "us";
