@@ -58,3 +58,14 @@ The decision to ship stock Firefox with policy-installed extensions over an ESR/
 
 The final acceptance criterion is marked `[-]` rather than `[x]`: it is the irreducible manual confirmation the spec calls out (a browser cannot self-test headless), deferred to the operator on the live machine after switching, not dropped work.
 Every automatable check — the whole-Host toplevel build, and eval probes for the aggregator fan-out, the three force-installed ids, the DuckDuckGo default, the hidden commercial engines, the Stylix Firefox target, and the mime handlers — passes.
+
+### Follow-ups from the manual confirmation
+
+The manual launch surfaced two runtime problems the build could not, both since fixed and verified by deploying the home generation.
+
+Home-manager activation was failing outright: Firefox writes `~/.config/mozilla/firefox/profiles.ini` itself on first launch, and home-manager refuses to clobber the pre-existing file, so the whole generation failed and the declarative profile never deployed — search and theming were absent while the policy-driven extensions and mime handlers, which do not touch the profile, still worked.
+Fixed by setting `force = true` on the generated `profiles.ini` home.file entry so home-manager owns it and deploys the `default` profile.
+
+The base Stylix Firefox target themes only fonts and the reader view, not the toolbar and tabs, so the chrome did not look Nord.
+Fixed by enabling `stylix.targets.firefox.colorTheme`, which recolours the chrome from the shared scheme through the Stylix-managed Firefox Color add-on, with `profiles.default.extensions.force = true` to acknowledge the managed extension-settings store.
+ADR 0005 is updated to scope its no-pinned-add-on rule to the functional extensions and record the signed theming add-on as a deliberate exception.
