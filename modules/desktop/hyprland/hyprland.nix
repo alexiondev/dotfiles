@@ -141,10 +141,14 @@ in
         ]
         ++ workspaceBinds;
 
-        # Volume keys repeat while held, capped at 150 percent.
+        # Volume and brightness keys repeat while held. Volume is capped at 150
+        # percent; brightnessctl floors the panel at its minimum so a full hold
+        # cannot black the screen out.
         binde = [
           ", XF86AudioRaiseVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+"
           ", XF86AudioLowerVolume, exec, ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+          ", XF86MonBrightnessUp, exec, ${pkgs.brightnessctl}/bin/brightnessctl set 5%+"
+          ", XF86MonBrightnessDown, exec, ${pkgs.brightnessctl}/bin/brightnessctl set 5%-"
         ];
 
         # Mute and media transport still fire while the session is locked.

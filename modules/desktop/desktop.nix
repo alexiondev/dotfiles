@@ -25,5 +25,6 @@ in
     modules.desktop.theming.enable = lib.mkDefault true;
     modules.desktop.waybar.enable = lib.mkDefault true;
     modules.desktop.audio.enable = lib.mkDefault true;
+    modules.desktop.brightness.enable = lib.mkDefault true;
   };
 }
