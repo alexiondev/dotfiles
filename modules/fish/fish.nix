@@ -84,7 +84,18 @@ in
         };
 
         functions = {
-          fish_greeting = "fastfetch";
+          # Pick the logo that fits the terminal so the greeting never wraps:
+          # the full logo needs about 118 columns beside the info block, the
+          # compact one about 89, and the info block alone about 71.
+          fish_greeting = ''
+            if test "$COLUMNS" -ge 118
+                fastfetch
+            else if test "$COLUMNS" -ge 89
+                fastfetch --logo NixOS_small
+            else
+                fastfetch --logo none
+            end
+          '';
 
           # vi insert mode omits the emacs ctrl-f and ctrl-r bindings, so
           # restore both.
