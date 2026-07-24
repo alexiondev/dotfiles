@@ -82,6 +82,7 @@ in
             "class<.*[Ff]irefox.*>" = g "f269";
             "class<chromium.*>" = g "f268";
             "class<[Cc]ode>" = g "f121";
+            "class<obsidian>" = g "f02d";
           };
         };
 
