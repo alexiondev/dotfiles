@@ -11,8 +11,8 @@ in
   config = lib.mkIf cfg.enable {
     modules.desktop.clipboard.enable = lib.mkDefault true;
     modules.desktop.hyprland.enable = lib.mkDefault true;
-    modules.desktop.hyprlock.enable = lib.mkDefault true;
-    modules.desktop.hypridle.enable = lib.mkDefault true;
+    modules.desktop.hyprland.hyprlock.enable = lib.mkDefault true;
+    modules.desktop.hyprland.hypridle.enable = lib.mkDefault true;
     modules.desktop.login.enable = lib.mkDefault true;
     modules.desktop.mako.enable = lib.mkDefault true;
     modules.desktop.portals.enable = lib.mkDefault true;

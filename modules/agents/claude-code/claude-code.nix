@@ -8,11 +8,11 @@
 # the package and manages ~/.claude. Login credentials are left unmanaged so they
 # survive rebuilds.
 let
-  cfg = config.modules.claude-code;
+  cfg = config.modules.agents.claude-code;
   user = config.user.name;
 in
 {
-  options.modules.claude-code.enable = lib.mkEnableOption ''
+  options.modules.agents.claude-code.enable = lib.mkEnableOption ''
     Claude Code, Anthropic's CLI, configured via home-manager.
 
     Enabling this also widens sudo's credential cache, keying it per user rather

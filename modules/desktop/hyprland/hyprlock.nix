@@ -6,7 +6,7 @@
 }:
 # The lock screen: hyprlock, a session-lock client whose surface the compositor owns, so it survives a crash of the locker rather than exposing the session.
 let
-  cfg = config.modules.desktop.hyprlock;
+  cfg = config.modules.desktop.hyprland.hyprlock;
   user = config.user.name;
 
   # The hyprlock this module installs, so the keybind and the idle daemon lock
@@ -14,7 +14,7 @@ let
   hyprlock = "${config.home-manager.users.${user}.programs.hyprlock.package}/bin/hyprlock";
 in
 {
-  options.modules.desktop.hyprlock.enable = lib.mkEnableOption "the hyprlock lock screen";
+  options.modules.desktop.hyprland.hyprlock.enable = lib.mkEnableOption "the hyprlock lock screen";
 
   config = lib.mkIf cfg.enable {
     home-manager.users.${user} = {

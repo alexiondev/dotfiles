@@ -8,11 +8,11 @@
 # That module also declares the Claude Code context when that harness is
 # enabled on the host; enabling this alone installs the CLI and nothing else.
 let
-  cfg = config.modules.gitea-axi;
+  cfg = config.modules.agents.tools.gitea-axi;
   user = config.user.name;
 in
 {
-  options.modules.gitea-axi.enable =
+  options.modules.agents.tools.gitea-axi.enable =
     lib.mkEnableOption "gitea-axi, an agent-ergonomic CLI for Gitea issues and pull requests";
 
   config = lib.mkIf cfg.enable {

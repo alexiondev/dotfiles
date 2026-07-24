@@ -7,7 +7,7 @@
 # Idle management: hypridle locks on idle, powers the displays off, and locks
 # before every suspend, so an unattended session always lands at hyprlock.
 let
-  cfg = config.modules.desktop.hypridle;
+  cfg = config.modules.desktop.hyprland.hypridle;
   user = config.user.name;
 
   hyprctl = "${config.programs.hyprland.package}/bin/hyprctl";
@@ -18,7 +18,7 @@ let
   lockCmd = "${pkgs.procps}/bin/pidof hyprlock || ${hyprlock}";
 in
 {
-  options.modules.desktop.hypridle = {
+  options.modules.desktop.hyprland.hypridle = {
     enable = lib.mkEnableOption "hypridle idle management";
 
     lockTimeout = lib.mkOption {

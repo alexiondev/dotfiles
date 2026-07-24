@@ -48,9 +48,9 @@
   modules.git.enable = true;
   modules.tmux.enable = true;
   modules.nvim.enable = true;
-  modules.claude-code.enable = true;
-  modules.gitea-axi.enable = true;
-  modules.pi.enable = true;
+  modules.agents.claude-code.enable = true;
+  modules.agents.tools.gitea-axi.enable = true;
+  modules.agents.pi.enable = true;
 
   modules.desktop.enable = true;
 
