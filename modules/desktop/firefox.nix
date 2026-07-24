@@ -15,7 +15,7 @@ in
   options.modules.desktop.firefox.enable = lib.mkEnableOption "Firefox as the desktop browser";
 
   config = lib.mkIf cfg.enable {
-    home-manager.users.${user} = {
+    home-manager.users.${user} = hm: {
       programs.firefox = {
         enable = true;
 
@@ -90,6 +90,10 @@ in
           "x-scheme-handler/https" = "firefox.desktop";
         };
       };
+
+      # Firefox writes profiles.ini itself on first launch, so home-manager is
+      # told to own the file rather than fail activation refusing to clobber it.
+      home.file."${hm.config.programs.firefox.configPath}/profiles.ini".force = true;
     };
   };
 }
