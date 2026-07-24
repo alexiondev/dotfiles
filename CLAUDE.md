@@ -97,3 +97,9 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   A flat `windowrule =` entry is a comma-separated list of `field value` tokens, each of which **must** carry a value: matchers take a `match:` prefix and effects are bare, so floating one app is `windowrule = float 1, match:class ^(com\.gabm\.satty)$`.
   The old form fails at load with `invalid field float: missing a value`, because the effect token has no value.
   `windowrulev2` is removed and errors as deprecated.
+- A multi-path `git add a b c` aborts entirely and stages **nothing** when any one pathspec matches no file, so a stale path in the list silently drops every other file from the commit.
+  This bit here: a path already removed by `git rm` was passed to a later `git add`, which failed with `fatal: pathspec ... did not match any files` and staged none of the real edits beside it, landing a commit that moved files but kept the old option paths.
+  Stage in separate `git add` calls, or `git status` the result before committing rather than trusting the add.
+- A `nix build` or `nix flake check` on a **dirty** tree evaluates the working-copy content of tracked files, not what is committed, and only warns `Git tree ... is dirty`.
+  A green check on a dirty tree therefore proves nothing about the commit.
+  To verify a commit, build once on a clean tree (nothing uncommitted), where the absence of the dirty warning confirms the build reflects `HEAD`.
