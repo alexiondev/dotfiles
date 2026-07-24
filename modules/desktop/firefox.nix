@@ -47,6 +47,10 @@ in
         profiles.default = {
           isDefault = true;
 
+          # The Nord chrome theme is a declared extension setting, so home-manager
+          # owns the extension-settings store, overwriting runtime changes to it.
+          extensions.force = true;
+
           settings = {
             # Sponsored surfaces the policies above do not reach.
             "browser.urlbar.suggest.quicksuggest.sponsored" = false;
@@ -75,9 +79,12 @@ in
       };
 
       # Nord chrome from the shared Stylix scheme, against the one profile.
+      # colorTheme recolours the toolbar and tabs, which the target does not do
+      # on its own, through the Stylix-managed Firefox Color add-on.
       stylix.targets.firefox = {
         enable = true;
         profileNames = [ "default" ];
+        colorTheme.enable = true;
       };
 
       # Links opened from other applications land in Firefox.

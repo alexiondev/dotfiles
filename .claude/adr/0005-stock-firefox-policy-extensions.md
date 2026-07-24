@@ -32,3 +32,6 @@ The policy path gives up build-time reproducibility of the extension binaries, a
 - First launch after a fresh build requires network to fetch the add-ons.
   An offline first boot comes up with the extensions not yet present, populating them once online.
 - Moving to a pinned-package posture later would mean changing the browser variant as well, since the two are coupled — the reason this is captured as a decision rather than a detail.
+- The no-pinned-package rule scopes to the three functional extensions, which is where the signature-enforcement conflict bites.
+  Nord chrome theming comes from the Stylix Firefox Color add-on, a signed add-on that Stylix pins and manages, so it loads on stock mainline Firefox and adds no flake input of ours.
+  That is a bounded, deliberate exception, not a reversal: it is what lets the browser be themed from the shared Stylix scheme without hand-written chrome CSS.
