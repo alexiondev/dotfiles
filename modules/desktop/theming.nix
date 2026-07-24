@@ -40,9 +40,20 @@ in
         size = 24;
       };
 
-      fonts.monospace = {
-        package = pkgs.jetbrains-mono;
-        name = "JetBrains Mono";
+      fonts = {
+        monospace = {
+          package = pkgs.jetbrains-mono;
+          name = "JetBrains Mono";
+        };
+
+        # A step below Stylix's defaults (applications 12, desktop/popups 10,
+        # terminal 12), which read oversized on this display.
+        sizes = {
+          applications = 10;
+          desktop = 9;
+          popups = 9;
+          terminal = 10;
+        };
       };
     };
 
