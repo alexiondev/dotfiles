@@ -52,6 +52,11 @@ in
           extensions.force = true;
 
           settings = {
+            # Auto-enable the sideloaded Firefox Color add-on that carries the
+            # Nord chrome theme, which Firefox otherwise leaves disabled.
+            # The functional extensions come through policy and are unaffected.
+            "extensions.autoDisableScopes" = 0;
+
             # Sponsored surfaces the policies above do not reach.
             "browser.urlbar.suggest.quicksuggest.sponsored" = false;
             "browser.newtabpage.activity-stream.showSponsored" = false;
