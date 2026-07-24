@@ -57,8 +57,9 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   Editing a skill in place fails; its source is `modules/agents/claude-code/skills/<name>/` here, applied by a rebuild.
   Creating a new file under `~/.claude/skills/` succeeds silently and is the trap — it stays outside the repo and reaches no other machine.
   Copying out of that tree needs `cp -rL` plus `chmod -R u+w`: a plain `cp -r` copies the symlinks, putting store paths into the destination, and dereferenced files keep the store's read-only mode.
-- `home-manager.users.<user>.home.file` is keyed by **absolute** path, not by a path relative to the home directory.
-  Evaluating `home.file.".claude/CLAUDE.md"` fails with "does not provide attribute"; the working key is `home.file."/home/alexion/.claude/CLAUDE.md"`.
+- `home-manager.users.<user>.home.file` is keyed by whatever path string the **defining module wrote**, absolute or relative, not by one canonical form.
+  A module that writes `home.file."/home/alexion/.claude/CLAUDE.md"` is reachable only at that absolute key, while `programs.firefox` writes relative keys such as `home.file.".config/mozilla/firefox/profiles.ini"` reachable only at the relative form.
+  The other form fails with "does not provide attribute", so overriding an entry (e.g. setting `.force = true` on it) requires matching the writer's exact key.
   List the real keys with `nix eval --json .#nixosConfigurations.<host>.config.home-manager.users.<user>.home.file --apply builtins.attrNames` rather than guessing one.
   A key's `.source` is the input file, whose store path differs from the deployed symlink's target (home-manager copies it to a `hm_`-prefixed path) even though the contents match.
 - nixpkgs `vimPlugins.nord-nvim` is `shaunsingh/nord.nvim` (no `require("nord").setup()`); the config wants `gbprod/nord.nvim`, which is packaged as `vimPlugins.gbprod-nord`.
