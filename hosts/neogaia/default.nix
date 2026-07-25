@@ -44,6 +44,10 @@
 
   modules.toolkit.enable = true;
 
+  # The walking-skeleton guest, enabled like any module: proves the guest path
+  # end to end through this host's `nix flake check`.
+  guests.sample.enable = true;
+
   modules.agents.claude-code.enable = true;
   modules.agents.tools.gitea-axi.enable = true;
   modules.agents.pi.enable = true;
