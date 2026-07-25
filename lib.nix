@@ -39,6 +39,22 @@ let
     my = self.lib;
   };
 
+  # The name of a tagged VLAN's bridge, kept here as the one definition of a
+  # convention shared across the flake.
+  bridgeName = id: "br-vlan${toString id}";
+
+  # A guest with no operator-set MAC derives a stable one from its namespace path.
+  # The first octet 02 marks the address locally-administered and unicast.
+  # The rest is a slice of the path's hash.
+  # The same guest therefore always lands on the same address, which the operator can reserve at the router.
+  deriveMac =
+    name:
+    let
+      hash = builtins.hashString "sha256" name;
+      octet = i: builtins.substring (i * 2) 2 hash;
+    in
+    lib.concatStringsSep ":" ([ "02" ] ++ map octet [ 0 1 2 3 4 ]);
+
   # Build one host: every module and every guest is imported unconditionally
   # (inert until its `enable` flag is set), alongside chaotic, the host base,
   # and the host's own directory.
@@ -77,6 +93,25 @@ let
       optionPath = [ "guests" ] ++ lib.splitString "." name;
       cfg = lib.getAttrFromPath optionPath config;
       machineName = lib.replaceStrings [ "." ] [ "-" ] name;
+
+      networked = cfg.vlan != null;
+
+      # A networked guest owns its bridged interface through its own networkd, the only stable MAC pin for a nested container.
+      # The interface is eth0, the name a nested container gives its bridged veth.
+      # It takes the placement MAC, and the static address or DHCP when that is unset.
+      guestNet =
+        { lib, ... }:
+        {
+          config = lib.mkIf networked {
+            networking.useNetworkd = true;
+            systemd.network.networks."20-eth0" = {
+              matchConfig.Name = "eth0";
+              linkConfig.MACAddress = cfg.mac;
+              networkConfig = lib.mkIf (cfg.address == null) { DHCP = "yes"; };
+              address = lib.mkIf (cfg.address != null) [ cfg.address ];
+            };
+          };
+        };
     in
     {
       options = lib.setAttrByPath optionPath {
@@ -93,6 +128,38 @@ let
             hard-isolation backend and is not built yet.
           '';
         };
+        vlan = lib.mkOption {
+          type = lib.types.nullOr (lib.types.ints.between 1 4094);
+          default = null;
+          example = 10;
+          description = ''
+            The tagged VLAN this guest lives on. The guest attaches to its host's
+            `br-vlan<id>` bridge for that VLAN. Left null, the guest keeps a
+            private network with no bridge attachment. The id must be one of the
+            host's `modules.network.vlans`.
+          '';
+        };
+        mac = lib.mkOption {
+          type = lib.types.str;
+          default = deriveMac name;
+          defaultText = lib.literalMD "a stable address derived from the guest's namespace path";
+          example = "bc:24:11:00:00:01";
+          description = ''
+            The guest's MAC address on its VLAN, pinned inside the guest by its
+            own networkd. Set it to reuse an existing address so a router's DHCP
+            reservation keeps working. Left unset, a stable address is derived
+            from the guest's namespace path in the locally-administered range.
+          '';
+        };
+        address = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+          example = "10.0.10.5/24";
+          description = ''
+            The guest's static address, in CIDR form, on its VLAN. Left null, the
+            guest takes its address by DHCP, keeping IP management at the router.
+          '';
+        };
       };
 
       config = lib.mkIf cfg.enable {
@@ -101,6 +168,12 @@ let
             assertion = cfg.backend == "container";
             message = ''
               guests.${name}.backend = "${cfg.backend}" is not implemented. Only the "container" backend is built; "microvm" is reserved for future work.
+            '';
+          }
+          {
+            assertion = !networked || lib.elem cfg.vlan config.modules.network.vlans;
+            message = ''
+              guests.${name}.vlan = ${toString cfg.vlan} is not among its host's modules.network.vlans (${lib.concatMapStringsSep ", " toString config.modules.network.vlans}). Declare the VLAN on the host or correct the guest's placement.
             '';
           }
         ];
@@ -112,11 +185,16 @@ let
           # sshd included — never contend with the host's.
           privateNetwork = lib.mkDefault true;
 
+          # A networked guest's veth is enslaved to the VLAN's bridge, making it
+          # a first-class L2 citizen on that segment.
+          hostBridge = lib.mkIf networked (bridgeName cfg.vlan);
+
           inherit specialArgs;
 
           config = {
             imports = [
               (self + "/guest.nix")
+              guestNet
               interior
             ];
           };
@@ -138,5 +216,6 @@ in
     mkHost
     mkHosts
     guest
+    bridgeName
     ;
 }

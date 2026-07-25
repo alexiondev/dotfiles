@@ -1,14 +1,16 @@
 {
   config,
   lib,
+  my,
   ...
 }:
 # The host networking foundation: per-VLAN bridges over a tagged trunk.
 let
   cfg = config.modules.network;
 
-  # Each tagged VLAN materializes as a bridge named for its id.
-  bridgeName = id: "br-vlan${toString id}";
+  # Each tagged VLAN materializes as a bridge named for its id, by the shared
+  # convention.
+  inherit (my) bridgeName;
 
   # The tagged sub-interface stacked on the trunk that feeds one bridge.
   vlanName = id: "${cfg.trunk}.${toString id}";
