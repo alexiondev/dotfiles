@@ -160,6 +160,43 @@ let
             guest takes its address by DHCP, keeping IP management at the router.
           '';
         };
+        mounts = lib.mkOption {
+          type = lib.types.attrsOf (
+            lib.types.submodule {
+              options = {
+                hostPath = lib.mkOption {
+                  type = lib.types.str;
+                  example = "/srv/media";
+                  description = "The path on the host bind-mounted into the guest.";
+                };
+                readOnly = lib.mkOption {
+                  type = lib.types.bool;
+                  default = false;
+                  description = ''
+                    Mount the path read-only. Read-write by default, since a
+                    service must write to the pool data it owns.
+                  '';
+                };
+              };
+            }
+          );
+          default = { };
+          example = lib.literalExpression ''
+            {
+              "/data/media" = { hostPath = "/srv/media"; };
+              "/data/config" = {
+                hostPath = "/srv/config/jellyfin";
+                readOnly = true;
+              };
+            }
+          '';
+          description = ''
+            Host paths bind-mounted into the guest, keyed by the path they appear
+            at inside the guest, so a guest sees exactly the data it should at any
+            granularity — a single folder or a whole pool. Each mount is
+            read-write unless `readOnly` is set.
+          '';
+        };
       };
 
       config = lib.mkIf cfg.enable {
@@ -188,6 +225,16 @@ let
           # A networked guest's veth is enslaved to the VLAN's bridge, making it
           # a first-class L2 citizen on that segment.
           hostBridge = lib.mkIf networked (bridgeName cfg.vlan);
+
+          # The container shares the host's uid and gid space one to one.
+          # A guest process writing as the shared storage group then lands on a bind-mounted pool as that same group, with no permission juggling.
+          # A private-user mapping would shift the ids and reintroduce those errors, so it stays off.
+          privateUsers = lib.mkDefault "no";
+
+          bindMounts = lib.mapAttrs (_guestPath: m: {
+            inherit (m) hostPath;
+            isReadOnly = m.readOnly;
+          }) cfg.mounts;
 
           inherit specialArgs;
 
