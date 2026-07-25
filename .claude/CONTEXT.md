@@ -12,12 +12,31 @@ _Avoid_: machine, node, system, box
 A single `.nix` feature file under `modules/` that declares an `enable` option and the configuration it turns on. Every Module is always imported but stays inert until a Host enables it.
 _Avoid_: component, package, plugin
 
+**Guest**:
+A reusable, machine-independent definition under `guests/` that bundles the Modules it runs inside an isolated NixOS instance, realized on a Host as a nested container.
+Its `backend` defaults to `container` (systemd-nspawn).
+`microvm` is a reserved backend value that is not yet built.
+A Guest follows the Modules convention wholesale: the file-or-folder layout, the Namespace convention (`guests/media/jellyfin.nix` declares `guests.media.jellyfin`), and the Enable convention (imported always, inert until a Host sets its `enable`).
+The Guest owns only its interior Modules.
+The Host that enables it supplies the machine-specific placement, such as its VLAN, pool mounts, and resource caps.
+_Avoid_: container, VM, instance, LXC, appliance
+
 **Skeleton**:
 The flake's plumbing — the Auto-loader, the helper lib, the flake inputs/overlays, and the shared base config — as distinct from the Modules that sit on top of it.
+The shared base config splits in two: a host base (`system.nix`) and a slim guest-base that every nested Guest stands on.
+The host base carries host-only machinery, such as the bootloader, hardware profile, host identity, and the boot and garbage-collection timers.
+The guest-base carries only what a nested service needs and auto-enables the `toolkit` bundle and `modules.ssh`.
+Both include the primary user, home-manager, and the shared overlays.
 _Avoid_: framework, core, base, scaffolding
 
+**toolkit**:
+A deliberate bundle Module (`modules.toolkit`) that turns on the baseline interactive environment — fish, tmux, nvim, git, direnv — as one unit, so any Host or Guest shell feels identical.
+The guest-base auto-enables it; a Host enables it explicitly like any other Module, keeping the Host a full checklist.
+Distinct from the grouping-directory enables ADR 0004 rejected, since this is a bundle wanted as a unit.
+_Avoid_: base, workstation, essentials
+
 **Auto-loader**:
-The lib code that recursively discovers and imports every Module under `modules/` (and every Host under `hosts/`) so new files wire themselves in without manual `imports` edits.
+The lib code that recursively discovers and imports every Module under `modules/`, every Host under `hosts/`, and every Guest under `guests/`, so new files wire themselves in without manual `imports` edits.
 _Avoid_: loader, importer, scanner
 
 **Enable convention**:

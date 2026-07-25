@@ -42,14 +42,8 @@
   # A machine the operator works from, so it admits the workstation keys alone.
   modules.ssh.authorizedKeys = config.modules.ssh.workstationKeys;
 
-  # fish as the login shell.
-  modules.fish.enable = true;
-  modules.fish.defaultShell = true;
+  modules.toolkit.enable = true;
 
-  modules.git.enable = true;
-  modules.direnv.enable = true;
-  modules.tmux.enable = true;
-  modules.nvim.enable = true;
   modules.agents.claude-code.enable = true;
   modules.agents.tools.gitea-axi.enable = true;
   modules.agents.pi.enable = true;
