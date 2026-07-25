@@ -11,9 +11,11 @@ let
 
   # The skills installed globally, as derivations from the skills flake.
   # wiki reads the personal Obsidian vault, and consume mines a source into it.
+  # grill interviews the operator relentlessly to resolve a plan before building.
   skills = with inputs.skills.packages.${pkgs.stdenv.hostPlatform.system}; [
     wiki
     consume
+    grill
   ];
 in
 {
