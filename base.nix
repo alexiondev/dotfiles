@@ -62,6 +62,12 @@ in
       extraGroups = [ "wheel" ];
     };
 
+    # The shared write group.
+    # Its gid is fixed, so a host and every guest carry the same number.
+    # An identity-mapped container write then lands on the pool as this group, sparing every service the permission juggling.
+    # 10000 clears the system-group ids assigned automatically and leaves headroom above the primary user, so nothing else claims it.
+    users.groups.storage.gid = 10000;
+
     # home-manager as a NixOS module: one build produces the system and user
     # environment together, sharing the system's pkgs and installing user
     # packages into the system profile.

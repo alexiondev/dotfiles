@@ -30,6 +30,6 @@ Making the Guest a peer of Host and Module — same Auto-loader, same convention
 
 - The Skeleton grows a Guest realization: the Auto-loader discovers `guests/`, a Guest's interior compiles into a nested container, and placement fields wire VLAN attachment, MAC pinning, bind mounts, secret mounts, unit caps, and the nesting prerequisites.
 - The shared base config splits into a host base (`system.nix`) and a slim guest-base; both include the primary user, home-manager, and the shared overlays, and the guest-base auto-enables the `toolkit` bundle and `modules.ssh`.
-- Guests attach to host-level foundations declared once per Host: `modules.network` for the trunk and per-VLAN bridges, and `modules.storage.zfs` with a shared fixed-gid `storage` group for identity-mapped pool writes.
+- Guests attach to host-level foundations declared once per Host: `modules.network` for the trunk and per-VLAN bridges, and `modules.zfs` with a shared fixed-gid `storage` group for identity-mapped pool writes.
 - OCI software has a declarative home without a new mechanism: a Guest with `nesting` runs Podman in its interior.
 - The `microvm` backend, multi-instance Guests, and the concrete homelab Host with its real trunk, VLAN, pool, and MAC values remain future work.

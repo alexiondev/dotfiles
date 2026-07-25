@@ -94,7 +94,7 @@ The guest-base auto-enables it; a Host enables it explicitly, keeping the Host a
 This is a bundle wanted as a unit, distinct from the grouping-directory enables ADR 0004 rejected.
 - **`modules.network`** (new): the host-level networking foundation.
 A Host declares its trunk interface and the set of VLANs to materialize, and the Module emits one bridge per tagged VLAN with systemd-networkd and manages the Host's own management address.
-- **`modules.storage.zfs`** (new): the host-level pool import.
+- **`modules.zfs`** (new): the host-level pool import.
 A Host declares its host id, the pools to import, and their dataset mountpoints; the pools are durable state that is imported, never rebuilt.
 - **A shared `storage` group** with a fixed gid in the shared base gives 1:1 ownership between Host and Guest.
 Because the container backend uses identity mapping, a guest service that writes as the `storage` group lands on the pool as that same group, which is the entire "no permission errors" mechanism.
