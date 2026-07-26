@@ -18,6 +18,9 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
 
 ## Gotchas
 
+- This repo pins no Nix formatter, and its committed `.nix` files are not clean under current `nixfmt-rfc-style`.
+  Running `nixfmt` across a file reflows untouched code (for example `lib.nix`'s `deriveMac` list and multi-line assertion messages) and injects churn unrelated to the change.
+  Format only the lines being written or changed, matching the surrounding style by hand.
 - This repo is developed on `neogaia`, which now runs the NixOS it builds.
   Flakes and the chaotic substituter come from this flake's own `nix.settings`, so no `NIX_CONFIG` export or per-command `--extra-experimental-features` is needed, and building a toplevel with `boot.kernelPackages = linuxPackages_cachyos` fetches the kernel from `nyx-cache` rather than compiling it.
   Both were true only while the machine still ran CachyOS against a distro Nix daemon.
