@@ -279,6 +279,19 @@ let
             '';
           };
         };
+        nesting = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = ''
+            Grant the guest's interior the prerequisites to run Podman or other
+            OCI containers of its own. Off by default, so a guest cannot nest
+            containers. On, the guest's container gains the network-administration
+            capability its container runtime uses to build bridges and firewall
+            rules, along with the tun and fuse device nodes such a runtime reaches
+            for, so the interior's `virtualisation.oci-containers` works with
+            Podman as its default runtime.
+          '';
+        };
         autoStart = lib.mkOption {
           type = lib.types.bool;
           default = true;
@@ -334,6 +347,25 @@ let
           # A guest process writing as the shared storage group then lands on a bind-mounted pool as that same group, with no permission juggling.
           # A private-user mapping would shift the ids and reintroduce those errors, so it stays off.
           privateUsers = lib.mkDefault "no";
+
+          # A nesting guest runs Podman or other OCI containers in its interior.
+          # The network-administration capability lets that runtime build its
+          # bridges and firewall rules.
+          # The tun and fuse device nodes are what it reaches for to network
+          # those containers and back their overlay storage.
+          # The remaining prerequisite, a delegated cgroup subtree for the
+          # runtime to manage, the container backend already grants every guest.
+          additionalCapabilities = lib.optionals cfg.nesting [ "CAP_NET_ADMIN" ];
+          allowedDevices = lib.optionals cfg.nesting [
+            {
+              node = "/dev/net/tun";
+              modifier = "rwm";
+            }
+            {
+              node = "/dev/fuse";
+              modifier = "rwm";
+            }
+          ];
 
           bindMounts = userMounts // secretMounts;
 

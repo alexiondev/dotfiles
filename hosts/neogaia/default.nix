@@ -54,6 +54,16 @@
     tasksMax = 512;
   };
 
+  # The nesting guest, run with `nesting` on: proves an interior OCI container
+  # on Podman builds end to end through this host's `nix flake check`.
+  guests.nesting-sample.enable = true;
+  guests.nesting-sample.nesting = true;
+  guests.nesting-sample.limits = {
+    memory = "1G";
+    cpu = "100%";
+    tasksMax = 512;
+  };
+
   modules.agents.claude-code.enable = true;
   modules.agents.tools.gitea-axi.enable = true;
   modules.agents.pi.enable = true;
