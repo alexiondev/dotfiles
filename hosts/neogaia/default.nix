@@ -46,7 +46,13 @@
 
   # The walking-skeleton guest, enabled like any module: proves the guest path
   # end to end through this host's `nix flake check`.
+  # Modest caps keep the skeleton guest from starving the laptop.
   guests.sample.enable = true;
+  guests.sample.limits = {
+    memory = "1G";
+    cpu = "100%";
+    tasksMax = 512;
+  };
 
   modules.agents.claude-code.enable = true;
   modules.agents.tools.gitea-axi.enable = true;

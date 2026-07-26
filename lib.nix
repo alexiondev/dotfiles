@@ -123,6 +123,14 @@ let
       # below would otherwise resolve silently in the secret's favour.
       mountCollisions = lib.attrNames (builtins.intersectAttrs userMounts secretMounts);
 
+      # The resource caps the operator places on the guest's unit, dropping any
+      # left unset so systemd keeps its uncapped default for those.
+      limitConfig = lib.filterAttrs (_: v: v != null) {
+        MemoryMax = cfg.limits.memory;
+        CPUQuota = cfg.limits.cpu;
+        TasksMax = cfg.limits.tasksMax;
+      };
+
       # A networked guest owns its bridged interface through its own networkd, the only stable MAC pin for a nested container.
       # The interface is eth0, the name a nested container gives its bridged veth.
       # It takes the placement MAC, and the static address or DHCP when that is unset.
@@ -240,6 +248,45 @@ let
             the host is owned by that same uid inside the guest.
           '';
         };
+        limits = {
+          memory = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+            example = "2G";
+            description = ''
+              Cap on the guest's memory, applied to its unit as `MemoryMax`.
+              Accepts systemd size suffixes such as `512M` or `2G`. Left null,
+              the guest's memory is uncapped.
+            '';
+          };
+          cpu = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+            example = "150%";
+            description = ''
+              Cap on the guest's CPU, applied to its unit as `CPUQuota`, where
+              `100%` is one full core. Left null, the guest's CPU is uncapped.
+            '';
+          };
+          tasksMax = lib.mkOption {
+            type = lib.types.nullOr lib.types.ints.positive;
+            default = null;
+            example = 512;
+            description = ''
+              Cap on the number of processes and threads the guest may spawn,
+              applied to its unit as `TasksMax`. Left null, the task count is
+              uncapped.
+            '';
+          };
+        };
+        autoStart = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = ''
+            Start the guest at boot. On by default. Disabled, the guest stays
+            defined and can be started on demand, but does not come up at boot.
+          '';
+        };
       };
 
       config = lib.mkIf cfg.enable {
@@ -268,8 +315,12 @@ let
           }
         ];
 
+        # The operator's resource caps land on the guest's own unit.
+        systemd.services."container@${machineName}".serviceConfig =
+          lib.mkIf (cfg.backend == "container") limitConfig;
+
         containers.${machineName} = lib.mkIf (cfg.backend == "container") {
-          autoStart = lib.mkDefault true;
+          autoStart = cfg.autoStart;
 
           # The guest gets its own network namespace, so its services — its own
           # sshd included — never contend with the host's.
