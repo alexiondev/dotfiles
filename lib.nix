@@ -96,6 +96,33 @@ let
 
       networked = cfg.vlan != null;
 
+      # Host paths the operator maps into the guest, keyed by their in-guest path.
+      userMounts = lib.mapAttrs (_guestPath: m: {
+        inherit (m) hostPath;
+        isReadOnly = m.readOnly;
+      }) cfg.mounts;
+
+      # Each named secret bind-mounted read-only at the same `/run/secrets/<name>`
+      # path it holds on the host.
+      # No ownership is set here, since the container's one-to-one identity map
+      # carries the host file's owner through unchanged.
+      secretMounts = lib.listToAttrs (
+        map (
+          name:
+          let
+            path = config.sops.secrets.${name}.path;
+          in
+          lib.nameValuePair path {
+            hostPath = path;
+            isReadOnly = true;
+          }
+        ) cfg.secrets
+      );
+
+      # An in-guest path claimed by both a mount and a secret, which the merge
+      # below would otherwise resolve silently in the secret's favour.
+      mountCollisions = lib.attrNames (builtins.intersectAttrs userMounts secretMounts);
+
       # A networked guest owns its bridged interface through its own networkd, the only stable MAC pin for a nested container.
       # The interface is eth0, the name a nested container gives its bridged veth.
       # It takes the placement MAC, and the static address or DHCP when that is unset.
@@ -197,10 +224,36 @@ let
             read-write unless `readOnly` is set.
           '';
         };
+        secrets = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          example = [ "jellyfin-api-key" ];
+          description = ''
+            Names of the secrets this guest needs. The host is the sole
+            decryptor: it decrypts each named secret from its own sops files and
+            bind-mounts the plaintext file into the guest read-only at
+            `/run/secrets/<name>`, the same path it would occupy on a host, so a
+            service reads its credentials at a predictable location. The guest
+            names the files it wants and receives exactly those. It holds no age
+            key and decrypts nothing itself. Ownership carries across unchanged,
+            since the container maps ids one to one, so a secret owned by a uid on
+            the host is owned by that same uid inside the guest.
+          '';
+        };
       };
 
       config = lib.mkIf cfg.enable {
+        # Declared here so the host is the one that decrypts each named secret.
+        # The guest carries no age key and decrypts nothing of its own.
+        sops.secrets = lib.genAttrs cfg.secrets (_: { });
+
         assertions = [
+          {
+            assertion = mountCollisions == [ ];
+            message = ''
+              guests.${name} maps a mount at ${lib.concatStringsSep ", " mountCollisions}, colliding with a secret bind-mounted at the same path. Rename the mount or the secret so each in-guest path is used once.
+            '';
+          }
           {
             assertion = cfg.backend == "container";
             message = ''
@@ -231,10 +284,7 @@ let
           # A private-user mapping would shift the ids and reintroduce those errors, so it stays off.
           privateUsers = lib.mkDefault "no";
 
-          bindMounts = lib.mapAttrs (_guestPath: m: {
-            inherit (m) hostPath;
-            isReadOnly = m.readOnly;
-          }) cfg.mounts;
+          bindMounts = userMounts // secretMounts;
 
           inherit specialArgs;
 
