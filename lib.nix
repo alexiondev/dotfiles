@@ -139,6 +139,11 @@ let
         {
           config = lib.mkIf networked {
             networking.useNetworkd = true;
+
+            # networkd default-enables resolved, which owns the guest's resolv.conf.
+            # The nested-container default of inheriting the host's file conflicts with that, so the guest keeps its own.
+            networking.useHostResolvConf = false;
+
             systemd.network.networks."20-eth0" = {
               matchConfig.Name = "eth0";
               linkConfig.MACAddress = cfg.mac;
@@ -328,9 +333,24 @@ let
           }
         ];
 
-        # The operator's resource caps land on the guest's own unit.
-        systemd.services."container@${machineName}".serviceConfig =
-          lib.mkIf (cfg.backend == "container") limitConfig;
+        # The operator's resource caps land on the guest's own unit, which a
+        # networked guest also orders after the bridge its veth enslaves to at
+        # start, since the container backend orders the unit after the network
+        # is up but not after that specific bridge existing.
+        systemd.services."container@${machineName}" = lib.mkIf (cfg.backend == "container") (
+          lib.mkMerge [
+            { serviceConfig = limitConfig; }
+            (lib.mkIf networked (
+              let
+                bridgeDevice = "sys-subsystem-net-devices-${lib.replaceStrings [ "-" ] [ "\\x2d" ] (bridgeName cfg.vlan)}.device";
+              in
+              {
+                after = [ bridgeDevice ];
+                wants = [ bridgeDevice ];
+              }
+            ))
+          ]
+        );
 
         containers.${machineName} = lib.mkIf (cfg.backend == "container") {
           autoStart = cfg.autoStart;
