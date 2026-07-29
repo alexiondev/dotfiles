@@ -19,9 +19,9 @@ in
       enable = true;
 
       settings = {
-        defaultProvider = "anthropic";
-        # Pi's catalogue id for Opus.
-        defaultModel = "claude-opus-4-8";
+        defaultProvider = "openai";
+        # Pi's catalogue id for OpenAI's Codex model, served by the ChatGPT subscription.
+        defaultModel = "gpt-5.3-codex";
         enableAnalytics = false;
       };
     };
