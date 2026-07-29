@@ -48,6 +48,8 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
 - `~/.claude/skills` and `~/.pi/agent/skills` are home-manager-generated (`recursive = true`), so editing a skill in place fails and a new file created there silently escapes the repo.
   Shared global skills come from the `skills` flake through `modules/agents/skills.nix`, applied by a rebuild.
   Claude-specific legacy skills, when kept, live under `modules/agents/claude-code/skills/<name>/`.
+- Pi skill discovery honors `.gitignore`, `.ignore`, and `.fdignore` inside scanned skill directories.
+  A generated `.agents/skills/.gitignore` entry that ignores a symlinked skill also prevents Pi from loading that skill, even when `.agents/skills/<name>/SKILL.md` exists and the symlink target is valid.
 - nixpkgs `vimPlugins.nord-nvim` is `shaunsingh/nord.nvim` (no `require("nord").setup()`).
   The config wants `gbprod/nord.nvim`, which is packaged as `vimPlugins.gbprod-nord`.
 - `nixos-generate-config --show-hardware-config` needs root on this machine even just to print: unprivileged it dies at `Failed to retrieve subvolume info for /`, because the root filesystem is btrfs.
