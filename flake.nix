@@ -79,6 +79,19 @@
       # Every host under hosts/ is discovered and built.
       nixosConfigurations = my.mkHosts (self + "/hosts");
 
+      # A project shell for agent-local resources that should travel with this
+      # checkout rather than the operator's global profile.
+      devShells.x86_64-linux.default =
+        let
+          pkgs = nixpkgs.legacyPackages.x86_64-linux;
+        in
+        pkgs.mkShell {
+          packages = [ inputs.gitea-axi.packages.x86_64-linux.gitea-axi ];
+          shellHook = inputs.skills.lib.mkSkillsShellHook [
+            inputs.gitea-axi.packages.x86_64-linux.gitea-axi-skill
+          ];
+        };
+
       # `nix flake check` builds each host's toplevel.
       checks.x86_64-linux = lib.mapAttrs (
         _name: host: host.config.system.build.toplevel

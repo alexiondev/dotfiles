@@ -36,9 +36,6 @@ in
       programs.claude-code = {
         enable = true;
 
-        # The global agent-instructions file.
-        context = ./CLAUDE.md;
-
         # One directory per skill, symlinked under ~/.claude/skills.
         skills = ./skills;
 
