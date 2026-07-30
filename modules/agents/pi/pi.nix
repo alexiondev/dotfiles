@@ -22,7 +22,7 @@ in
 
         settings = {
           defaultProvider = "openai-codex";
-          defaultModel = "gpt-5.5";
+          defaultModel = "gpt-5.6-sol";
           defaultThinkingLevel = "medium";
           theme = "dark";
           enableInstallTelemetry = false;
