@@ -1,7 +1,7 @@
 # dotfiles-nixos
 
 One flake that builds every machine the user owns.
-The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overlays) lives in `.agents/CONTEXT.md`.
+The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overlays) lives in `~/Documents/ai-artifacts/projects/dotfiles/CONTEXT.md`.
 
 ## Conventions
 

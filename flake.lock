@@ -75,11 +75,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1785310450,
-        "narHash": "sha256-B770yiSd3FJ1d6dJv1qBhdfx5E0ZnFFIAWcRUCXRZSw=",
+        "lastModified": 1785327209,
+        "narHash": "sha256-heXGjUBU1UsTHFzedDzYct9Cblr6FGzQcYyjCykywh8=",
         "owner": "chaotic-cx",
         "repo": "nyx",
-        "rev": "f75a3ace95019afead74c2d68de86a4da0686ccc",
+        "rev": "90cfa9864fa08c923dddeca965103ad44663dd64",
         "type": "github"
       },
       "original": {
@@ -236,6 +236,28 @@
         "url": "https://git.alexion.dev/alexion/gitea-axi"
       }
     },
+    "gitea-axi_2": {
+      "inputs": {
+        "home-manager": "home-manager_4",
+        "nixpkgs": [
+          "skills",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1785340481,
+        "narHash": "sha256-GSxdQ7w8yYfZnfkXUuZ2fYIKibe9ZU8xDGyqpeTb2tE=",
+        "ref": "refs/heads/main",
+        "rev": "627fc9a32bb80d97923540fc0d3e9661961462ba",
+        "revCount": 83,
+        "type": "git",
+        "url": "https://git.alexion.dev/alexion/gitea-axi"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://git.alexion.dev/alexion/gitea-axi"
+      }
+    },
     "gnome-shell": {
       "flake": false,
       "locked": {
@@ -263,11 +285,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1785168662,
-        "narHash": "sha256-kGJTc0oEUQuEwV66lSlMxYtOEtpk9N/HS43k+rFAvs8=",
+        "lastModified": 1785288465,
+        "narHash": "sha256-nCkxaGRtyNheNTxoc527gjOG0BN2zovsWDQVBeKDMW8=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "cbb77679b3d992c8b62f884cd3a84af534a28621",
+        "rev": "36662afed2fa1c9b69bdd03edb92ad572202ca20",
         "type": "github"
       },
       "original": {
@@ -318,6 +340,28 @@
       }
     },
     "home-manager_4": {
+      "inputs": {
+        "nixpkgs": [
+          "skills",
+          "gitea-axi",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1784588016,
+        "narHash": "sha256-ouZe80aWEhMLVMkqICFDN+JUw+0FJtCr/bh+hHtRtMg=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "deeb6b7eb7e0c44ae1819c051ce175bd92a85100",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "home-manager_5": {
       "inputs": {
         "nixpkgs": [
           "skills",
@@ -408,11 +452,11 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1785090369,
-        "narHash": "sha256-m0pDuRJG7EDo9ri+4Ksu83VsI+PlxNC9lNBfydejce4=",
+        "lastModified": 1785318670,
+        "narHash": "sha256-dN6Ou5x/+23FZLEpYP3IffO+NyJFzUlGumt1uu3MMaY=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "624af665418d3c65d544145b4d34ad696439570e",
+        "rev": "0954f7ee2f6bb3dc7d4e3d0d8bcb8fd4bde4cfc5",
         "type": "github"
       },
       "original": {
@@ -431,11 +475,11 @@
         "systems": "systems"
       },
       "locked": {
-        "lastModified": 1785001306,
-        "narHash": "sha256-xWqmquUtqKXLeDZ1oQUO+rV4sjA9TShIJhLL8M5Bozo=",
+        "lastModified": 1785364321,
+        "narHash": "sha256-BLuHl+nZKb+FDq3GAM6L+UBEiyVepXANA31fT1F56pw=",
         "owner": "nix-community",
         "repo": "nixvim",
-        "rev": "48409beb41e8e28b64e8160ca82d8a93fb628963",
+        "rev": "acd69cc15d57004e8cb4495034320263a3d362ea",
         "type": "github"
       },
       "original": {
@@ -488,17 +532,18 @@
     "skills": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "home-manager": "home-manager_4",
+        "gitea-axi": "gitea-axi_2",
+        "home-manager": "home-manager_5",
         "nixpkgs": [
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1785358882,
-        "narHash": "sha256-2a/wELB9EI1i7+o1deitPFbXE03BpXUiKWbZElAxXHE=",
+        "lastModified": 1785385819,
+        "narHash": "sha256-kiDhor5OhBfQqBuzP5ClVNCpC6HxHsO/6Gd+BTSY5dY=",
         "ref": "refs/heads/main",
-        "rev": "40b37281d51b9ac78a2aeafbf3f2c2073e80b649",
-        "revCount": 22,
+        "rev": "fbd009337d9f18dc03b63916cf843b08a2b7b468",
+        "revCount": 28,
         "type": "git",
         "url": "https://git.alexion.dev/alexion/skills"
       },
