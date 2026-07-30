@@ -1,15 +1,15 @@
-{ config, lib, ... }:
+{
+  config,
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
 # Firefox as the desktop browser: stock mainline, hardened and de-monetized by policy.
 let
   cfg = config.modules.desktop.firefox;
   user = config.user.name;
-
-  # A force-installed extension, keyed at the call site by the add-on's own id.
-  # Firefox fetches the signed add-on from Mozilla's site and enables it automatically.
-  forceInstalled = slug: {
-    install_url = "https://addons.mozilla.org/firefox/downloads/latest/${slug}/latest.xpi";
-    installation_mode = "force_installed";
-  };
+  firefoxAddons = inputs.firefox-addons.packages.${pkgs.stdenv.hostPlatform.system};
 in
 {
   options.modules.desktop.firefox.enable = lib.mkEnableOption "Firefox as the desktop browser";
@@ -34,21 +34,22 @@ in
             SponsoredPocket = false;
             Snippets = false;
           };
-
-          # An ad blocker, a password manager, and a video sponsor-skipper.
-          ExtensionSettings = {
-            "uBlock0@raymondhill.net" = forceInstalled "ublock-origin";
-            "78272b6fa58f4a1abaac99321d503a20@proton.me" = forceInstalled "proton-pass";
-            "sponsorBlocker@ajay.app" = forceInstalled "sponsorblock";
-          };
         };
 
         profiles.default = {
           isDefault = true;
 
-          # The Nord chrome theme is a declared extension setting, so home-manager
-          # owns the extension-settings store, overwriting runtime changes to it.
-          extensions.force = true;
+          extensions = {
+            packages = with firefoxAddons; [
+              ublock-origin
+              proton-pass
+              sponsorblock
+            ];
+
+            # The Nord chrome theme is a declared extension setting, so home-manager
+            # owns the extension-settings store, overwriting runtime changes to it.
+            force = true;
+          };
 
           # Stylix's Nord mapping paints the selected address-bar result a
           # near-white grey, leaving its light text unreadable. Darken that one

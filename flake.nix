@@ -16,6 +16,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Signed AMO extensions, pinned by version and hash.
+    firefox-addons = {
+      url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Follows our nixpkgs so its plugins build against the same package set.
     nixvim = {
       url = "github:nix-community/nixvim";

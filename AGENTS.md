@@ -18,6 +18,8 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
 
 ## Gotchas
 
+- ADR bodies are immutable records of decisions as they were made, while status frontmatter is mutable.
+  When a decision changes or its premise proves wrong, preserve the original body, update its status, and add a new ADR that supersedes it.
 - This repo pins no Nix formatter, and its committed `.nix` files are not clean under current `nixfmt-rfc-style`.
   Running `nixfmt` across a file reflows untouched code (for example `lib.nix`'s `deriveMac` list and multi-line assertion messages) and injects churn unrelated to the change.
   Format only the lines being written or changed, matching the surrounding style by hand.
@@ -62,6 +64,8 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   Omission alone does not prune a built-in engine, since Firefox reconciles its app-provided engines back in, so remove one by listing it with `<engine>.metaData.hidden = true`.
   Engines are referenced by their current id, so the default is `default = "ddg"`, not `"DuckDuckGo"`.
   Decode the built file with `mozlz4a -d <search.json.mozlz4>` to check the result.
+- Any non-empty Home Manager Firefox `profiles.<name>.extensions.settings.<id>.settings` causes Home Manager to set `extensions.webextensions.ExtensionStorageIDB.enabled = false` globally for that profile.
+  This repo's Stylix Firefox `colorTheme` settings trigger it, so every extension in the profile uses the legacy extension-storage backend regardless of how it is installed.
 - `home.sessionVariables` do **not** reach the Hyprland session, since UWSM does not source `hm-session-vars.sh`.
   The cursor is therefore set through Hyprland's own `env = KEY,VALUE` in `modules/desktop/hyprland/hyprland.nix`, sourced from `config.stylix.cursor`.
   Bibata ships XCursor format only (no `hyprcursor/` dir), rendered through Hyprland's XCursor fallback, so `XCURSOR_*` and `HYPRCURSOR_*` naming the same theme are both safe.
