@@ -15,6 +15,7 @@ in
   config = lib.mkIf cfg.enable {
     home-manager.users.${user}.programs.direnv = {
       enable = true;
+      silent = true;
 
       # nix-direnv caches the evaluated shell so re-entering a directory is instant
       # instead of re-running `nix develop`, and adds the `use flake` stdlib helper.
