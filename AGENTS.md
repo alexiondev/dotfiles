@@ -1,7 +1,7 @@
 # dotfiles-nixos
 
 One flake that builds every machine the user owns.
-The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overlays) lives in `~/Documents/ai-artifacts/projects/dotfiles/CONTEXT.md`.
+The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overlays) lives in `~/Documents/ai-artifacts/projects/dotfiles/003-dotfiles-context.md`.
 
 ## Conventions
 
@@ -18,8 +18,9 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
 
 ## Gotchas
 
-- ADR bodies are immutable records of decisions as they were made, while status frontmatter is mutable.
+- ADR bodies are immutable records of decisions as they were made, while frontmatter is mutable.
   When a decision changes or its premise proves wrong, preserve the original body, update its status, and add a new ADR that supersedes it.
+  Filename migrations preserve references in immutable bodies through frontmatter aliases rather than rewriting those bodies.
 - This repo pins no Nix formatter, and its committed `.nix` files are not clean under current `nixfmt-rfc-style`.
   Running `nixfmt` across a file reflows untouched code (for example `lib.nix`'s `deriveMac` list and multi-line assertion messages) and injects churn unrelated to the change.
   Format only the lines being written or changed, matching the surrounding style by hand.
@@ -59,7 +60,7 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   A `PreToolUse` hook refuses privileged commands while the cache is cold, so a cold cache announces itself instead of stalling.
   A privileged-command failure *without* that message is the sandbox, not the cache.
 - Host GPUs: `neogaia` is Intel, `zeus` (the desktop) is **AMD**, and `raichu` (a headless server) is the only Nvidia machine.
-  The corrected fact also lives in ADR 0003.
+  The corrected fact also lives in artifact `006-dotfiles-hyprland-compositor-adr.md`.
 - This repo's `programs.firefox` `search` (with `force = true`) writes `search.json.mozlz4`.
   Omission alone does not prune a built-in engine, since Firefox reconciles its app-provided engines back in, so remove one by listing it with `<engine>.metaData.hidden = true`.
   Engines are referenced by their current id, so the default is `default = "ddg"`, not `"DuckDuckGo"`.
