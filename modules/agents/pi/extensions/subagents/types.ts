@@ -69,6 +69,18 @@ export interface SubagentResult {
   elapsedMs: number;
 }
 
+export type SubagentWaitMode = "all" | "any";
+
+export interface SubagentWaitResult {
+  ids: string[];
+  mode: SubagentWaitMode;
+  ready: boolean;
+  results: SubagentResult[];
+  pending: SubagentStatus[];
+  timedOut: boolean;
+  elapsedMs: number;
+}
+
 export interface ChildRecord {
   status: SubagentStatus;
   result?: string;

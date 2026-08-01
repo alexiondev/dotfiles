@@ -139,3 +139,98 @@ test("maxConcurrent preserves queued records", async () => {
 
   assert.equal(runner.starts.length, 2);
 });
+
+test("wait blocks until multiple subagents are terminal", async () => {
+  const runner = new FakeRunner();
+  const supervisor = new Supervisor(runner, "/tmp");
+  const first = await spawnStarted(supervisor, "one");
+  const second = await spawnStarted(supervisor, "two");
+
+  const waiting = supervisor.wait([first.id, second.id], { timeoutMs: 100 });
+  runner.starts[0].events.completed("one done", "agent_settled");
+  await sleep(0);
+
+  assert.equal(await Promise.race([waiting.then(() => "done"), sleep(10).then(() => "pending")]), "pending");
+
+  runner.starts[1].events.failed("two failed");
+  const result = await waiting;
+
+  assert.equal(result.timedOut, false);
+  assert.equal(result.ready, true);
+  assert.deepEqual(result.ids, [first.id, second.id]);
+  assert.equal(result.pending.length, 0);
+  assert.deepEqual(result.results.map((item) => item.state), ["completed", "failed"]);
+  assert.equal(result.results[0].result, "one done");
+  assert.equal(result.results[1].error, "two failed");
+});
+
+test("wait returns pending statuses on timeout", async () => {
+  const runner = new FakeRunner();
+  const supervisor = new Supervisor(runner, "/tmp");
+  const first = await spawnStarted(supervisor, "one");
+  const second = await spawnStarted(supervisor, "two");
+
+  runner.starts[0].events.completed("one done", "agent_settled");
+  const result = await supervisor.wait([first.id, second.id], { timeoutMs: 5 });
+
+  assert.equal(result.timedOut, true);
+  assert.equal(result.ready, false);
+  assert.deepEqual(result.results.map((item) => item.state), ["completed", "running"]);
+  assert.deepEqual(result.pending.map((item) => item.id), [second.id]);
+});
+
+test("wait any returns after the first terminal subagent", async () => {
+  const runner = new FakeRunner();
+  const supervisor = new Supervisor(runner, "/tmp");
+  const first = await spawnStarted(supervisor, "one");
+  const second = await spawnStarted(supervisor, "two");
+
+  const waiting = supervisor.wait([first.id, second.id], { mode: "any", timeoutMs: 100 });
+  runner.starts[1].events.completed("two done", "agent_settled");
+  const result = await waiting;
+
+  assert.equal(result.timedOut, false);
+  assert.equal(result.ready, true);
+  assert.deepEqual(result.results.map((item) => item.state), ["running", "completed"]);
+  assert.deepEqual(result.pending.map((item) => item.id), [first.id]);
+});
+
+test("wait rejects unknown and empty id sets", async () => {
+  const runner = new FakeRunner();
+  const supervisor = new Supervisor(runner, "/tmp");
+
+  await assert.rejects(() => supervisor.wait([]), /at least one subagent id is required/);
+  await assert.rejects(() => supervisor.wait(["missing"]), /unknown subagent id: missing/);
+});
+
+test("wait abort rejects without cancelling child", async () => {
+  const runner = new FakeRunner();
+  const supervisor = new Supervisor(runner, "/tmp");
+  const accepted = await spawnStarted(supervisor, "one");
+  const controller = new AbortController();
+
+  const waiting = supervisor.wait([accepted.id], { signal: controller.signal });
+  controller.abort();
+
+  await assert.rejects(waiting, /subagent wait aborted/);
+  assert.equal(runner.starts[0].handle.cancelCalls, 0);
+});
+
+test("wait follows queued subagents through queue start and completion", async () => {
+  const runner = new FakeRunner();
+  const supervisor = new Supervisor(runner, "/tmp", { maxConcurrent: 1 });
+  const batch = supervisor.spawnBatch([{ prompt: "one" }, { prompt: "two" }]);
+  await sleep(0);
+
+  const waiting = supervisor.wait([batch.accepted[1].id], { timeoutMs: 100 });
+  assert.equal(await Promise.race([waiting.then(() => "done"), sleep(10).then(() => "pending")]), "pending");
+
+  runner.starts[0].events.completed("one done", "agent_settled");
+  await sleep(0);
+  runner.starts[1].events.completed("two done", "agent_settled");
+  const result = await waiting;
+
+  assert.equal(result.timedOut, false);
+  assert.equal(result.ready, true);
+  assert.deepEqual(result.results.map((item) => item.result), ["two done"]);
+});

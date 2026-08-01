@@ -1,4 +1,16 @@
-import type { ChildHandle, ChildRecord, ChildRunner, ContextMode, RunnerEvents, SpawnAccepted, SpawnRequest, SubagentResult, SubagentStatus } from "./types.ts";
+import type {
+  ChildHandle,
+  ChildRecord,
+  ChildRunner,
+  ContextMode,
+  RunnerEvents,
+  SpawnAccepted,
+  SpawnRequest,
+  SubagentResult,
+  SubagentStatus,
+  SubagentWaitMode,
+  SubagentWaitResult,
+} from "./types.ts";
 import { cloneResult, cloneStatus, toAccepted } from "./status.ts";
 
 interface RunningChild {
@@ -34,6 +46,7 @@ export class Supervisor {
   private nextChild = 0;
   private readonly children = new Map<string, RunningChild>();
   private readonly queue: RunningChild[] = [];
+  private readonly waiters = new Set<() => void>();
 
   constructor(
     private readonly runner: ChildRunner,
@@ -74,6 +87,41 @@ export class Supervisor {
 
   result(id: string): SubagentResult {
     return cloneResult(this.require(id).record);
+  }
+
+  async wait(
+    ids: string[],
+    options: { timeoutMs?: number; signal?: AbortSignal; mode?: SubagentWaitMode } = {},
+  ): Promise<SubagentWaitResult> {
+    const uniqueIds = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
+    if (uniqueIds.length === 0) throw new Error("at least one subagent id is required");
+    for (const id of uniqueIds) this.require(id);
+
+    const startedAt = Date.now();
+    const mode = options.mode ?? "all";
+    if (mode !== "all" && mode !== "any") throw new Error(`unknown wait mode: ${mode}`);
+    const deadline = options.timeoutMs && options.timeoutMs > 0 ? startedAt + options.timeoutMs : undefined;
+    let timedOut = false;
+
+    while (!this.waitReady(uniqueIds, mode)) {
+      if (options.signal?.aborted) throw new Error("subagent wait aborted");
+      const remainingMs = deadline === undefined ? undefined : deadline - Date.now();
+      if (remainingMs !== undefined && remainingMs <= 0) {
+        timedOut = true;
+        break;
+      }
+      await this.nextChange(remainingMs, options.signal).catch((error) => {
+        if (error instanceof Error && error.message === "subagent wait timed out") timedOut = true;
+        else throw error;
+      });
+      if (timedOut) break;
+    }
+
+    const results = uniqueIds.map((id) => this.result(id));
+    const pending = uniqueIds
+      .map((id) => this.status(id))
+      .filter((status) => !isTerminal(status.state));
+    return { ids: uniqueIds, mode, ready: this.waitReady(uniqueIds, mode), results, pending, timedOut, elapsedMs: Date.now() - startedAt };
   }
 
   async cancel(id: string): Promise<SubagentStatus> {
@@ -291,6 +339,39 @@ export class Supervisor {
 
   private emitChange() {
     this.options.onChange?.(this.list());
+    for (const waiter of this.waiters) waiter();
+  }
+
+  private waitReady(ids: string[], mode: SubagentWaitMode): boolean {
+    const terminal = (id: string) => isTerminal(this.require(id).record.status.state);
+    return mode === "all" ? ids.every(terminal) : ids.some(terminal);
+  }
+
+  private nextChange(timeoutMs: number | undefined, signal: AbortSignal | undefined): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const cleanup = () => {
+        this.waiters.delete(resolveOnce);
+        if (timer) clearTimeout(timer);
+        signal?.removeEventListener("abort", abort);
+      };
+      const resolveOnce = () => {
+        cleanup();
+        resolve();
+      };
+      const abort = () => {
+        cleanup();
+        reject(new Error("subagent wait aborted"));
+      };
+      this.waiters.add(resolveOnce);
+      signal?.addEventListener("abort", abort, { once: true });
+      if (timeoutMs !== undefined) {
+        timer = setTimeout(() => {
+          cleanup();
+          reject(new Error("subagent wait timed out"));
+        }, timeoutMs);
+      }
+    });
   }
 
   private allocateId(): string {

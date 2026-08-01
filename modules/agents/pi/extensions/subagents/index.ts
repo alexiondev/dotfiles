@@ -130,6 +130,24 @@ export default function subagents(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "subagent_wait",
+    label: "Wait for subagents",
+    description: "Block until multiple subagents are terminal or a timeout expires. Prefer setting timeoutMs so the parent turn cannot hang forever",
+    parameters: Type.Object({
+      ids: Type.Array(Type.String({ description: "Subagent id returned by subagent_spawn or subagent_batch" })),
+      timeoutMs: Type.Optional(Type.Number({ description: "Maximum milliseconds to wait. Omit or use 0 to wait indefinitely" })),
+      mode: Type.Optional(Type.Union([Type.Literal("all"), Type.Literal("any")], { description: "Wait for all ids by default, or return after any id is terminal" })),
+    }),
+    async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+      const input = params as { ids?: unknown; timeoutMs?: unknown; mode?: unknown };
+      const ids = Array.isArray(input.ids) ? input.ids.map(String) : [];
+      const timeoutMs = typeof input.timeoutMs === "number" && Number.isFinite(input.timeoutMs) ? input.timeoutMs : undefined;
+      const mode = input.mode === "any" ? "any" : "all";
+      return textResult(await getSupervisor(ctx).wait(ids, { timeoutMs, mode, signal }));
+    },
+  });
+
+  pi.registerTool({
     name: "subagent_cancel",
     label: "Cancel subagent",
     description: "Cancel a running subagent",
@@ -182,6 +200,14 @@ export default function subagents(pi: ExtensionAPI) {
     },
   });
 
+  pi.registerCommand("subagent-wait", {
+    description: "Wait for subagent ids separated by spaces",
+    handler: async (args, ctx) => {
+      const { ids, timeoutMs, mode } = parseWaitArgs(args);
+      ctx.ui.notify(JSON.stringify(await getSupervisor(ctx).wait(ids, { timeoutMs, mode }), null, 2), "info");
+    },
+  });
+
   pi.registerCommand("subagent-ui", {
     description: "Toggle the bundled subagent status inspector",
     handler: async (_args, ctx) => {
@@ -229,6 +255,26 @@ function parseSpawnArgs(args: string): SpawnRequest {
     else if (flag === "--thinking") request.thinking = value;
   }
   return { ...request, prompt: parts.join(" ") || args } as SpawnRequest;
+}
+
+function parseWaitArgs(args: string): { ids: string[]; timeoutMs?: number; mode?: "all" | "any" } {
+  const parts = args.trim().split(/\s+/u).filter(Boolean);
+  let timeoutMs: number | undefined;
+  let mode: "all" | "any" | undefined;
+  const ids: string[] = [];
+  while (parts.length > 0) {
+    const part = parts.shift();
+    if (!part) continue;
+    if (part === "--timeout-ms" && parts[0]) {
+      const parsed = Number(parts.shift());
+      if (Number.isFinite(parsed)) timeoutMs = parsed;
+    } else if (part === "--mode" && (parts[0] === "all" || parts[0] === "any")) {
+      mode = parts.shift() as "all" | "any";
+    } else {
+      ids.push(part);
+    }
+  }
+  return { ids, timeoutMs, mode };
 }
 
 function isProjectTrusted(ctx: ExtensionContext): boolean {
