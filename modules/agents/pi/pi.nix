@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 # Pi, a terminal coding agent, for the primary user, configured through
@@ -10,6 +11,26 @@ let
   cfg = config.modules.agents.pi;
   user = config.user.name;
   piDir = "${config.users.users.${user}.home}/.pi/agent";
+  herdrPiIntegration = pkgs.stdenvNoCC.mkDerivation {
+    name = "herdr-pi-integration";
+    nativeBuildInputs = [ pkgs.herdr ];
+    phases = [ "installPhase" ];
+    installPhase = ''
+      mkdir -p $TMPDIR/home/.pi/agent/extensions
+      HOME=$TMPDIR/home herdr integration install pi
+      mkdir -p $out
+      cp $TMPDIR/home/.pi/agent/extensions/herdr-agent-state.ts $out/herdr-agent-state.ts
+    '';
+  };
+  piExtensions = pkgs.stdenvNoCC.mkDerivation {
+    name = "pi-extensions";
+    phases = [ "installPhase" ];
+    installPhase = ''
+      mkdir -p $out
+      cp -R ${./extensions}/. $out/
+      cp ${herdrPiIntegration}/herdr-agent-state.ts $out/herdr-agent-state.ts
+    '';
+  };
 in
 {
   options.modules.agents.pi.enable = lib.mkEnableOption ''
@@ -36,7 +57,7 @@ in
         "${piDir}/settings.json".force = true;
 
         "${piDir}/extensions" = {
-          source = ./extensions;
+          source = piExtensions;
           recursive = true;
         };
 
