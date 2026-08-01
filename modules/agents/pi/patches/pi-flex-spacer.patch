@@ -1,0 +1,169 @@
+diff --git a/packages/tui/src/tui.ts b/packages/tui/src/tui.ts
+--- a/packages/tui/src/tui.ts	2026-08-02 00:16:00.000000000 -0400
++++ b/packages/tui/src/tui.ts	2026-08-02 00:16:00.000000000 -0400
+@@ -310,7 +310,7 @@ export class TUI extends Container {
+ 	private cursorRow = 0; // Logical cursor row (end of rendered content)
+ 	private hardwareCursorRow = 0; // Actual terminal cursor row (may differ due to IME positioning)
+ 	private showHardwareCursor = process.env.PI_HARDWARE_CURSOR === "1";
+-	private clearOnShrink = process.env.PI_CLEAR_ON_SHRINK === "1"; // Clear empty rows when content shrinks (default: off)
++	private clearOnShrink = process.env.PI_CLEAR_ON_SHRINK !== "0"; // Clear empty rows when content shrinks (default: on)
+ 	private maxLinesRendered = 0; // Track terminal's working area (max lines ever rendered)
+ 	private previousViewportTop = 0; // Track previous viewport top for resize-aware cursor moves
+ 	private fullRedrawCount = 0;
+
+diff --git a/packages/coding-agent/src/core/settings-manager.ts b/packages/coding-agent/src/core/settings-manager.ts
+--- a/packages/coding-agent/src/core/settings-manager.ts	2026-08-02 00:34:00.000000000 -0400
++++ b/packages/coding-agent/src/core/settings-manager.ts	2026-08-02 00:34:00.000000000 -0400
+@@ -1093,11 +1093,11 @@ export class SettingsManager {
+ 	}
+ 
+ 	getClearOnShrink(): boolean {
+-		// Settings takes precedence, then env var, then default false
++		// Settings takes precedence, then env var, then default true
+ 		if (this.settings.terminal?.clearOnShrink !== undefined) {
+ 			return this.settings.terminal.clearOnShrink;
+ 		}
+-		return process.env.PI_CLEAR_ON_SHRINK === "1";
++		return process.env.PI_CLEAR_ON_SHRINK !== "0";
+ 	}
+ 
+ 	setClearOnShrink(enabled: boolean): void {
+
+diff --git a/packages/coding-agent/src/modes/interactive/interactive-mode.ts b/packages/coding-agent/src/modes/interactive/interactive-mode.ts
+--- a/packages/coding-agent/src/modes/interactive/interactive-mode.ts	2026-08-01 18:41:36.963495957 -0400
++++ b/packages/coding-agent/src/modes/interactive/interactive-mode.ts	2026-08-01 18:43:04.876341236 -0400
+@@ -210,6 +210,45 @@
+ 	return code !== undefined && DEAD_TERMINAL_ERROR_CODES.has(code);
+ }
+ 
++class FlexSpacerBottomLayout implements Component {
++	private readonly ui: TUI;
++	private readonly flowChildren: Component[];
++	private readonly pinnedChildren: Component[];
++
++	constructor(ui: TUI, flowChildren: Component[], pinnedChildren: Component[]) {
++		this.ui = ui;
++		this.flowChildren = flowChildren;
++		this.pinnedChildren = pinnedChildren;
++	}
++
++	invalidate(): void {
++		for (const child of [...this.flowChildren, ...this.pinnedChildren]) {
++			child.invalidate();
++		}
++	}
++
++	private renderGroup(children: Component[], width: number): string[] {
++		const lines: string[] = [];
++		for (const child of children) {
++			lines.push(...child.render(width));
++		}
++		return lines;
++	}
++
++	render(width: number): string[] {
++		const flowLines = this.renderGroup(this.flowChildren, width);
++		const pinnedLines = this.renderGroup(this.pinnedChildren, width);
++		const terminalRows = this.ui.terminal.rows;
++		const spacerRows = Math.max(0, terminalRows - flowLines.length - pinnedLines.length);
++
++		return [
++			...flowLines,
++			...Array.from({ length: spacerRows }, () => ""),
++			...pinnedLines,
++		];
++	}
++}
++
+ const ANTHROPIC_SUBSCRIPTION_AUTH_WARNING =
+ 	"Anthropic subscription auth is active. Third-party harness usage draws from extra usage and is billed per token, not your Claude plan limits. Manage extra usage at https://claude.ai/settings/usage. Disable this warning in /settings.";
+ 
+@@ -335,6 +374,7 @@
+ 	private fdPath: string | undefined;
+ 	private editorContainer: Container;
+ 	private footer: FooterComponent;
++	private footerContainer: Container;
+ 	private footerDataProvider: FooterDataProvider;
+ 	// Stored so the same manager can be injected into custom editors, selectors, and extension UI.
+ 	private keybindings: KeybindingsManager;
+@@ -477,7 +517,9 @@
+ 		this.editorContainer = new Container();
+ 		this.editorContainer.addChild(this.editor as Component);
+ 		this.footerDataProvider = new FooterDataProvider(this.sessionManager.getCwd());
++		this.footerContainer = new Container();
+ 		this.footer = new FooterComponent(this.session, this.footerDataProvider);
++		this.footerContainer.addChild(this.footer);
+ 		this.footer.setAutoCompactEnabled(this.session.autoCompactionEnabled);
+ 
+ 		// Load hide thinking block setting
+@@ -704,19 +746,25 @@
+ 			console.log(theme.fg("dim", `Model scope: ${modelList}${cycleHint}`));
+ 		}
+ 
+-		// Add header container as first child. Populate it after applying theme settings.
+-		// Keep loaded resources before chat so restored session messages never precede them.
+-		this.ui.addChild(this.headerContainer);
+-		this.ui.addChild(this.loadedResourcesContainer);
+-
+-		this.ui.addChild(this.chatContainer);
+-		this.ui.addChild(this.pendingMessagesContainer);
+-		this.ui.addChild(this.statusContainer);
+ 		this.renderWidgets(); // Initialize with default spacer
+-		this.ui.addChild(this.widgetContainerAbove);
+-		this.ui.addChild(this.editorContainer);
+-		this.ui.addChild(this.widgetContainerBelow);
+-		this.ui.addChild(this.footer);
++		this.ui.addChild(
++			new FlexSpacerBottomLayout(
++				this.ui,
++				[
++					this.headerContainer,
++					this.loadedResourcesContainer,
++					this.chatContainer,
++				],
++				[
++					this.pendingMessagesContainer,
++					this.statusContainer,
++					this.widgetContainerAbove,
++					this.editorContainer,
++					this.widgetContainerBelow,
++					this.footerContainer,
++				],
++			),
++		);
+ 		this.ui.setFocus(this.editor);
+ 
+ 		this.setupKeyHandlers();
+@@ -2033,25 +2081,25 @@
+ 			| ((tui: TUI, thm: Theme, footerData: ReadonlyFooterDataProvider) => Component & { dispose?(): void })
+ 			| undefined,
+ 	): void {
+-		// Dispose existing custom footer
++		// Dispose existing custom footer
+ 		if (this.customFooter?.dispose) {
+ 			this.customFooter.dispose();
+ 		}
+ 
+-		// Remove current footer from UI
++		// Remove current footer from its pinned layout slot.
+ 		if (this.customFooter) {
+-			this.ui.removeChild(this.customFooter);
++			this.footerContainer.removeChild(this.customFooter);
+ 		} else {
+-			this.ui.removeChild(this.footer);
++			this.footerContainer.removeChild(this.footer);
+ 		}
+ 
+ 		if (factory) {
+ 			// Create and add custom footer, passing the data provider
+ 			this.customFooter = factory(this.ui, theme, this.footerDataProvider);
+-			this.ui.addChild(this.customFooter);
++			this.footerContainer.addChild(this.customFooter);
+ 		} else {
+ 			// Restore built-in footer
+ 			this.customFooter = undefined;
+-			this.ui.addChild(this.footer);
++			this.footerContainer.addChild(this.footer);
+ 		}
+ 
+ 		this.ui.requestRender();

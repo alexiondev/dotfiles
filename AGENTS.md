@@ -81,4 +81,5 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
 - Flake-managed Pi extension, prompt, and skill directories may still be written directly for throwaway development or local experiments.
   The risk is that a later Home Manager activation can overwrite or hide those unmanaged files, so finished work must be promoted into the dotfiles module before it counts as deployed.
 - Pi's tool discovery checks `~/.pi/agent/bin` before `PATH`, and downloaded generic Linux binaries there can be unusable on NixOS with the stub-ld error.
-  A copied or patched Pi launcher that only prepends Nix `fd`/`rg` to `PATH` may still break `@` autocomplete unless the local tool path is removed or Pi validates the local binary before using it.
+  This flake patches Pi to validate local tool binaries before selecting them, so it falls back to usable `fd`/`rg` from `PATH` instead.
+  Stale unpatched launchers are the remaining failure mode for broken `@` autocomplete.

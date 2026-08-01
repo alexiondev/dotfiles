@@ -11,6 +11,12 @@ let
   cfg = config.modules.agents.pi;
   user = config.user.name;
   piDir = "${config.users.users.${user}.home}/.pi/agent";
+  patchedPi = pkgs.pi-coding-agent.overrideAttrs (old: {
+    patches = (old.patches or [ ]) ++ [
+      ./patches/pi-flex-spacer.patch
+      ./patches/pi-tool-lookup-validation.patch
+    ];
+  });
   herdrPiIntegration = pkgs.stdenvNoCC.mkDerivation {
     name = "herdr-pi-integration";
     nativeBuildInputs = [ pkgs.herdr ];
@@ -40,6 +46,7 @@ in
     home-manager.users.${user} = {
       programs.pi-coding-agent = {
         enable = true;
+        package = patchedPi;
 
         settings = {
           defaultProvider = "openai-codex";

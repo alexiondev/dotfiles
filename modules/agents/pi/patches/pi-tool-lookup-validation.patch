@@ -1,0 +1,22 @@
+diff --git a/packages/coding-agent/src/utils/tools-manager.ts b/packages/coding-agent/src/utils/tools-manager.ts
+--- a/packages/coding-agent/src/utils/tools-manager.ts	2026-08-01 18:41:36.970496010 -0400
++++ b/packages/coding-agent/src/utils/tools-manager.ts	2026-08-01 18:41:37.028186009 -0400
+@@ -74,8 +74,7 @@
+ function commandExists(cmd: string): boolean {
+ 	try {
+ 		const result = spawnSync(cmd, ["--version"], { stdio: "pipe" });
+-		// Check for ENOENT error (command not found)
+-		return result.error === undefined || result.error === null;
++		return (result.error === undefined || result.error === null) && result.status === 0;
+ 	} catch {
+ 		return false;
+ 	}
+@@ -88,7 +87,7 @@
+ 
+ 	// Check our tools directory first
+ 	const localPath = join(TOOLS_DIR, config.binaryName + (platform() === "win32" ? ".exe" : ""));
+-	if (existsSync(localPath)) {
++	if (existsSync(localPath) && commandExists(localPath)) {
+ 		return localPath;
+ 	}
+ 
