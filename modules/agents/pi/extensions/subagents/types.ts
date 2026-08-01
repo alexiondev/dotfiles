@@ -1,0 +1,84 @@
+export type ContextMode = "independent" | "fork";
+
+export type SubagentState =
+  | "queued"
+  | "starting"
+  | "running"
+  | "settling"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "timed_out"
+  | "orphaned";
+
+export interface SpawnRequest {
+  prompt: string;
+  context?: ContextMode;
+  agent?: string;
+  model?: string;
+  thinking?: string;
+  tools?: string;
+}
+
+export interface SpawnAccepted {
+  id: string;
+  label: string;
+  context: ContextMode;
+  tools: string;
+  state: SubagentState;
+  hint: string;
+}
+
+export interface SubagentStatus {
+  id: string;
+  label: string;
+  agent?: string;
+  adHoc: boolean;
+  context: ContextMode;
+  state: SubagentState;
+  cwd: string;
+  model?: string;
+  thinking?: string;
+  tools: string;
+  startedAt: string;
+  completedAt?: string;
+  elapsedMs: number;
+  lastEvent?: string;
+  lastEventAt?: string;
+  stopReason?: string;
+  resultAvailable: boolean;
+  childSession?: string;
+  error?: string;
+}
+
+export interface SubagentResult {
+  id: string;
+  state: SubagentState;
+  running: boolean;
+  resultAvailable: boolean;
+  result?: string;
+  error?: string;
+  completedAt?: string;
+  elapsedMs: number;
+}
+
+export interface ChildRecord {
+  status: SubagentStatus;
+  result?: string;
+}
+
+export interface RunnerEvents {
+  accepted(childSession?: string): void;
+  running(event: string): void;
+  settling(): void;
+  completed(result: string, stopReason?: string): void;
+  failed(error: string): void;
+}
+
+export interface ChildHandle {
+  cancel(): Promise<void>;
+}
+
+export interface ChildRunner {
+  start(id: string, request: SpawnRequest, cwd: string, events: RunnerEvents): Promise<ChildHandle>;
+}
