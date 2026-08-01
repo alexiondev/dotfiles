@@ -104,6 +104,13 @@ export default function subagents(pi: ExtensionAPI) {
     },
   });
 
+  pi.registerCommand("subagent-cancel", {
+    description: "Cancel a running subagent by id",
+    handler: async (args, ctx) => {
+      ctx.ui.notify(JSON.stringify(await getSupervisor(ctx).cancel(args.trim()), null, 2), "info");
+    },
+  });
+
   pi.on("session_shutdown", async () => {
     await supervisor?.shutdown();
     supervisor = undefined;

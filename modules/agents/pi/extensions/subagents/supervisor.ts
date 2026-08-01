@@ -4,7 +4,21 @@ import { cloneResult, cloneStatus, toAccepted } from "./status.ts";
 interface RunningChild {
   record: ChildRecord;
   handle?: ChildHandle;
+  startTimer?: ReturnType<typeof setTimeout>;
+  runTimer?: ReturnType<typeof setTimeout>;
 }
+
+interface SupervisorOptions {
+  timeouts?: {
+    startMs?: number;
+    runMs?: number;
+  };
+}
+
+const DEFAULT_TIMEOUTS = {
+  startMs: 30_000,
+  runMs: 0,
+};
 
 export class Supervisor {
   private nextChild = 0;
@@ -13,6 +27,7 @@ export class Supervisor {
   constructor(
     private readonly runner: ChildRunner,
     private readonly cwd: string,
+    private readonly options: SupervisorOptions = {},
   ) {}
 
   spawn(request: SpawnRequest): SpawnAccepted {
@@ -41,6 +56,7 @@ export class Supervisor {
     const child: RunningChild = { record: { status } };
     this.children.set(id, child);
     this.setState(child.record.status, "starting", "starting");
+    this.armStartTimer(child);
 
     setTimeout(() => {
       if (isTerminal(child.record.status.state)) return;
@@ -48,6 +64,7 @@ export class Supervisor {
         .start(id, { ...request, prompt, context: status.context, tools: status.tools }, this.cwd, this.eventsFor(child.record))
         .then((handle) => {
           child.handle = handle;
+          if (isTerminal(child.record.status.state)) void handle.cancel();
         })
         .catch((error) => {
           this.fail(child.record, error instanceof Error ? error.message : String(error));
@@ -73,19 +90,17 @@ export class Supervisor {
     const child = this.require(id);
     if (isTerminal(child.record.status.state)) return cloneStatus(child.record.status);
     await child.handle?.cancel();
-    const now = new Date().toISOString();
-    child.record.status.state = "cancelled";
-    child.record.status.completedAt = now;
-    child.record.status.lastEvent = "cancelled";
-    child.record.status.lastEventAt = now;
-    child.record.status.stopReason = "cancelled";
+    this.completeWithoutResult(child, "cancelled", "cancelled");
     return cloneStatus(child.record.status);
   }
 
   async shutdown(): Promise<void> {
     await Promise.allSettled(
       [...this.children.values()].map(async (child) => {
-        if (!isTerminal(child.record.status.state)) await child.handle?.cancel();
+        if (!isTerminal(child.record.status.state)) {
+          await child.handle?.cancel();
+          this.completeWithoutResult(child, "cancelled", "shutdown");
+        }
       }),
     );
   }
@@ -93,6 +108,11 @@ export class Supervisor {
   private eventsFor(record: ChildRecord): RunnerEvents {
     return {
       accepted: (childSession) => {
+        const child = this.findChild(record);
+        if (child) {
+          this.clearTimer(child, "startTimer");
+          this.armRunTimer(child);
+        }
         if (childSession) record.status.childSession = childSession;
         this.setState(record.status, "running", "prompt accepted");
       },
@@ -104,6 +124,8 @@ export class Supervisor {
       },
       completed: (result, stopReason) => {
         const now = new Date().toISOString();
+        const child = this.findChild(record);
+        if (child) this.clearTimers(child);
         record.result = result;
         record.status.state = "completed";
         record.status.completedAt = now;
@@ -118,6 +140,8 @@ export class Supervisor {
 
   private fail(record: ChildRecord, error: string) {
     if (isTerminal(record.status.state)) return;
+    const child = this.findChild(record);
+    if (child) this.clearTimers(child);
     const now = new Date().toISOString();
     record.status.state = "failed";
     record.status.completedAt = now;
@@ -125,6 +149,55 @@ export class Supervisor {
     record.status.lastEventAt = now;
     record.status.error = error;
     record.status.stopReason = "failed";
+  }
+
+  private completeWithoutResult(child: RunningChild, state: "cancelled" | "timed_out", reason: string) {
+    if (isTerminal(child.record.status.state)) return;
+    this.clearTimers(child);
+    const now = new Date().toISOString();
+    child.record.status.state = state;
+    child.record.status.completedAt = now;
+    child.record.status.lastEvent = state;
+    child.record.status.lastEventAt = now;
+    child.record.status.stopReason = reason;
+  }
+
+  private armStartTimer(child: RunningChild) {
+    const timeout = this.options.timeouts?.startMs ?? DEFAULT_TIMEOUTS.startMs;
+    if (timeout <= 0) return;
+    child.startTimer = setTimeout(() => {
+      this.timeout(child, "start_timeout");
+    }, timeout);
+  }
+
+  private armRunTimer(child: RunningChild) {
+    const timeout = this.options.timeouts?.runMs ?? DEFAULT_TIMEOUTS.runMs;
+    if (timeout <= 0) return;
+    child.runTimer = setTimeout(() => {
+      this.timeout(child, "run_timeout");
+    }, timeout);
+  }
+
+  private timeout(child: RunningChild, reason: string) {
+    if (isTerminal(child.record.status.state)) return;
+    void child.handle?.cancel();
+    this.completeWithoutResult(child, "timed_out", reason);
+  }
+
+  private clearTimers(child: RunningChild) {
+    this.clearTimer(child, "startTimer");
+    this.clearTimer(child, "runTimer");
+  }
+
+  private clearTimer(child: RunningChild, key: "startTimer" | "runTimer") {
+    const timer = child[key];
+    if (!timer) return;
+    clearTimeout(timer);
+    child[key] = undefined;
+  }
+
+  private findChild(record: ChildRecord): RunningChild | undefined {
+    return [...this.children.values()].find((child) => child.record === record);
   }
 
   private setState(status: SubagentStatus, state: SubagentStatus["state"], event: string) {

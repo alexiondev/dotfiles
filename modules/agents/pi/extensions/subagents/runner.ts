@@ -21,6 +21,9 @@ class RpcChildHandle implements ChildHandle {
   private buffer = "";
   private nextRequest = 0;
   private settled = false;
+  private finishing = false;
+  private cancelling = false;
+  private killed = false;
   private readonly pending = new Map<string, PendingResponse>();
 
   constructor(
@@ -46,11 +49,12 @@ class RpcChildHandle implements ChildHandle {
   }
 
   async cancel(): Promise<void> {
+    if (this.cancelling) return;
+    this.cancelling = true;
     try {
-      await this.send("abort", {});
+      await Promise.race([this.send("abort", {}), delay(200)]);
     } catch {}
-    this.child.stdin.end();
-    if (!this.child.killed) this.child.kill("SIGTERM");
+    this.terminate();
   }
 
   private onStdout(chunk: string) {
@@ -97,14 +101,38 @@ class RpcChildHandle implements ChildHandle {
   }
 
   private async finish() {
-    if (this.settled) return;
-    this.settled = true;
+    if (this.settled || this.finishing) return;
+    this.finishing = true;
     this.events.settling();
     const result = await this.send("get_last_assistant_text", {});
     const text = typeof result === "string" ? result : result && typeof result === "object" && "text" in result ? String((result as { text: unknown }).text) : "";
+    this.settled = true;
     this.events.completed(text, "agent_settled");
+    this.terminate();
+  }
+
+  private terminate() {
+    if (this.killed) return;
+    this.killed = true;
     this.child.stdin.end();
-    if (!this.child.killed) this.child.kill("SIGTERM");
+    if (this.child.killed) return;
+    if (process.platform !== "win32" && this.child.pid) {
+      try {
+        process.kill(-this.child.pid, "SIGTERM");
+      } catch {
+        this.child.kill("SIGTERM");
+      }
+      setTimeout(() => {
+        if (this.child.killed || !this.child.pid) return;
+        try {
+          process.kill(-this.child.pid, "SIGKILL");
+        } catch {
+          this.child.kill("SIGKILL");
+        }
+      }, 2_000).unref();
+      return;
+    }
+    this.child.kill("SIGTERM");
   }
 
   private fail(error: string) {
@@ -140,6 +168,10 @@ export class SubprocessRpcRunner implements ChildRunner {
     void handle.prompt(independentPrompt(request)).catch((error) => events.failed(error instanceof Error ? error.message : String(error)));
     return handle;
   }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function childEnvironment(): NodeJS.ProcessEnv {
