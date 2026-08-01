@@ -562,11 +562,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1785600727,
-        "narHash": "sha256-7Bbj3C+1jyf+YXvUiovCa5t/aCk7BodNf4kV4aZ1Hpw=",
+        "lastModified": 1785622772,
+        "narHash": "sha256-0mOr+Jxerr4SU1ksLoSkztYlZ9P/nMB6RlgWygoCHWc=",
         "ref": "refs/heads/main",
-        "rev": "346413cd7de5e7d03baea09eb935409cfe6eeaa9",
-        "revCount": 49,
+        "rev": "40b16b87963b085817bfb82c26eef7d0408fa8a5",
+        "revCount": 52,
         "type": "git",
         "url": "https://git.alexion.dev/alexion/skills"
       },
