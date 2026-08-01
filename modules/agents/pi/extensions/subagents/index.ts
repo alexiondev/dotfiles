@@ -4,14 +4,31 @@ import { loadAgents } from "./agents.ts";
 import { loadConfig, resolveSpawn, type Diagnostics } from "./config.ts";
 import { SubprocessRpcRunner } from "./runner.ts";
 import { Supervisor } from "./supervisor.ts";
-import type { SpawnRequest } from "./types.ts";
+import type { SpawnRequest, SubagentStatus } from "./types.ts";
+import { widget } from "./ui.ts";
 
 let supervisor: Supervisor | undefined;
 let lastDiagnostics: Diagnostics = { warnings: [] };
+let lastStatuses: SubagentStatus[] = [];
+let uiExpanded = false;
 
 export default function subagents(pi: ExtensionAPI) {
   const getSupervisor = (ctx: ExtensionContext): Supervisor => {
-    if (!supervisor) supervisor = new Supervisor(new SubprocessRpcRunner(), cwdOf(ctx));
+    if (supervisor) return supervisor;
+    const diagnostics: Diagnostics = { warnings: [] };
+    const cwd = cwdOf(ctx);
+    const config = loadConfig(cwd, isProjectTrusted(ctx), diagnostics);
+    lastDiagnostics = diagnostics;
+    uiExpanded = config.ui.defaultExpanded;
+    supervisor = new Supervisor(new SubprocessRpcRunner(), cwd, {
+      maxConcurrent: config.maxConcurrent,
+      onMilestone: (status, event) => pi.appendEntry("subagent_milestone", { event, status }),
+      onChange: (statuses) => {
+        lastStatuses = statuses;
+        updateUi(ctx, config.ui.enabled);
+      },
+    });
+    updateUi(ctx, config.ui.enabled);
     return supervisor;
   };
 
@@ -22,7 +39,9 @@ export default function subagents(pi: ExtensionAPI) {
     const config = loadConfig(cwd, trusted, diagnostics);
     const agents = loadAgents(cwd, trusted, diagnostics);
     lastDiagnostics = diagnostics;
-    return resolveSpawn(request, config, agents);
+    const resolved = resolveSpawn(request, config, agents);
+    if (resolved.context === "fork") resolved.parentSessionFile = ctx.sessionManager.getSessionFile();
+    return resolved;
   };
 
   pi.registerTool({
@@ -32,7 +51,7 @@ export default function subagents(pi: ExtensionAPI) {
     parameters: Type.Object({
       prompt: Type.String({ description: "Prompt for the delegated subagent" }),
       agent: Type.Optional(Type.String({ description: "Named agent definition to use" })),
-      context: Type.Optional(Type.Literal("independent")),
+      context: Type.Optional(Type.Union([Type.Literal("independent"), Type.Literal("fork")])),
       model: Type.Optional(Type.String({ description: "Optional model selector for the child" })),
       thinking: Type.Optional(Type.String({ description: "Optional thinking level for the child" })),
       tools: Type.Optional(Type.String({ description: "Tool profile name" })),
@@ -41,6 +60,38 @@ export default function subagents(pi: ExtensionAPI) {
       const accepted = getSupervisor(ctx).spawn(resolve(ctx, params as SpawnRequest));
       ctx.ui?.notify?.(`Started subagent ${accepted.id}`, "info");
       return textResult(accepted);
+    },
+  });
+
+  pi.registerTool({
+    name: "subagent_batch",
+    label: "Spawn subagent batch",
+    description: "Start multiple subagents and return immediately with accepted child ids and per-entry failures",
+    parameters: Type.Object({
+      subagents: Type.Array(
+        Type.Object({
+          prompt: Type.String({ description: "Prompt for the delegated subagent" }),
+          agent: Type.Optional(Type.String({ description: "Named agent definition to use" })),
+          context: Type.Optional(Type.Union([Type.Literal("independent"), Type.Literal("fork")])),
+          model: Type.Optional(Type.String({ description: "Optional model selector for the child" })),
+          thinking: Type.Optional(Type.String({ description: "Optional thinking level for the child" })),
+          tools: Type.Optional(Type.String({ description: "Tool profile name" })),
+        }),
+      ),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const requests = Array.isArray((params as { subagents?: unknown }).subagents) ? ((params as { subagents: SpawnRequest[] }).subagents) : [];
+      const accepted: SpawnRequest[] = [];
+      const failed: Array<{ index: number; error: string }> = [];
+      requests.forEach((request, index) => {
+        try {
+          accepted.push(resolve(ctx, request));
+        } catch (error) {
+          failed.push({ index, error: error instanceof Error ? error.message : String(error) });
+        }
+      });
+      const result = getSupervisor(ctx).spawnBatch(accepted);
+      return textResult({ accepted: result.accepted, failed: [...failed, ...result.failed] });
     },
   });
 
@@ -98,6 +149,18 @@ export default function subagents(pi: ExtensionAPI) {
     },
   });
 
+  pi.registerCommand("subagent-batch", {
+    description: "Start ad hoc independent subagents split by |",
+    handler: async (args, ctx) => {
+      const requests = args
+        .split("|")
+        .map((prompt) => prompt.trim())
+        .filter(Boolean)
+        .map((prompt) => resolve(ctx, { prompt }));
+      ctx.ui.notify(JSON.stringify(getSupervisor(ctx).spawnBatch(requests), null, 2), "info");
+    },
+  });
+
   pi.registerCommand("subagent-list", {
     description: "Show subagent status records",
     handler: async (_args, ctx) => {
@@ -116,6 +179,15 @@ export default function subagents(pi: ExtensionAPI) {
     description: "Show a subagent result by id",
     handler: async (args, ctx) => {
       ctx.ui.notify(JSON.stringify(getSupervisor(ctx).result(args.trim()), null, 2), "info");
+    },
+  });
+
+  pi.registerCommand("subagent-ui", {
+    description: "Toggle the bundled subagent status inspector",
+    handler: async (_args, ctx) => {
+      uiExpanded = !uiExpanded;
+      updateUi(ctx, true);
+      ctx.ui.notify(`Subagent inspector ${uiExpanded ? "expanded" : "collapsed"}`, "info");
     },
   });
 
@@ -139,10 +211,24 @@ export default function subagents(pi: ExtensionAPI) {
   });
 }
 
+function updateUi(ctx: ExtensionContext, enabled: boolean) {
+  if (!ctx.hasUI) return;
+  ctx.ui.setWidget("subagents", enabled ? widget(lastStatuses, uiExpanded) : undefined);
+}
+
 function parseSpawnArgs(args: string): SpawnRequest {
-  const match = /^--agent\s+(\S+)\s+([\s\S]+)$/u.exec(args.trim());
-  if (!match) return { prompt: args };
-  return { agent: match[1], prompt: match[2] };
+  const parts = args.trim().split(/\s+/u);
+  const request: Partial<SpawnRequest> = {};
+  while (parts.length >= 2 && parts[0].startsWith("--")) {
+    const flag = parts.shift();
+    const value = parts.shift();
+    if (flag === "--agent") request.agent = value;
+    else if (flag === "--context" && (value === "independent" || value === "fork")) request.context = value;
+    else if (flag === "--tools") request.tools = value;
+    else if (flag === "--model") request.model = value;
+    else if (flag === "--thinking") request.thinking = value;
+  }
+  return { ...request, prompt: parts.join(" ") || args } as SpawnRequest;
 }
 
 function isProjectTrusted(ctx: ExtensionContext): boolean {

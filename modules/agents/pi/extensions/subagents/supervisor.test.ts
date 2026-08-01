@@ -109,3 +109,33 @@ test("completed children ignore later cancel", async () => {
   assert.equal(result.result, "done");
   assert.equal(runner.starts[0].handle.cancelCalls, 0);
 });
+
+test("batch spawn returns accepted ids and per-entry failures", async () => {
+  const runner = new FakeRunner();
+  const supervisor = new Supervisor(runner, "/tmp");
+
+  const result = supervisor.spawnBatch([{ prompt: "one" }, { prompt: "" }, { prompt: "two" }]);
+  await sleep(0);
+
+  assert.equal(result.accepted.length, 2);
+  assert.equal(result.failed.length, 1);
+  assert.equal(result.failed[0].index, 1);
+  assert.equal(runner.starts.length, 2);
+});
+
+test("maxConcurrent preserves queued records", async () => {
+  const runner = new FakeRunner();
+  const supervisor = new Supervisor(runner, "/tmp", { maxConcurrent: 1 });
+
+  const result = supervisor.spawnBatch([{ prompt: "one" }, { prompt: "two" }]);
+  await sleep(0);
+
+  assert.equal(result.accepted.length, 2);
+  assert.equal(runner.starts.length, 1);
+  assert.equal(supervisor.status(result.accepted[1].id).state, "queued");
+
+  runner.starts[0].events.completed("done", "agent_settled");
+  await sleep(0);
+
+  assert.equal(runner.starts.length, 2);
+});

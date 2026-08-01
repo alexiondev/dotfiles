@@ -11,6 +11,11 @@ export interface Diagnostics {
 export interface SubagentsConfig {
   defaultContext: ContextMode;
   defaultTools: string;
+  maxConcurrent: number;
+  ui: {
+    enabled: boolean;
+    defaultExpanded: boolean;
+  };
   toolProfiles: Record<string, ToolProfile>;
 }
 
@@ -32,6 +37,8 @@ export const BUILT_IN_TOOL_PROFILES: Record<string, ToolProfile> = {
 const DEFAULT_CONFIG: SubagentsConfig = {
   defaultContext: "independent",
   defaultTools: "read-only",
+  maxConcurrent: 3,
+  ui: { enabled: true, defaultExpanded: false },
   toolProfiles: { ...BUILT_IN_TOOL_PROFILES },
 };
 
@@ -99,8 +106,23 @@ function normalizeConfig(raw: unknown, diagnostics: Diagnostics, label: string):
   else if (input.defaultContext !== undefined) diagnostics.warnings.push(`Invalid ${label} defaultContext ignored`);
   if (typeof input.defaultTools === "string") config.defaultTools = input.defaultTools;
   else if (input.defaultTools !== undefined) diagnostics.warnings.push(`Invalid ${label} defaultTools ignored`);
+  if (typeof input.maxConcurrent === "number" && Number.isInteger(input.maxConcurrent) && input.maxConcurrent > 0) config.maxConcurrent = input.maxConcurrent;
+  else if (input.maxConcurrent !== undefined) diagnostics.warnings.push(`Invalid ${label} maxConcurrent ignored`);
+  if (input.ui !== undefined) config.ui = normalizeUi(input.ui, diagnostics, label);
   if (input.toolProfiles !== undefined) config.toolProfiles = normalizeProfiles(input.toolProfiles, diagnostics, label);
   return config;
+}
+
+function normalizeUi(raw: unknown, diagnostics: Diagnostics, label: string): SubagentsConfig["ui"] | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    diagnostics.warnings.push(`Invalid ${label} ui ignored`);
+    return undefined;
+  }
+  const input = raw as Record<string, unknown>;
+  return {
+    enabled: typeof input.enabled === "boolean" ? input.enabled : DEFAULT_CONFIG.ui.enabled,
+    defaultExpanded: typeof input.defaultExpanded === "boolean" ? input.defaultExpanded : DEFAULT_CONFIG.ui.defaultExpanded,
+  };
 }
 
 function normalizeProfiles(raw: unknown, diagnostics: Diagnostics, label: string): Record<string, ToolProfile> {
@@ -136,6 +158,8 @@ function mergeConfig(base: SubagentsConfig, override: Partial<SubagentsConfig> |
   const merged = cloneConfig(base);
   if (override.defaultContext) merged.defaultContext = override.defaultContext;
   if (override.defaultTools) merged.defaultTools = override.defaultTools;
+  if (override.maxConcurrent) merged.maxConcurrent = override.maxConcurrent;
+  if (override.ui) merged.ui = { ...merged.ui, ...override.ui };
   if (override.toolProfiles) merged.toolProfiles = { ...merged.toolProfiles, ...override.toolProfiles };
   for (const key of Object.keys(merged.toolProfiles)) {
     if (key in BUILT_IN_TOOL_PROFILES) merged.toolProfiles[key] = BUILT_IN_TOOL_PROFILES[key];
@@ -144,7 +168,7 @@ function mergeConfig(base: SubagentsConfig, override: Partial<SubagentsConfig> |
 }
 
 function cloneConfig(config: SubagentsConfig): SubagentsConfig {
-  return { ...config, toolProfiles: { ...config.toolProfiles } };
+  return { ...config, ui: { ...config.ui }, toolProfiles: { ...config.toolProfiles } };
 }
 
 function defaultAgentDir(): string {

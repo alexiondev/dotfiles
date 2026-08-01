@@ -3,16 +3,26 @@ import { cloneResult, cloneStatus, toAccepted } from "./status.ts";
 
 interface RunningChild {
   record: ChildRecord;
+  request: SpawnRequest;
   handle?: ChildHandle;
   startTimer?: ReturnType<typeof setTimeout>;
   runTimer?: ReturnType<typeof setTimeout>;
 }
 
 interface SupervisorOptions {
+  maxConcurrent?: number;
+  recentTerminalLimit?: number;
   timeouts?: {
     startMs?: number;
     runMs?: number;
   };
+  onMilestone?: (status: SubagentStatus, event: string) => void;
+  onChange?: (statuses: SubagentStatus[]) => void;
+}
+
+export interface BatchSpawnResult {
+  accepted: SpawnAccepted[];
+  failed: Array<{ index: number; error: string }>;
 }
 
 const DEFAULT_TIMEOUTS = {
@@ -23,6 +33,7 @@ const DEFAULT_TIMEOUTS = {
 export class Supervisor {
   private nextChild = 0;
   private readonly children = new Map<string, RunningChild>();
+  private readonly queue: RunningChild[] = [];
 
   constructor(
     private readonly runner: ChildRunner,
@@ -31,6 +42,61 @@ export class Supervisor {
   ) {}
 
   spawn(request: SpawnRequest): SpawnAccepted {
+    return this.createChild(request);
+  }
+
+  spawnBatch(requests: SpawnRequest[]): BatchSpawnResult {
+    const accepted: SpawnAccepted[] = [];
+    const failed: Array<{ index: number; error: string }> = [];
+    requests.forEach((request, index) => {
+      try {
+        accepted.push(this.createChild(request));
+      } catch (error) {
+        failed.push({ index, error: error instanceof Error ? error.message : String(error) });
+      }
+    });
+    return { accepted, failed };
+  }
+
+  list(): SubagentStatus[] {
+    const statuses = [...this.children.values()].map((child) => cloneStatus(child.record.status));
+    const active = statuses.filter((status) => !isTerminal(status.state));
+    const terminal = statuses
+      .filter((status) => isTerminal(status.state))
+      .sort((a, b) => Date.parse(b.completedAt ?? b.startedAt) - Date.parse(a.completedAt ?? a.startedAt))
+      .slice(0, this.options.recentTerminalLimit ?? 10);
+    return [...active, ...terminal];
+  }
+
+  status(id: string): SubagentStatus {
+    return cloneStatus(this.require(id).record.status);
+  }
+
+  result(id: string): SubagentResult {
+    return cloneResult(this.require(id).record);
+  }
+
+  async cancel(id: string): Promise<SubagentStatus> {
+    const child = this.require(id);
+    if (isTerminal(child.record.status.state)) return cloneStatus(child.record.status);
+    await child.handle?.cancel();
+    this.completeWithoutResult(child, "cancelled", "cancelled");
+    this.pumpQueue();
+    return cloneStatus(child.record.status);
+  }
+
+  async shutdown(): Promise<void> {
+    await Promise.allSettled(
+      [...this.children.values()].map(async (child) => {
+        if (!isTerminal(child.record.status.state)) {
+          await child.handle?.cancel();
+          this.completeWithoutResult(child, "cancelled", "shutdown");
+        }
+      }),
+    );
+  }
+
+  private createChild(request: SpawnRequest): SpawnAccepted {
     const prompt = typeof request.prompt === "string" ? request.prompt.trim() : "";
     if (!prompt) throw new Error("prompt is required");
 
@@ -53,15 +119,31 @@ export class Supervisor {
       lastEventAt: now,
       resultAvailable: false,
     };
-    const child: RunningChild = { record: { status } };
+    const child: RunningChild = { record: { status }, request: { ...request, prompt, context: status.context, tools: status.tools } };
     this.children.set(id, child);
+    this.emitMilestone(child, "accepted");
+    this.queue.push(child);
+    this.pumpQueue();
+    return toAccepted(cloneStatus(status));
+  }
+
+  private pumpQueue() {
+    while (this.runningCount() < this.maxConcurrent()) {
+      const child = this.queue.shift();
+      if (!child) break;
+      if (isTerminal(child.record.status.state)) continue;
+      this.start(child);
+    }
+    this.emitChange();
+  }
+
+  private start(child: RunningChild) {
     this.setState(child.record.status, "starting", "starting");
     this.armStartTimer(child);
-
     setTimeout(() => {
       if (isTerminal(child.record.status.state)) return;
       void this.runner
-        .start(id, { ...request, prompt, context: status.context, tools: status.tools }, this.cwd, this.eventsFor(child.record))
+        .start(child.record.status.id, child.request, this.cwd, this.eventsFor(child.record))
         .then((handle) => {
           child.handle = handle;
           if (isTerminal(child.record.status.state)) void handle.cancel();
@@ -70,39 +152,6 @@ export class Supervisor {
           this.fail(child.record, error instanceof Error ? error.message : String(error));
         });
     }, 0);
-
-    return toAccepted(cloneStatus(status));
-  }
-
-  list(): SubagentStatus[] {
-    return [...this.children.values()].map((child) => cloneStatus(child.record.status));
-  }
-
-  status(id: string): SubagentStatus {
-    return cloneStatus(this.require(id).record.status);
-  }
-
-  result(id: string): SubagentResult {
-    return cloneResult(this.require(id).record);
-  }
-
-  async cancel(id: string): Promise<SubagentStatus> {
-    const child = this.require(id);
-    if (isTerminal(child.record.status.state)) return cloneStatus(child.record.status);
-    await child.handle?.cancel();
-    this.completeWithoutResult(child, "cancelled", "cancelled");
-    return cloneStatus(child.record.status);
-  }
-
-  async shutdown(): Promise<void> {
-    await Promise.allSettled(
-      [...this.children.values()].map(async (child) => {
-        if (!isTerminal(child.record.status.state)) {
-          await child.handle?.cancel();
-          this.completeWithoutResult(child, "cancelled", "shutdown");
-        }
-      }),
-    );
   }
 
   private eventsFor(record: ChildRecord): RunnerEvents {
@@ -133,6 +182,8 @@ export class Supervisor {
         record.status.lastEventAt = now;
         record.status.stopReason = stopReason;
         record.status.resultAvailable = true;
+        if (child) this.emitMilestone(child, "completed");
+        this.pumpQueue();
       },
       failed: (error) => this.fail(record, error),
     };
@@ -149,6 +200,8 @@ export class Supervisor {
     record.status.lastEventAt = now;
     record.status.error = error;
     record.status.stopReason = "failed";
+    if (child) this.emitMilestone(child, "failed");
+    this.pumpQueue();
   }
 
   private completeWithoutResult(child: RunningChild, state: "cancelled" | "timed_out", reason: string) {
@@ -160,6 +213,7 @@ export class Supervisor {
     child.record.status.lastEvent = state;
     child.record.status.lastEventAt = now;
     child.record.status.stopReason = reason;
+    this.emitMilestone(child, state);
   }
 
   private armStartTimer(child: RunningChild) {
@@ -182,6 +236,7 @@ export class Supervisor {
     if (isTerminal(child.record.status.state)) return;
     void child.handle?.cancel();
     this.completeWithoutResult(child, "timed_out", reason);
+    this.pumpQueue();
   }
 
   private clearTimers(child: RunningChild) {
@@ -206,6 +261,7 @@ export class Supervisor {
     status.state = state;
     status.lastEvent = event;
     status.lastEventAt = now;
+    this.emitChange();
   }
 
   private require(id: string): RunningChild {
@@ -216,8 +272,25 @@ export class Supervisor {
 
   private resolveContext(context: ContextMode | undefined): ContextMode {
     if (context === undefined) return "independent";
-    if (context !== "independent") throw new Error("only independent context is implemented before fork mode lands");
+    if (context !== "independent" && context !== "fork") throw new Error(`unknown context: ${context}`);
     return context;
+  }
+
+  private maxConcurrent(): number {
+    return Math.max(1, this.options.maxConcurrent ?? 3);
+  }
+
+  private runningCount(): number {
+    return [...this.children.values()].filter((child) => ["starting", "running", "settling"].includes(child.record.status.state)).length;
+  }
+
+  private emitMilestone(child: RunningChild, event: string) {
+    this.options.onMilestone?.(cloneStatus(child.record.status), event);
+    this.emitChange();
+  }
+
+  private emitChange() {
+    this.options.onChange?.(this.list());
   }
 
   private allocateId(): string {

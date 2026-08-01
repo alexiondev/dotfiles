@@ -24,6 +24,7 @@ export interface SpawnRequest {
   tools?: string;
   toolProfile?: ToolProfile;
   agentBody?: string;
+  parentSessionFile?: string;
 }
 
 export interface SpawnAccepted {
