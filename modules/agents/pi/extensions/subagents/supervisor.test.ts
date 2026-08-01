@@ -110,6 +110,24 @@ test("completed children ignore later cancel", async () => {
   assert.equal(runner.starts[0].handle.cancelCalls, 0);
 });
 
+test("shutdown clears recent terminal expiry timer", async () => {
+  const runner = new FakeRunner();
+  let changes = 0;
+  const supervisor = new Supervisor(runner, "/tmp", {
+    recentTerminalTtlMs: 5,
+    onChange: () => {
+      changes += 1;
+    },
+  });
+  await spawnStarted(supervisor);
+
+  await supervisor.shutdown();
+  const afterShutdown = changes;
+  await sleep(15);
+
+  assert.equal(changes, afterShutdown);
+});
+
 test("batch spawn returns accepted ids and per-entry failures", async () => {
   const runner = new FakeRunner();
   const supervisor = new Supervisor(runner, "/tmp");
@@ -138,6 +156,58 @@ test("maxConcurrent preserves queued records", async () => {
   await sleep(0);
 
   assert.equal(runner.starts.length, 2);
+});
+
+test("recent terminal statuses expire from list by ttl", async () => {
+  const runner = new FakeRunner();
+  const supervisor = new Supervisor(runner, "/tmp", { recentTerminalTtlMs: 5 });
+  const accepted = await spawnStarted(supervisor);
+
+  runner.starts[0].events.completed("done", "agent_settled");
+  assert.equal(supervisor.list().some((status) => status.id === accepted.id), true);
+
+  await sleep(10);
+
+  assert.equal(supervisor.list().some((status) => status.id === accepted.id), false);
+  assert.equal(supervisor.result(accepted.id).result, "done");
+});
+
+test("recent terminal ttl does not hide active statuses", async () => {
+  const runner = new FakeRunner();
+  const supervisor = new Supervisor(runner, "/tmp", { recentTerminalTtlMs: 0 });
+  const accepted = await spawnStarted(supervisor);
+
+  assert.equal(supervisor.list().some((status) => status.id === accepted.id), true);
+});
+
+test("zero recent terminal ttl hides terminal statuses immediately", async () => {
+  const runner = new FakeRunner();
+  const supervisor = new Supervisor(runner, "/tmp", { recentTerminalTtlMs: 0 });
+  const accepted = await spawnStarted(supervisor);
+
+  runner.starts[0].events.completed("done", "agent_settled");
+
+  assert.equal(supervisor.list().some((status) => status.id === accepted.id), false);
+  assert.equal(supervisor.result(accepted.id).result, "done");
+});
+
+test("recent terminal ttl emits a change when an entry expires", async () => {
+  const runner = new FakeRunner();
+  let changes = 0;
+  const supervisor = new Supervisor(runner, "/tmp", {
+    recentTerminalTtlMs: 5,
+    onChange: () => {
+      changes += 1;
+    },
+  });
+  await spawnStarted(supervisor);
+  const beforeComplete = changes;
+
+  runner.starts[0].events.completed("done", "agent_settled");
+  await sleep(15);
+
+  assert.ok(changes > beforeComplete + 1);
+  assert.equal(supervisor.list().length, 0);
 });
 
 test("wait blocks until multiple subagents are terminal", async () => {

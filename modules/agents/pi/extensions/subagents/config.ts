@@ -12,6 +12,7 @@ export interface SubagentsConfig {
   defaultContext: ContextMode;
   defaultTools: string;
   maxConcurrent: number;
+  recentTerminalTtlMs: number;
   ui: {
     enabled: boolean;
     defaultExpanded: boolean;
@@ -38,6 +39,7 @@ const DEFAULT_CONFIG: SubagentsConfig = {
   defaultContext: "independent",
   defaultTools: "read-only",
   maxConcurrent: 3,
+  recentTerminalTtlMs: 5 * 60 * 1000,
   ui: { enabled: true, defaultExpanded: false },
   toolProfiles: { ...BUILT_IN_TOOL_PROFILES },
 };
@@ -108,6 +110,9 @@ function normalizeConfig(raw: unknown, diagnostics: Diagnostics, label: string):
   else if (input.defaultTools !== undefined) diagnostics.warnings.push(`Invalid ${label} defaultTools ignored`);
   if (typeof input.maxConcurrent === "number" && Number.isInteger(input.maxConcurrent) && input.maxConcurrent > 0) config.maxConcurrent = input.maxConcurrent;
   else if (input.maxConcurrent !== undefined) diagnostics.warnings.push(`Invalid ${label} maxConcurrent ignored`);
+  if (typeof input.recentTerminalTtlMs === "number" && Number.isInteger(input.recentTerminalTtlMs) && input.recentTerminalTtlMs >= 0) {
+    config.recentTerminalTtlMs = input.recentTerminalTtlMs;
+  } else if (input.recentTerminalTtlMs !== undefined) diagnostics.warnings.push(`Invalid ${label} recentTerminalTtlMs ignored`);
   if (input.ui !== undefined) config.ui = normalizeUi(input.ui, diagnostics, label);
   if (input.toolProfiles !== undefined) config.toolProfiles = normalizeProfiles(input.toolProfiles, diagnostics, label);
   return config;
@@ -159,6 +164,7 @@ function mergeConfig(base: SubagentsConfig, override: Partial<SubagentsConfig> |
   if (override.defaultContext) merged.defaultContext = override.defaultContext;
   if (override.defaultTools) merged.defaultTools = override.defaultTools;
   if (override.maxConcurrent) merged.maxConcurrent = override.maxConcurrent;
+  if (override.recentTerminalTtlMs !== undefined) merged.recentTerminalTtlMs = override.recentTerminalTtlMs;
   if (override.ui) merged.ui = { ...merged.ui, ...override.ui };
   if (override.toolProfiles) merged.toolProfiles = { ...merged.toolProfiles, ...override.toolProfiles };
   for (const key of Object.keys(merged.toolProfiles)) {

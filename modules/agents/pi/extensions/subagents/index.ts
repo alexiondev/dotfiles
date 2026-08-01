@@ -22,6 +22,7 @@ export default function subagents(pi: ExtensionAPI) {
     uiExpanded = config.ui.defaultExpanded;
     supervisor = new Supervisor(new SubprocessRpcRunner(), cwd, {
       maxConcurrent: config.maxConcurrent,
+      recentTerminalTtlMs: config.recentTerminalTtlMs,
       onMilestone: (status, event) => pi.appendEntry("subagent_milestone", { event, status }),
       onChange: (statuses) => {
         lastStatuses = statuses;

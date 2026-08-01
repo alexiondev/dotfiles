@@ -28,6 +28,7 @@ test("missing config files and agent directories are normal", () => {
 
   assert.equal(config.defaultContext, "independent");
   assert.equal(config.defaultTools, "read-only");
+  assert.equal(config.recentTerminalTtlMs, 300000);
   assert.equal(agents.size, 0);
   assert.deepEqual(diag.warnings, []);
 });
@@ -35,14 +36,34 @@ test("missing config files and agent directories are normal", () => {
 test("global and trusted project config merge in order", () => {
   const { cwd, agentDir } = fixture();
   mkdirSync(join(cwd, ".pi"), { recursive: true });
-  writeFileSync(join(agentDir, "subagents.json"), JSON.stringify({ defaultTools: "global-profile", toolProfiles: { "global-profile": { activeTools: ["read"] } } }));
-  writeFileSync(join(cwd, ".pi", "subagents.json"), JSON.stringify({ defaultTools: "project-profile", toolProfiles: { "project-profile": { activeTools: ["ls"] } } }));
+  writeFileSync(join(agentDir, "subagents.json"), JSON.stringify({ defaultTools: "global-profile", recentTerminalTtlMs: 1000, toolProfiles: { "global-profile": { activeTools: ["read"] } } }));
+  writeFileSync(join(cwd, ".pi", "subagents.json"), JSON.stringify({ defaultTools: "project-profile", recentTerminalTtlMs: 2000, toolProfiles: { "project-profile": { activeTools: ["ls"] } } }));
 
   const config = loadConfig(cwd, true, diagnostics(), agentDir);
 
   assert.equal(config.defaultTools, "project-profile");
+  assert.equal(config.recentTerminalTtlMs, 2000);
   assert.deepEqual(config.toolProfiles["global-profile"].activeTools, ["read"]);
   assert.deepEqual(config.toolProfiles["project-profile"].activeTools, ["ls"]);
+});
+
+test("recent terminal ttl preserves zero and rejects invalid values", () => {
+  const { cwd, agentDir } = fixture();
+  writeFileSync(join(agentDir, "subagents.json"), JSON.stringify({ recentTerminalTtlMs: 0 }));
+  const zeroDiag = diagnostics();
+
+  const zeroConfig = loadConfig(cwd, true, zeroDiag, agentDir);
+
+  assert.equal(zeroConfig.recentTerminalTtlMs, 0);
+  assert.deepEqual(zeroDiag.warnings, []);
+
+  writeFileSync(join(agentDir, "subagents.json"), JSON.stringify({ recentTerminalTtlMs: -1 }));
+  const invalidDiag = diagnostics();
+
+  const invalidConfig = loadConfig(cwd, true, invalidDiag, agentDir);
+
+  assert.equal(invalidConfig.recentTerminalTtlMs, 300000);
+  assert.ok(invalidDiag.warnings.some((warning) => warning.includes("Invalid global recentTerminalTtlMs ignored")));
 });
 
 test("project config is ignored when project is untrusted", () => {
