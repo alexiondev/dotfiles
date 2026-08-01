@@ -1,4 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import type { ChildHandle, ChildRunner, RunnerEvents, SpawnRequest } from "./types.ts";
 
 interface PendingResponse {
@@ -156,7 +157,7 @@ class RpcChildHandle implements ChildHandle {
 
 export class SubprocessRpcRunner implements ChildRunner {
   async start(id: string, request: SpawnRequest, cwd: string, events: RunnerEvents): Promise<ChildHandle> {
-    const args = [process.argv[1], "--mode", "rpc", "--no-extensions", "--name", `subagent ${id}`, ...contextArgs(request), ...toolArgs(request), ...modelArgs(request)];
+    const args = [process.argv[1], "--mode", "rpc", "--no-extensions", "--extension", subagentsExtensionPath(), "--name", `subagent ${id}`, ...contextArgs(request), ...toolArgs(request), ...modelArgs(request)];
     const child = spawn(process.execPath, args, {
       cwd,
       env: childEnvironment(),
@@ -172,6 +173,10 @@ export class SubprocessRpcRunner implements ChildRunner {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function subagentsExtensionPath(): string {
+  return fileURLToPath(new URL("./index.ts", import.meta.url));
 }
 
 function contextArgs(request: SpawnRequest): string[] {
