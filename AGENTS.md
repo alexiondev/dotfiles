@@ -18,6 +18,8 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
 
 ## Gotchas
 
+- This host has no `python` or `python3` command on its ordinary `PATH`.
+  For ad hoc Python, use Nix explicitly, such as `nix shell nixpkgs#python3 -c python3 <script>`.
 - ADR bodies are immutable records of decisions as they were made, while frontmatter is mutable.
   When a decision changes or its premise proves wrong, preserve the original body, update its status, and add a new ADR that supersedes it.
   Filename migrations preserve references in immutable bodies through frontmatter aliases rather than rewriting those bodies.
@@ -74,3 +76,7 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   Enabling networkd takes over its DNS, its CachyOS `zfs-kernel` build is marked broken, and it has no bridge or pool to attach to.
   Verify these against it ad hoc through `nixosConfigurations.neogaia.extendModules` (forcing a ZFS-capable `boot.kernelPackages` for the zfs case) plus `nix eval` of the derived values, never by committing the enablement.
   A committed guest therefore leaves `vlan`, `mounts`, and `secrets` unset, and the standing enablement waits for the first wired server host with real storage.
+- Herdr key names for shifted punctuation are not interchangeable with the physical base key plus `shift`.
+  The tab rename binding must use the produced literal, such as `prefix+<`, rather than `prefix+shift+comma`.
+- Flake-managed Pi extension, prompt, and skill directories may still be written directly for throwaway development or local experiments.
+  The risk is that a later Home Manager activation can overwrite or hide those unmanaged files, so finished work must be promoted into the dotfiles module before it counts as deployed.

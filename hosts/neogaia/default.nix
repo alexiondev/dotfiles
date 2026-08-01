@@ -65,6 +65,7 @@
   };
 
   modules.agents.claude-code.enable = true;
+  modules.agents.herdr.enable = true;
   modules.agents.tools.gitea-axi.enable = true;
   modules.agents.pi.enable = true;
 

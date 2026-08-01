@@ -30,6 +30,9 @@ These are common instructions for Alexion's agents across all scenarios.
   It means: don't discount a more robust or maintainable approach just because it would take a human a long time to build.
 - File names should always be lower case, unless there's a valid reason.
   Established ecosystem or tool conventions count as a valid reason automatically (e.g. `README.md`, `LICENSE`, `CHANGELOG.md`, `Makefile`, `Dockerfile`, `.github/` files), without needing to ask each time.
+- Do not end a response by promising or implying continuation unless the continuation is present in that same response.
+  If a workflow should continue, perform the next step before ending the turn.
+  If the workflow is paused, say that plainly instead of using a dangling transition like "continuing" or "next".
 - When you discover that a belief you held about an objective fact or convention of the current project was wrong, write it down so it isn't relearned next time.
   This applies whether the user corrected you or you caught the mistake yourself, and only to things that are true regardless of who is operating the project (a wrong build command, a wrong file path, a convention you guessed at instead of checking) — not personal working-style preferences or one-off task details.
   Record it in that project's own AGENTS.md, not this global file, under a dedicated `## Gotchas` section (create the section if the file doesn't have one yet).
