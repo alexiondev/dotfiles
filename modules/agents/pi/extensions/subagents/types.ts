@@ -11,6 +11,10 @@ export type SubagentState =
   | "timed_out"
   | "orphaned";
 
+export interface ToolProfile {
+  activeTools: string[] | null;
+}
+
 export interface SpawnRequest {
   prompt: string;
   context?: ContextMode;
@@ -18,6 +22,8 @@ export interface SpawnRequest {
   model?: string;
   thinking?: string;
   tools?: string;
+  toolProfile?: ToolProfile;
+  agentBody?: string;
 }
 
 export interface SpawnAccepted {

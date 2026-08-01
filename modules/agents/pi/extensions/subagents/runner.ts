@@ -156,7 +156,7 @@ class RpcChildHandle implements ChildHandle {
 
 export class SubprocessRpcRunner implements ChildRunner {
   async start(id: string, request: SpawnRequest, cwd: string, events: RunnerEvents): Promise<ChildHandle> {
-    const args = [process.argv[1], "--mode", "rpc", "--no-extensions", "--name", `subagent ${id}`];
+    const args = [process.argv[1], "--mode", "rpc", "--no-extensions", "--name", `subagent ${id}`, ...toolArgs(request), ...modelArgs(request)];
     const child = spawn(process.execPath, args, {
       cwd,
       env: childEnvironment(),
@@ -174,6 +174,20 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function toolArgs(request: SpawnRequest): string[] {
+  const activeTools = request.toolProfile?.activeTools;
+  if (activeTools === undefined || activeTools === null) return [];
+  if (activeTools.length === 0) return ["--no-tools"];
+  return ["--tools", activeTools.join(",")];
+}
+
+function modelArgs(request: SpawnRequest): string[] {
+  const args: string[] = [];
+  if (request.model && request.model !== "inherit") args.push("--model", request.model);
+  if (request.thinking) args.push("--thinking", request.thinking);
+  return args;
+}
+
 function childEnvironment(): NodeJS.ProcessEnv {
   const env = { ...process.env };
   delete env.PI_SESSION_ID;
@@ -185,5 +199,6 @@ function childEnvironment(): NodeJS.ProcessEnv {
 }
 
 function independentPrompt(request: SpawnRequest): string {
-  return `You are running as a delegated subagent in independent context.\nDo not assume access to the parent conversation transcript.\nReturn a concise final answer for the parent agent.\n\nTask:\n${request.prompt}`;
+  const base = request.agentBody ? `${request.agentBody}\n\n` : "";
+  return `${base}You are running as a delegated subagent in independent context.\nDo not assume access to the parent conversation transcript.\nReturn a concise final answer for the parent agent.\n\nTask:\n${request.prompt}`;
 }

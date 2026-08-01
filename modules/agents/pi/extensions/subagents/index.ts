@@ -1,15 +1,28 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { loadAgents } from "./agents.ts";
+import { loadConfig, resolveSpawn, type Diagnostics } from "./config.ts";
 import { SubprocessRpcRunner } from "./runner.ts";
 import { Supervisor } from "./supervisor.ts";
 import type { SpawnRequest } from "./types.ts";
 
 let supervisor: Supervisor | undefined;
+let lastDiagnostics: Diagnostics = { warnings: [] };
 
 export default function subagents(pi: ExtensionAPI) {
   const getSupervisor = (ctx: ExtensionContext): Supervisor => {
     if (!supervisor) supervisor = new Supervisor(new SubprocessRpcRunner(), cwdOf(ctx));
     return supervisor;
+  };
+
+  const resolve = (ctx: ExtensionContext, request: SpawnRequest): SpawnRequest => {
+    const diagnostics: Diagnostics = { warnings: [] };
+    const cwd = cwdOf(ctx);
+    const trusted = isProjectTrusted(ctx);
+    const config = loadConfig(cwd, trusted, diagnostics);
+    const agents = loadAgents(cwd, trusted, diagnostics);
+    lastDiagnostics = diagnostics;
+    return resolveSpawn(request, config, agents);
   };
 
   pi.registerTool({
@@ -18,12 +31,14 @@ export default function subagents(pi: ExtensionAPI) {
     description: "Start one ad hoc independent subagent and return immediately with its child id",
     parameters: Type.Object({
       prompt: Type.String({ description: "Prompt for the delegated subagent" }),
+      agent: Type.Optional(Type.String({ description: "Named agent definition to use" })),
       context: Type.Optional(Type.Literal("independent")),
-      model: Type.Optional(Type.String({ description: "Optional model selector for status metadata" })),
-      thinking: Type.Optional(Type.String({ description: "Optional thinking level for status metadata" })),
+      model: Type.Optional(Type.String({ description: "Optional model selector for the child" })),
+      thinking: Type.Optional(Type.String({ description: "Optional thinking level for the child" })),
+      tools: Type.Optional(Type.String({ description: "Tool profile name" })),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const accepted = getSupervisor(ctx).spawn(params as SpawnRequest);
+      const accepted = getSupervisor(ctx).spawn(resolve(ctx, params as SpawnRequest));
       ctx.ui?.notify?.(`Started subagent ${accepted.id}`, "info");
       return textResult(accepted);
     },
@@ -78,7 +93,7 @@ export default function subagents(pi: ExtensionAPI) {
   pi.registerCommand("subagent-spawn", {
     description: "Start an ad hoc independent subagent",
     handler: async (args, ctx) => {
-      const accepted = getSupervisor(ctx).spawn({ prompt: args });
+      const accepted = getSupervisor(ctx).spawn(resolve(ctx, parseSpawnArgs(args)));
       ctx.ui.notify(`Started subagent ${accepted.id}`, "info");
     },
   });
@@ -104,6 +119,13 @@ export default function subagents(pi: ExtensionAPI) {
     },
   });
 
+  pi.registerCommand("subagent-diagnostics", {
+    description: "Show subagent configuration diagnostics from the last load",
+    handler: async (_args, ctx) => {
+      ctx.ui.notify(JSON.stringify(lastDiagnostics, null, 2), "info");
+    },
+  });
+
   pi.registerCommand("subagent-cancel", {
     description: "Cancel a running subagent by id",
     handler: async (args, ctx) => {
@@ -115,6 +137,17 @@ export default function subagents(pi: ExtensionAPI) {
     await supervisor?.shutdown();
     supervisor = undefined;
   });
+}
+
+function parseSpawnArgs(args: string): SpawnRequest {
+  const match = /^--agent\s+(\S+)\s+([\s\S]+)$/u.exec(args.trim());
+  if (!match) return { prompt: args };
+  return { agent: match[1], prompt: match[2] };
+}
+
+function isProjectTrusted(ctx: ExtensionContext): boolean {
+  const value = (ctx as unknown as { isProjectTrusted?: () => boolean }).isProjectTrusted?.();
+  return value === true;
 }
 
 function cwdOf(ctx: ExtensionContext): string {

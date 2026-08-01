@@ -46,7 +46,7 @@ export class Supervisor {
       cwd: this.cwd,
       model: request.model,
       thinking: request.thinking,
-      tools: "pi-default",
+      tools: request.tools ?? "read-only",
       startedAt: now,
       elapsedMs: 0,
       lastEvent: "queued",
@@ -216,7 +216,7 @@ export class Supervisor {
 
   private resolveContext(context: ContextMode | undefined): ContextMode {
     if (context === undefined) return "independent";
-    if (context !== "independent") throw new Error("only independent context is implemented in this tracer bullet");
+    if (context !== "independent") throw new Error("only independent context is implemented before fork mode lands");
     return context;
   }
 
