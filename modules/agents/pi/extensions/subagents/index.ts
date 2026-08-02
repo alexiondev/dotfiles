@@ -106,7 +106,7 @@ export default function subagents(pi: ExtensionAPI) {
   pi.registerTool({
     name: "subagent_list",
     label: "List subagents",
-    description: "List active and recent subagents for this parent session",
+    description: "List active and terminal subagents for this parent session until terminal entries are cleared",
     parameters: Type.Object({}),
     async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
       return textResult(getSupervisor(ctx).list());
@@ -167,6 +167,20 @@ export default function subagents(pi: ExtensionAPI) {
     },
   });
 
+  pi.registerTool({
+    name: "subagent_clear",
+    label: "Clear terminal subagents",
+    description: "Remove terminal subagents from the current-session visible work set. Omitting ids clears all terminal children",
+    parameters: Type.Object({
+      ids: Type.Optional(Type.Array(Type.String({ description: "Subagent id returned by subagent_spawn or subagent_batch" }))),
+    }),
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const input = params as { ids?: unknown };
+      const ids = Array.isArray(input.ids) ? input.ids.map(String) : undefined;
+      return textResult({ cleared: getSupervisor(ctx).clearTerminal(ids) });
+    },
+  });
+
   pi.registerCommand("subagent-spawn", {
     description: "Start an ad hoc independent subagent",
     handler: async (args, ctx) => {
@@ -191,6 +205,14 @@ export default function subagents(pi: ExtensionAPI) {
     description: "Show subagent status records",
     handler: async (_args, ctx) => {
       ctx.ui.notify(JSON.stringify(getSupervisor(ctx).list(), null, 2), "info");
+    },
+  });
+
+  pi.registerCommand("subagent-clear", {
+    description: "Clear terminal subagent records. Pass ids to clear selected terminal records only",
+    handler: async (args, ctx) => {
+      const ids = args.trim().split(/\s+/u).filter(Boolean);
+      ctx.ui.notify(JSON.stringify({ cleared: getSupervisor(ctx).clearTerminal(ids.length > 0 ? ids : undefined) }, null, 2), "info");
     },
   });
 

@@ -236,56 +236,40 @@ test("maxConcurrent preserves queued records", async () => {
   assert.equal(runner.starts.length, 2);
 });
 
-test("recent terminal statuses expire from list by ttl", async () => {
+test("terminal records stay listed past ttl and remain retrievable until cleared", async () => {
   const runner = new FakeRunner();
   const supervisor = new Supervisor(runner, "/tmp", { recentTerminalTtlMs: 5 });
-  const accepted = await spawnStarted(supervisor);
+  const completed = await spawnStarted(supervisor, "one");
+  const failed = await spawnStarted(supervisor, "two");
 
-  runner.starts[0].events.completed("done", "agent_settled");
-  assert.equal(supervisor.list().some((status) => status.id === accepted.id), true);
-
+  runner.starts[0].events.completed("one done", "agent_settled");
+  runner.starts[1].events.failed("two failed");
   await sleep(10);
 
-  assert.equal(supervisor.list().some((status) => status.id === accepted.id), false);
-  assert.equal(supervisor.result(accepted.id).result, "done");
+  const listedIds = supervisor.list().map((status) => status.id);
+  assert.ok(listedIds.includes(completed.id));
+  assert.ok(listedIds.includes(failed.id));
+  assert.equal(supervisor.result(completed.id).result, "one done");
+  assert.equal(supervisor.result(failed.id).error, "two failed");
+
+  (supervisor as Supervisor & { clearTerminal(): void }).clearTerminal();
+
+  const afterClearIds = supervisor.list().map((status) => status.id);
+  assert.equal(afterClearIds.includes(completed.id), false);
+  assert.equal(afterClearIds.includes(failed.id), false);
+  assert.throws(() => supervisor.status(completed.id), /unknown subagent id/);
+  assert.throws(() => supervisor.result(failed.id), /unknown subagent id/);
 });
 
-test("recent terminal ttl does not hide active statuses", async () => {
+test("zero recent terminal ttl does not hide terminal statuses", async () => {
   const runner = new FakeRunner();
   const supervisor = new Supervisor(runner, "/tmp", { recentTerminalTtlMs: 0 });
   const accepted = await spawnStarted(supervisor);
+
+  runner.starts[0].events.completed("done", "agent_settled");
 
   assert.equal(supervisor.list().some((status) => status.id === accepted.id), true);
-});
-
-test("zero recent terminal ttl hides terminal statuses immediately", async () => {
-  const runner = new FakeRunner();
-  const supervisor = new Supervisor(runner, "/tmp", { recentTerminalTtlMs: 0 });
-  const accepted = await spawnStarted(supervisor);
-
-  runner.starts[0].events.completed("done", "agent_settled");
-
-  assert.equal(supervisor.list().some((status) => status.id === accepted.id), false);
   assert.equal(supervisor.result(accepted.id).result, "done");
-});
-
-test("recent terminal ttl emits a change when an entry expires", async () => {
-  const runner = new FakeRunner();
-  let changes = 0;
-  const supervisor = new Supervisor(runner, "/tmp", {
-    recentTerminalTtlMs: 5,
-    onChange: () => {
-      changes += 1;
-    },
-  });
-  await spawnStarted(supervisor);
-  const beforeComplete = changes;
-
-  runner.starts[0].events.completed("done", "agent_settled");
-  await sleep(15);
-
-  assert.ok(changes > beforeComplete + 1);
-  assert.equal(supervisor.list().length, 0);
 });
 
 test("wait blocks until multiple subagents are terminal", async () => {

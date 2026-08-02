@@ -48,7 +48,6 @@ export class Supervisor {
   private readonly children = new Map<string, RunningChild>();
   private readonly queue: RunningChild[] = [];
   private readonly waiters = new Set<() => void>();
-  private recentTerminalTimer?: ReturnType<typeof setTimeout>;
 
   constructor(
     private readonly runner: ChildRunner,
@@ -78,9 +77,7 @@ export class Supervisor {
     const active = statuses.filter((status) => !isTerminal(status.state));
     const terminal = statuses
       .filter((status) => isTerminal(status.state))
-      .filter((status) => this.isRecentTerminal(status))
-      .sort((a, b) => Date.parse(b.completedAt ?? b.startedAt) - Date.parse(a.completedAt ?? a.startedAt))
-      .slice(0, this.options.recentTerminalLimit ?? 10);
+      .sort((a, b) => Date.parse(b.completedAt ?? b.startedAt) - Date.parse(a.completedAt ?? a.startedAt));
     return [...active, ...terminal];
   }
 
@@ -90,6 +87,20 @@ export class Supervisor {
 
   result(id: string): SubagentResult {
     return cloneResult(this.require(id).record);
+  }
+
+  clearTerminal(ids?: string[]): SubagentStatus[] {
+    const selectedIds = ids ? [...new Set(ids.map((id) => id.trim()).filter(Boolean))] : undefined;
+    if (selectedIds) for (const id of selectedIds) this.require(id);
+    const cleared: SubagentStatus[] = [];
+    for (const [id, child] of this.children) {
+      if (selectedIds && !selectedIds.includes(id)) continue;
+      if (!isTerminal(child.record.status.state)) continue;
+      cleared.push(cloneStatus(child.record.status));
+      this.children.delete(id);
+    }
+    if (cleared.length > 0) this.emitChange();
+    return cleared;
   }
 
   async wait(
@@ -137,7 +148,6 @@ export class Supervisor {
   }
 
   async shutdown(): Promise<void> {
-    this.clearRecentTerminalTimer();
     await Promise.allSettled(
       [...this.children.values()].map(async (child) => {
         if (!isTerminal(child.record.status.state)) {
@@ -146,7 +156,6 @@ export class Supervisor {
         }
       }),
     );
-    this.clearRecentTerminalTimer();
   }
 
   private createChild(request: SpawnRequest): SpawnAccepted {
@@ -345,39 +354,6 @@ export class Supervisor {
   private emitChange() {
     this.options.onChange?.(this.list());
     for (const waiter of this.waiters) waiter();
-    this.scheduleRecentTerminalExpiry();
-  }
-
-  private scheduleRecentTerminalExpiry() {
-    this.clearRecentTerminalTimer();
-    const ttl = this.options.recentTerminalTtlMs;
-    if (ttl === undefined || ttl <= 0) return;
-    const now = Date.now();
-    const nextExpiryMs = [...this.children.values()]
-      .map((child) => child.record.status)
-      .filter((status) => isTerminal(status.state))
-      .map((status) => Date.parse(status.completedAt ?? status.startedAt))
-      .filter((completed) => Number.isFinite(completed))
-      .map((completed) => completed + ttl - now)
-      .filter((remaining) => remaining > 0)
-      .sort((a, b) => a - b)[0];
-    if (nextExpiryMs === undefined) return;
-    this.recentTerminalTimer = setTimeout(() => this.emitChange(), nextExpiryMs + 1);
-  }
-
-  private clearRecentTerminalTimer() {
-    if (!this.recentTerminalTimer) return;
-    clearTimeout(this.recentTerminalTimer);
-    this.recentTerminalTimer = undefined;
-  }
-
-  private isRecentTerminal(status: SubagentStatus): boolean {
-    const ttl = this.options.recentTerminalTtlMs;
-    if (ttl === undefined) return true;
-    if (ttl <= 0) return false;
-    const completed = Date.parse(status.completedAt ?? status.startedAt);
-    if (!Number.isFinite(completed)) return true;
-    return Date.now() - completed <= ttl;
   }
 
   private waitReady(ids: string[], mode: SubagentWaitMode): boolean {

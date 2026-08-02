@@ -6,7 +6,7 @@ export function renderSummary(statuses: SubagentStatus[]): string[] {
   const queued = statuses.filter((status) => status.state === "queued").length;
   const terminal = statuses.filter((status) => isTerminalState(status.state)).length;
   if (running === 0 && queued === 0 && terminal === 0) return [];
-  return [`subagents: ${running} running · ${queued} queued · ${terminal} recent`];
+  return [`subagents: ${running} running · ${queued} queued · ${terminal} terminal`];
 }
 
 export function renderInspector(statuses: SubagentStatus[]): string[] {
