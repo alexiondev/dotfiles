@@ -100,7 +100,11 @@
 
       # `nix flake check` builds each host's toplevel.
       checks.x86_64-linux = lib.mapAttrs (
-        _name: host: host.config.system.build.toplevel
+        name: host:
+        if host.config.warnings == [] then
+          host.config.system.build.toplevel
+        else
+          throw "Host ${name} has evaluation warnings:\n${lib.concatStringsSep "\n" host.config.warnings}"
       ) self.nixosConfigurations;
     };
 }

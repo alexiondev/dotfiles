@@ -32,6 +32,9 @@ in
 
       image = wallpaper;
 
+      # Regreet is not enabled, so its styling target stays off.
+      targets.regreet.enable = false;
+
       cursor = {
         package = pkgs.bibata-cursors;
         # Solid white with a dark outline, so it stays easy to spot against the

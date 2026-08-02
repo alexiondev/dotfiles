@@ -20,6 +20,8 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
 
 - Subagent completion delivery is non-blocking through immediate spawn, milestone notifications, retained terminal entries, and `subagent_list` or `subagent_result` retrieval.
   `subagent_wait` intentionally blocks the parent tool call until its condition or timeout, so do not use it merely to keep background work alive during an interactive workflow.
+- Nixvim's flake input following the root nixpkgs source does not make its Home Manager module reuse the host's `pkgs` instance.
+  Keep `programs.nixvim.nixpkgs.useGlobalPackages = true` so Nixvim uses the shared package set without warning that its source default was affected.
 - This host has no `python` or `python3` command on its ordinary `PATH`.
   For ad hoc Python, use Nix explicitly, such as `nix shell nixpkgs#python3 -c python3 <script>`.
 - ADR bodies are immutable records of decisions as they were made, while frontmatter is mutable.

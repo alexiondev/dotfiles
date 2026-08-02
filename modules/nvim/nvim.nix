@@ -19,6 +19,7 @@ in
     home-manager.users.${user} = hm: {
       programs.nixvim = {
         enable = true;
+        nixpkgs.useGlobalPackages = true;
 
         extraPackages = with pkgs; [
           git # neogit and gitsigns shell out to git
