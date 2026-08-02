@@ -68,6 +68,7 @@
   modules.agents.herdr.enable = true;
   modules.agents.tools.gitea-axi.enable = true;
   modules.agents.pi.enable = true;
+  modules.agents.pi.subagents.maxConcurrent = 8;
 
   modules.desktop.enable = true;
   modules.desktop.obsidian.enable = true;
