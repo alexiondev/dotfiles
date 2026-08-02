@@ -6,7 +6,7 @@ import { SubprocessRpcRunner } from "./runner.ts";
 import { Supervisor } from "./supervisor.ts";
 import { milestoneNotification } from "./status.ts";
 import type { SpawnRequest, SubagentStatus } from "./types.ts";
-import { attachedChildView, widget } from "./ui.ts";
+import { widget } from "./ui.ts";
 
 let supervisor: Supervisor | undefined;
 let lastDiagnostics: Diagnostics = { warnings: [] };
@@ -227,28 +227,6 @@ export default function subagents(pi: ExtensionAPI) {
     description: "Show a subagent result by id",
     handler: async (args, ctx) => {
       ctx.ui.notify(JSON.stringify(getSupervisor(ctx).result(args.trim()), null, 2), "info");
-    },
-  });
-
-  pi.registerCommand("subagent-attach", {
-    description: "Open a read-only attached view for a subagent id",
-    handler: async (args, ctx) => {
-      const id = args.trim();
-      if (!id) {
-        ctx.ui.notify("Usage: /subagent-attach <id>", "warning");
-        return;
-      }
-      const currentSupervisor = getSupervisor(ctx);
-      currentSupervisor.status(id);
-      await ctx.ui.custom<void>((tui, _theme, _keybindings, done) => attachedChildView({
-        status: () => currentSupervisor.status(id),
-        activity: () => currentSupervisor.activity(id),
-        onDetach: () => done(),
-        onChange: () => tui.requestRender(),
-      }), {
-        overlay: true,
-        overlayOptions: { width: "90%", maxHeight: "90%", minWidth: 60 },
-      });
     },
   });
 

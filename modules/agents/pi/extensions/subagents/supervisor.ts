@@ -2,7 +2,6 @@ import type {
   ChildHandle,
   ChildRecord,
   ChildRunner,
-  SubagentActivityEvent,
   ContextMode,
   RunnerActivity,
   RunnerEvents,
@@ -324,7 +323,7 @@ export class Supervisor {
     return [...this.children.values()].find((child) => child.record === record);
   }
 
-  activity(id: string): SubagentActivityEvent[] {
+  activity(id: string) {
     return this.require(id).record.activityEvents.map((event) => ({ ...event }));
   }
 

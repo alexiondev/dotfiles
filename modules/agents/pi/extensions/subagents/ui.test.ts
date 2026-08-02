@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { SubagentState, SubagentStatus } from "./types.ts";
-import { attachedChildView, renderAttachedChildView, renderInspector, renderSummary, widget } from "./ui.ts";
+import { renderInspector, renderSummary, widget } from "./ui.ts";
 
 function status(overrides: Partial<SubagentStatus> & { id: string; label: string; state: SubagentState }): SubagentStatus {
   return {
@@ -53,42 +53,6 @@ test("expanded monitor shows concise current activity summaries instead of raw e
 
   assert.deepEqual(rendered, ["▶ running   12s Audit guest enablement plan last: read secret-notes.md"]);
   assert.doesNotMatch(rendered.join("\n"), /message_update|private transcript body/u);
-});
-
-test("attached child view is read-only, renders transcript activity, and supports detach plus scrolling", () => {
-  const child = status({ id: "sg-child", label: "Research worker", state: "running" });
-  const activity = Array.from({ length: 24 }, (_, index) => ({
-    type: "message_update",
-    summary: `assistant message ${index + 1}`,
-    at: `2026-08-01T00:00:${String(index + 1).padStart(2, "0")}.000Z`,
-    role: "assistant",
-    text: `captured child message ${index + 1}`,
-  }));
-
-  const bottom = renderAttachedChildView(child, activity, { width: 100, scrollOffset: 0 });
-  assert.match(bottom.join("\n"), /read-only attached view/u);
-  assert.match(bottom.join("\n"), /Esc\/q detach/u);
-  assert.match(bottom.join("\n"), /captured child message 24/u);
-  assert.doesNotMatch(bottom.join("\n"), /> |prompt|send|input channel/ui);
-
-  const scrolled = renderAttachedChildView(child, activity, { width: 100, scrollOffset: 6 });
-  assert.match(scrolled.join("\n"), /captured child message 1[0-9]/u);
-  assert.doesNotMatch(scrolled.join("\n"), /captured child message 24/u);
-
-  let detached = false;
-  const component = attachedChildView({
-    status: () => child,
-    activity: () => activity,
-    onDetach: () => {
-      detached = true;
-    },
-  });
-  component.handleInput("\u001b[A");
-  assert.doesNotMatch(component.render(100).join("\n"), /captured child message 24/u);
-  component.handleInput("\u001b[B");
-  assert.match(component.render(100).join("\n"), /captured child message 24/u);
-  component.handleInput("q");
-  assert.equal(detached, true);
 });
 
 test("expanded monitor renders one truncated row per child with state, elapsed time, and activity marker", () => {
