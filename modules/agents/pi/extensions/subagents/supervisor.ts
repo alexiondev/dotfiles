@@ -11,7 +11,7 @@ import type {
   SubagentWaitMode,
   SubagentWaitResult,
 } from "./types.ts";
-import { cloneResult, cloneStatus, toAccepted } from "./status.ts";
+import { cloneResult, cloneStatus, isTerminalState, toAccepted } from "./status.ts";
 
 interface RunningChild {
   record: ChildRecord;
@@ -157,7 +157,7 @@ export class Supervisor {
     const now = new Date().toISOString();
     const status: SubagentStatus = {
       id,
-      label: request.agent ?? `ad-hoc ${id}`,
+      label: deriveLabel(request, id),
       agent: request.agent,
       adHoc: !request.agent,
       context: this.resolveContext(request.context),
@@ -172,7 +172,7 @@ export class Supervisor {
       lastEventAt: now,
       resultAvailable: false,
     };
-    const child: RunningChild = { record: { status }, request: { ...request, prompt, context: status.context, tools: status.tools } };
+    const child: RunningChild = { record: { status }, request: { ...request, prompt, label: status.label, context: status.context, tools: status.tools } };
     this.children.set(id, child);
     this.emitMilestone(child, "accepted");
     this.queue.push(child);
@@ -418,6 +418,32 @@ export class Supervisor {
   }
 }
 
+function deriveLabel(request: SpawnRequest, id: string): string {
+  const explicit = normalizeLabel(request.label);
+  if (explicit) return explicit;
+  const agent = normalizeLabel(request.agent);
+  if (agent) return agent;
+  return promptLabel(request.prompt) ?? `ad-hoc ${id}`;
+}
+
+function promptLabel(prompt: string): string | undefined {
+  const normalized = normalizeLabel(prompt);
+  if (!normalized) return undefined;
+  return truncateLabel(normalized);
+}
+
+function normalizeLabel(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.replace(/\s+/gu, " ").trim();
+  return normalized || undefined;
+}
+
+function truncateLabel(label: string): string {
+  const maxLength = 80;
+  if (label.length <= maxLength) return label;
+  return `${label.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
 function isTerminal(state: SubagentStatus["state"]): boolean {
-  return ["completed", "failed", "cancelled", "timed_out", "orphaned"].includes(state);
+  return isTerminalState(state);
 }

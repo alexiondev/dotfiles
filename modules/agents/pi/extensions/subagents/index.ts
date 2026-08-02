@@ -4,6 +4,7 @@ import { loadAgents } from "./agents.ts";
 import { loadConfig, resolveSpawn, type Diagnostics } from "./config.ts";
 import { SubprocessRpcRunner } from "./runner.ts";
 import { Supervisor } from "./supervisor.ts";
+import { milestoneNotification } from "./status.ts";
 import type { SpawnRequest, SubagentStatus } from "./types.ts";
 import { widget } from "./ui.ts";
 
@@ -23,7 +24,11 @@ export default function subagents(pi: ExtensionAPI) {
     supervisor = new Supervisor(new SubprocessRpcRunner(), cwd, {
       maxConcurrent: config.maxConcurrent,
       recentTerminalTtlMs: config.recentTerminalTtlMs,
-      onMilestone: (status, event) => pi.appendEntry("subagent_milestone", { event, status }),
+      onMilestone: (status, event) => {
+        pi.appendEntry("subagent_milestone", { event, status });
+        const notification = milestoneNotification(status, event);
+        if (notification) ctx.ui?.notify?.(notification.message, notification.level);
+      },
       onChange: (statuses) => {
         lastStatuses = statuses;
         updateUi(ctx, config.ui.enabled);
@@ -51,6 +56,7 @@ export default function subagents(pi: ExtensionAPI) {
     description: "Start one ad hoc independent subagent and return immediately with its child id",
     parameters: Type.Object({
       prompt: Type.String({ description: "Prompt for the delegated subagent" }),
+      label: Type.Optional(Type.String({ description: "Human-readable label for this work item" })),
       agent: Type.Optional(Type.String({ description: "Named agent definition to use" })),
       context: Type.Optional(Type.Union([Type.Literal("independent"), Type.Literal("fork")])),
       model: Type.Optional(Type.String({ description: "Optional model selector for the child" })),
@@ -59,7 +65,7 @@ export default function subagents(pi: ExtensionAPI) {
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const accepted = getSupervisor(ctx).spawn(resolve(ctx, params as SpawnRequest));
-      ctx.ui?.notify?.(`Started subagent ${accepted.id}`, "info");
+      ctx.ui?.notify?.(`Started subagent ${accepted.label}`, "info");
       return textResult(accepted);
     },
   });
@@ -72,6 +78,7 @@ export default function subagents(pi: ExtensionAPI) {
       subagents: Type.Array(
         Type.Object({
           prompt: Type.String({ description: "Prompt for the delegated subagent" }),
+          label: Type.Optional(Type.String({ description: "Human-readable label for this work item" })),
           agent: Type.Optional(Type.String({ description: "Named agent definition to use" })),
           context: Type.Optional(Type.Union([Type.Literal("independent"), Type.Literal("fork")])),
           model: Type.Optional(Type.String({ description: "Optional model selector for the child" })),
@@ -164,7 +171,7 @@ export default function subagents(pi: ExtensionAPI) {
     description: "Start an ad hoc independent subagent",
     handler: async (args, ctx) => {
       const accepted = getSupervisor(ctx).spawn(resolve(ctx, parseSpawnArgs(args)));
-      ctx.ui.notify(`Started subagent ${accepted.id}`, "info");
+      ctx.ui.notify(`Started subagent ${accepted.label}`, "info");
     },
   });
 
@@ -250,6 +257,7 @@ function parseSpawnArgs(args: string): SpawnRequest {
     const flag = parts.shift();
     const value = parts.shift();
     if (flag === "--agent") request.agent = value;
+    else if (flag === "--label") request.label = value;
     else if (flag === "--context" && (value === "independent" || value === "fork")) request.context = value;
     else if (flag === "--tools") request.tools = value;
     else if (flag === "--model") request.model = value;

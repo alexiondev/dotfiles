@@ -51,14 +51,18 @@ test("child RPC process disables discovery while explicitly loading subagents ex
 
   const { SubprocessRpcRunner } = await import("./runner.ts");
   const runner = new SubprocessRpcRunner();
-  await runner.start("child-1", { prompt: "work" }, "/tmp", events());
+  await runner.start("child-1", { prompt: "work", label: "Review migration" }, "/tmp", events());
 
   assert.equal(spawn.mock.callCount(), 1);
   const args = calls[0].args;
   const noExtensionsIndex = args.indexOf("--no-extensions");
   const extensionIndex = args.indexOf("--extension");
 
+  const nameIndex = args.indexOf("--name");
+
   assert.notEqual(noExtensionsIndex, -1, "child args keep automatic extension discovery disabled");
+  assert.notEqual(nameIndex, -1, "child args include a process name");
+  assert.equal(args[nameIndex + 1], "subagent Review migration");
   assert.notEqual(extensionIndex, -1, "child args explicitly load the subagents extension entry");
   assert.equal(args[extensionIndex + 1], fileURLToPath(new URL("./index.ts", import.meta.url)));
   assert.ok(noExtensionsIndex < extensionIndex);

@@ -115,9 +115,10 @@ test("named spawn resolves overrides, frontmatter, config, and defaults", () => 
   const config = loadConfig(cwd, true, diag, agentDir);
   const agents = loadAgents(cwd, true, diag, agentDir);
 
-  const resolved = resolveSpawn({ agent: "review", prompt: "check this", thinking: "low" }, config, agents);
+  const resolved = resolveSpawn({ agent: "review", prompt: "check this", label: "Review migration", thinking: "low" }, config, agents);
 
   assert.equal(resolved.prompt, "check this");
+  assert.equal(resolved.label, "Review migration");
   assert.equal(resolved.context, "independent");
   assert.equal(resolved.model, "inherit");
   assert.equal(resolved.thinking, "low");

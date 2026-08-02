@@ -157,7 +157,7 @@ class RpcChildHandle implements ChildHandle {
 
 export class SubprocessRpcRunner implements ChildRunner {
   async start(id: string, request: SpawnRequest, cwd: string, events: RunnerEvents): Promise<ChildHandle> {
-    const args = [process.argv[1], "--mode", "rpc", "--no-extensions", "--extension", subagentsExtensionPath(), "--name", `subagent ${id}`, ...contextArgs(request), ...toolArgs(request), ...modelArgs(request)];
+    const args = [process.argv[1], "--mode", "rpc", "--no-extensions", "--extension", subagentsExtensionPath(), "--name", `subagent ${request.label ?? id}`, ...contextArgs(request), ...toolArgs(request), ...modelArgs(request)];
     const child = spawn(process.execPath, args, {
       cwd,
       env: childEnvironment(),

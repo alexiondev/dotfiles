@@ -1,4 +1,5 @@
-import type { ChildRecord, SpawnAccepted, SubagentResult, SubagentStatus } from "./types.ts";
+import { SUBAGENT_STATES, SUBAGENT_TERMINAL_STATES } from "./types.ts";
+import type { ChildRecord, SpawnAccepted, SubagentResult, SubagentState, SubagentStatus } from "./types.ts";
 
 export function toAccepted(status: SubagentStatus): SpawnAccepted {
   return {
@@ -17,9 +18,10 @@ export function cloneStatus(status: SubagentStatus): SubagentStatus {
 
 export function cloneResult(record: ChildRecord): SubagentResult {
   const status = cloneStatus(record.status);
-  const terminal = ["completed", "failed", "cancelled", "timed_out", "orphaned"].includes(status.state);
+  const terminal = isTerminalState(status.state);
   return {
     id: status.id,
+    label: status.label,
     state: status.state,
     running: !terminal,
     resultAvailable: status.resultAvailable,
@@ -28,6 +30,19 @@ export function cloneResult(record: ChildRecord): SubagentResult {
     completedAt: status.completedAt,
     elapsedMs: status.elapsedMs,
   };
+}
+
+export function isTerminalState(state: SubagentState): boolean {
+  return (SUBAGENT_TERMINAL_STATES as readonly string[]).includes(state);
+}
+
+export function milestoneNotification(status: SubagentStatus, event: string): { message: string; level: "info" | "error" } | undefined {
+  if (!isSubagentState(event) || !isTerminalState(event)) return undefined;
+  return { message: `Subagent ${status.label} ${event}`, level: event === "completed" ? "info" : "error" };
+}
+
+export function isSubagentState(value: string): value is SubagentState {
+  return (SUBAGENT_STATES as readonly string[]).includes(value);
 }
 
 export function elapsedMs(status: Pick<SubagentStatus, "startedAt" | "completedAt">): number {

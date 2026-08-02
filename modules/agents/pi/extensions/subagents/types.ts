@@ -1,15 +1,9 @@
 export type ContextMode = "independent" | "fork";
 
-export type SubagentState =
-  | "queued"
-  | "starting"
-  | "running"
-  | "settling"
-  | "completed"
-  | "failed"
-  | "cancelled"
-  | "timed_out"
-  | "orphaned";
+export const SUBAGENT_STATES = ["queued", "starting", "running", "settling", "completed", "failed", "cancelled", "timed_out", "orphaned"] as const;
+export const SUBAGENT_TERMINAL_STATES = ["completed", "failed", "cancelled", "timed_out", "orphaned"] as const;
+
+export type SubagentState = (typeof SUBAGENT_STATES)[number];
 
 export interface ToolProfile {
   activeTools: string[] | null;
@@ -17,6 +11,7 @@ export interface ToolProfile {
 
 export interface SpawnRequest {
   prompt: string;
+  label?: string;
   context?: ContextMode;
   agent?: string;
   model?: string;
@@ -60,6 +55,7 @@ export interface SubagentStatus {
 
 export interface SubagentResult {
   id: string;
+  label: string;
   state: SubagentState;
   running: boolean;
   resultAvailable: boolean;

@@ -1,9 +1,10 @@
+import { isTerminalState } from "./status.ts";
 import type { SubagentStatus } from "./types.ts";
 
 export function renderSummary(statuses: SubagentStatus[]): string[] {
   const running = statuses.filter((status) => ["starting", "running", "settling"].includes(status.state)).length;
   const queued = statuses.filter((status) => status.state === "queued").length;
-  const terminal = statuses.filter((status) => ["completed", "failed", "cancelled", "timed_out", "orphaned"].includes(status.state)).length;
+  const terminal = statuses.filter((status) => isTerminalState(status.state)).length;
   if (running === 0 && queued === 0 && terminal === 0) return [];
   return [`subagents: ${running} running · ${queued} queued · ${terminal} recent`];
 }
