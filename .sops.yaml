@@ -7,6 +7,7 @@ keys:
   - &admin age1m0pk94ysjlw3lmf6pyuv5l5pepvdjss8w0vxjv90dq6ndp02tdgsdwdvue
   # Generated on the machine it names.
   - &neogaia age14a04vphzjq74epfrz9a09wjw8lzchtru84awzuq2n45d8f42ychqjs89qe
+  - &pikachu age1wf5s0n0tgt6ld2ysgu9dc67mj8ylwecgl4utzg7hqwy3kut9zyms7aglmh
 
 creation_rules:
   # Material belonging to one machine.
@@ -24,3 +25,4 @@ creation_rules:
       - age:
           - *admin
           - *neogaia
+          - *pikachu
