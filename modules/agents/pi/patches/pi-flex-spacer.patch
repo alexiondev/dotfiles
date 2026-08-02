@@ -32,7 +32,7 @@ diff --git a/packages/coding-agent/src/core/settings-manager.ts b/packages/codin
 diff --git a/packages/coding-agent/src/modes/interactive/interactive-mode.ts b/packages/coding-agent/src/modes/interactive/interactive-mode.ts
 --- a/packages/coding-agent/src/modes/interactive/interactive-mode.ts	2026-08-01 18:41:36.963495957 -0400
 +++ b/packages/coding-agent/src/modes/interactive/interactive-mode.ts	2026-08-01 18:43:04.876341236 -0400
-@@ -210,6 +210,45 @@
+@@ -210,6 +210,47 @@
  	return code !== undefined && DEAD_TERMINAL_ERROR_CODES.has(code);
  }
  
@@ -56,7 +56,9 @@ diff --git a/packages/coding-agent/src/modes/interactive/interactive-mode.ts b/p
 +	private renderGroup(children: Component[], width: number): string[] {
 +		const lines: string[] = [];
 +		for (const child of children) {
-+			lines.push(...child.render(width));
++			for (const line of child.render(width)) {
++				lines.push(line);
++			}
 +		}
 +		return lines;
 +	}
@@ -78,7 +80,7 @@ diff --git a/packages/coding-agent/src/modes/interactive/interactive-mode.ts b/p
  const ANTHROPIC_SUBSCRIPTION_AUTH_WARNING =
  	"Anthropic subscription auth is active. Third-party harness usage draws from extra usage and is billed per token, not your Claude plan limits. Manage extra usage at https://claude.ai/settings/usage. Disable this warning in /settings.";
  
-@@ -335,6 +374,7 @@
+@@ -335,6 +376,7 @@
  	private fdPath: string | undefined;
  	private editorContainer: Container;
  	private footer: FooterComponent;
@@ -86,7 +88,7 @@ diff --git a/packages/coding-agent/src/modes/interactive/interactive-mode.ts b/p
  	private footerDataProvider: FooterDataProvider;
  	// Stored so the same manager can be injected into custom editors, selectors, and extension UI.
  	private keybindings: KeybindingsManager;
-@@ -477,7 +517,9 @@
+@@ -477,7 +519,9 @@
  		this.editorContainer = new Container();
  		this.editorContainer.addChild(this.editor as Component);
  		this.footerDataProvider = new FooterDataProvider(this.sessionManager.getCwd());
@@ -96,7 +98,7 @@ diff --git a/packages/coding-agent/src/modes/interactive/interactive-mode.ts b/p
  		this.footer.setAutoCompactEnabled(this.session.autoCompactionEnabled);
  
  		// Load hide thinking block setting
-@@ -704,19 +746,25 @@
+@@ -704,19 +748,25 @@
  			console.log(theme.fg("dim", `Model scope: ${modelList}${cycleHint}`));
  		}
  
@@ -134,7 +136,7 @@ diff --git a/packages/coding-agent/src/modes/interactive/interactive-mode.ts b/p
  		this.ui.setFocus(this.editor);
  
  		this.setupKeyHandlers();
-@@ -2033,25 +2081,25 @@
+@@ -2033,25 +2083,25 @@
  			| ((tui: TUI, thm: Theme, footerData: ReadonlyFooterDataProvider) => Component & { dispose?(): void })
  			| undefined,
  	): void {

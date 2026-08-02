@@ -44,6 +44,8 @@ const DEFAULT_TIMEOUTS = {
   runMs: 0,
 };
 
+const MAX_ACTIVITY_HISTORY = 100;
+
 export class Supervisor {
   private nextChild = 0;
   private readonly children = new Map<string, RunningChild>();
@@ -90,14 +92,14 @@ export class Supervisor {
     return cloneResult(this.require(id).record);
   }
 
-  clearTerminal(ids?: string[]): SubagentStatus[] {
+  clearTerminal(ids?: string[]): string[] {
     const selectedIds = ids ? [...new Set(ids.map((id) => id.trim()).filter(Boolean))] : undefined;
     if (selectedIds) for (const id of selectedIds) this.require(id);
-    const cleared: SubagentStatus[] = [];
+    const cleared: string[] = [];
     for (const [id, child] of this.children) {
       if (selectedIds && !selectedIds.includes(id)) continue;
       if (!isTerminal(child.record.status.state)) continue;
-      cleared.push(cloneStatus(child.record.status));
+      cleared.push(id);
       this.children.delete(id);
     }
     if (cleared.length > 0) this.emitChange();
@@ -344,6 +346,9 @@ export class Supervisor {
     const summary = summarizeActivity(activity);
     record.status.currentActivity = summary;
     record.status.activityHistory.push(summary);
+    if (record.status.activityHistory.length > MAX_ACTIVITY_HISTORY) {
+      record.status.activityHistory.splice(0, record.status.activityHistory.length - MAX_ACTIVITY_HISTORY);
+    }
     return activity;
   }
 

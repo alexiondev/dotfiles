@@ -140,6 +140,22 @@ test("activity exposes ordered transcript events while status and list keep only
   assert.doesNotMatch(JSON.stringify(listed), /private transcript body|secret file contents/u);
 });
 
+test("status activity history keeps only the 100 most recent summaries", async () => {
+  const runner = new FakeRunner();
+  const supervisor = new Supervisor(runner, "/tmp");
+  const accepted = await spawnStarted(supervisor);
+
+  for (let index = 0; index < 150; index += 1) {
+    runner.starts[0].events.running(`tick ${index}`);
+  }
+
+  const history = supervisor.status(accepted.id).activityHistory;
+
+  assert.equal(history.length, 100);
+  assert.equal(history[0].summary, "tick 50");
+  assert.equal(history[99].summary, "tick 149");
+});
+
 test("process failure reaches failed with diagnostics", async () => {
   const runner = new FakeRunner();
   const supervisor = new Supervisor(runner, "/tmp");
@@ -301,6 +317,22 @@ test("maxConcurrent preserves queued records", async () => {
   await sleep(0);
 
   assert.equal(runner.starts.length, 2);
+});
+
+test("clearTerminal returns only removed terminal ids", async () => {
+  const runner = new FakeRunner();
+  const supervisor = new Supervisor(runner, "/tmp");
+  const first = await spawnStarted(supervisor, "one");
+  const second = await spawnStarted(supervisor, "two");
+  const running = await spawnStarted(supervisor, "three");
+
+  runner.starts[0].events.completed("one done", "agent_settled");
+  runner.starts[1].events.completed("two done", "agent_settled");
+
+  assert.deepEqual(supervisor.clearTerminal(), [first.id, second.id]);
+  assert.throws(() => supervisor.status(first.id), /unknown subagent id/);
+  assert.throws(() => supervisor.status(second.id), /unknown subagent id/);
+  assert.equal(supervisor.status(running.id).state, "running");
 });
 
 test("terminal records stay listed past ttl and remain retrievable until cleared", async () => {
