@@ -165,7 +165,7 @@ test("ad hoc fallback labels are prompt-derived and reused by widget and result 
       result: label,
     },
   );
-  assert.ok(inspectorLines.some((line) => line.includes(`${accepted.id} ${label} independent completed`)), inspectorLines.join("\n"));
+  assert.ok(inspectorLines.some((line) => line.includes(`completed 0s ${label} result: available`)), inspectorLines.join("\n"));
   assert.doesNotMatch(accepted.label, /^ad-hoc sg-/u);
 });
 
