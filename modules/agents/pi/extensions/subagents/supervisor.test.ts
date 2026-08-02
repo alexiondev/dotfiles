@@ -335,29 +335,31 @@ test("clearTerminal returns only removed terminal ids", async () => {
   assert.equal(supervisor.status(running.id).state, "running");
 });
 
-test("terminal records stay listed past ttl and remain retrievable until cleared", async () => {
+test("terminal records expire after ttl while active children remain", async () => {
   const runner = new FakeRunner();
   const supervisor = new Supervisor(runner, "/tmp", { recentTerminalTtlMs: 5 });
   const completed = await spawnStarted(supervisor, "one");
   const failed = await spawnStarted(supervisor, "two");
+  const running = await spawnStarted(supervisor, "three");
 
   runner.starts[0].events.completed("one done", "agent_settled");
   runner.starts[1].events.failed("two failed");
-  await sleep(10);
 
-  const listedIds = supervisor.list().map((status) => status.id);
-  assert.ok(listedIds.includes(completed.id));
-  assert.ok(listedIds.includes(failed.id));
   assert.equal(supervisor.result(completed.id).result, "one done");
   assert.equal(supervisor.result(failed.id).error, "two failed");
+  assert.equal(supervisor.status(running.id).state, "running");
 
-  (supervisor as Supervisor & { clearTerminal(): void }).clearTerminal();
+  await sleep(20);
 
-  const afterClearIds = supervisor.list().map((status) => status.id);
-  assert.equal(afterClearIds.includes(completed.id), false);
-  assert.equal(afterClearIds.includes(failed.id), false);
+  const listedIds = supervisor.list().map((status) => status.id);
+  assert.equal(listedIds.includes(completed.id), false);
+  assert.equal(listedIds.includes(failed.id), false);
+  assert.equal(listedIds.includes(running.id), true);
   assert.throws(() => supervisor.status(completed.id), /unknown subagent id/);
+  assert.throws(() => supervisor.status(failed.id), /unknown subagent id/);
+  assert.throws(() => supervisor.result(completed.id), /unknown subagent id/);
   assert.throws(() => supervisor.result(failed.id), /unknown subagent id/);
+  assert.equal(supervisor.status(running.id).state, "running");
 });
 
 test("zero recent terminal ttl does not hide terminal statuses", async () => {

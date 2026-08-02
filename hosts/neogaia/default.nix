@@ -69,6 +69,7 @@
   modules.agents.tools.gitea-axi.enable = true;
   modules.agents.pi.enable = true;
   modules.agents.pi.subagents.maxConcurrent = 8;
+  modules.agents.pi.subagents.recentTerminalTtlMs = 15 * 60 * 1000;
 
   modules.desktop.enable = true;
   modules.desktop.obsidian.enable = true;

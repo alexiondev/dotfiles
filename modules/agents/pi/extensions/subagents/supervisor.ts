@@ -20,6 +20,7 @@ interface RunningChild {
   handle?: ChildHandle;
   startTimer?: ReturnType<typeof setTimeout>;
   runTimer?: ReturnType<typeof setTimeout>;
+  expiryTimer?: ReturnType<typeof setTimeout>;
 }
 
 interface SupervisorOptions {
@@ -99,6 +100,7 @@ export class Supervisor {
     for (const [id, child] of this.children) {
       if (selectedIds && !selectedIds.includes(id)) continue;
       if (!isTerminal(child.record.status.state)) continue;
+      this.clearTimer(child, "expiryTimer");
       cleared.push(id);
       this.children.delete(id);
     }
@@ -159,6 +161,7 @@ export class Supervisor {
         }
       }),
     );
+    for (const child of this.children.values()) this.clearTimer(child, "expiryTimer");
   }
 
   private createChild(request: SpawnRequest): SpawnAccepted {
@@ -250,7 +253,10 @@ export class Supervisor {
         this.recordActivity(record, "completed", now);
         record.status.stopReason = stopReason;
         record.status.resultAvailable = true;
-        if (child) this.emitMilestone(child, "completed");
+        if (child) {
+          this.armTerminalExpiry(child);
+          this.emitMilestone(child, "completed");
+        }
         this.pumpQueue();
       },
       failed: (error) => this.fail(record, error),
@@ -269,7 +275,10 @@ export class Supervisor {
     this.recordActivity(record, "failed", now);
     record.status.error = error;
     record.status.stopReason = "failed";
-    if (child) this.emitMilestone(child, "failed");
+    if (child) {
+      this.armTerminalExpiry(child);
+      this.emitMilestone(child, "failed");
+    }
     this.pumpQueue();
   }
 
@@ -283,6 +292,7 @@ export class Supervisor {
     child.record.status.lastEventAt = now;
     this.recordActivity(child.record, state, now);
     child.record.status.stopReason = reason;
+    this.armTerminalExpiry(child);
     this.emitMilestone(child, state);
   }
 
@@ -309,12 +319,26 @@ export class Supervisor {
     this.pumpQueue();
   }
 
+  private armTerminalExpiry(child: RunningChild) {
+    const ttl = this.options.recentTerminalTtlMs;
+    if (ttl === undefined || ttl <= 0) return;
+    this.clearTimer(child, "expiryTimer");
+    child.expiryTimer = setTimeout(() => {
+      child.expiryTimer = undefined;
+      const id = child.record.status.id;
+      if (this.children.get(id) !== child || !isTerminal(child.record.status.state)) return;
+      this.children.delete(id);
+      this.emitChange();
+    }, ttl);
+    child.expiryTimer.unref?.();
+  }
+
   private clearTimers(child: RunningChild) {
     this.clearTimer(child, "startTimer");
     this.clearTimer(child, "runTimer");
   }
 
-  private clearTimer(child: RunningChild, key: "startTimer" | "runTimer") {
+  private clearTimer(child: RunningChild, key: "startTimer" | "runTimer" | "expiryTimer") {
     const timer = child[key];
     if (!timer) return;
     clearTimeout(timer);
