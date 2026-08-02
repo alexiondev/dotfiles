@@ -55,6 +55,7 @@ function renderStatusRow(status: SubagentStatus): string {
 function statusMarker(status: SubagentStatus): string | undefined {
   if (status.error) return `error: ${status.error}`;
   if (status.resultAvailable) return "result: available";
+  if (status.currentActivity) return `last: ${status.currentActivity.summary}`;
   if (status.lastEvent) return `last: ${status.lastEvent}`;
   if (status.state === "queued") return "waiting";
   if (status.state === "settling") return "settling";

@@ -3,6 +3,7 @@ import type {
   ChildRecord,
   ChildRunner,
   ContextMode,
+  RunnerActivity,
   RunnerEvents,
   SpawnAccepted,
   SpawnRequest,
@@ -179,9 +180,11 @@ export class Supervisor {
       elapsedMs: 0,
       lastEvent: "queued",
       lastEventAt: now,
+      currentActivity: { type: "queued", summary: "queued", at: now },
+      activityHistory: [{ type: "queued", summary: "queued", at: now }],
       resultAvailable: false,
     };
-    const child: RunningChild = { record: { status }, request: { ...request, prompt, label: status.label, context: status.context, tools: status.tools } };
+    const child: RunningChild = { record: { status, activityEvents: [{ type: "queued", summary: "queued", at: now }] }, request: { ...request, prompt, label: status.label, context: status.context, tools: status.tools } };
     this.children.set(id, child);
     this.emitMilestone(child, "accepted");
     this.queue.push(child);
@@ -242,6 +245,7 @@ export class Supervisor {
         record.status.completedAt = now;
         record.status.lastEvent = "completed";
         record.status.lastEventAt = now;
+        this.recordActivity(record, "completed", now);
         record.status.stopReason = stopReason;
         record.status.resultAvailable = true;
         if (child) this.emitMilestone(child, "completed");
@@ -260,6 +264,7 @@ export class Supervisor {
     record.status.completedAt = now;
     record.status.lastEvent = "failed";
     record.status.lastEventAt = now;
+    this.recordActivity(record, "failed", now);
     record.status.error = error;
     record.status.stopReason = "failed";
     if (child) this.emitMilestone(child, "failed");
@@ -274,6 +279,7 @@ export class Supervisor {
     child.record.status.completedAt = now;
     child.record.status.lastEvent = state;
     child.record.status.lastEventAt = now;
+    this.recordActivity(child.record, state, now);
     child.record.status.stopReason = reason;
     this.emitMilestone(child, state);
   }
@@ -317,13 +323,28 @@ export class Supervisor {
     return [...this.children.values()].find((child) => child.record === record);
   }
 
-  private setState(status: SubagentStatus, state: SubagentStatus["state"], event: string) {
+  activity(id: string) {
+    return this.require(id).record.activityEvents.map((event) => ({ ...event }));
+  }
+
+  private setState(status: SubagentStatus, state: SubagentStatus["state"], event: RunnerActivity) {
     if (isTerminal(status.state)) return;
+    const record = this.require(status.id).record;
     const now = new Date().toISOString();
+    const activity = this.recordActivity(record, event, now);
     status.state = state;
-    status.lastEvent = event;
+    status.lastEvent = activity.type;
     status.lastEventAt = now;
     this.emitChange();
+  }
+
+  private recordActivity(record: ChildRecord, event: RunnerActivity, at: string) {
+    const activity = normalizeActivity(event, at);
+    record.activityEvents.push(activity);
+    const summary = summarizeActivity(activity);
+    record.status.currentActivity = summary;
+    record.status.activityHistory.push(summary);
+    return activity;
   }
 
   private require(id: string): RunningChild {
@@ -422,4 +443,87 @@ function truncateLabel(label: string): string {
 
 function isTerminal(state: SubagentStatus["state"]): boolean {
   return isTerminalState(state);
+}
+
+function normalizeActivity(event: RunnerActivity, at: string) {
+  if (typeof event === "string") return { type: event, summary: event, at };
+  const type = typeof event.type === "string" ? event.type : "activity";
+  const role = typeof event.role === "string" ? event.role : undefined;
+  const tool = toolFromActivity(event);
+  const phase = typeof event.phase === "string" ? event.phase : phaseFromType(type, event);
+  const text = textFromActivity(event);
+  const input = inputFromActivity(event);
+  const output = "output" in event ? event.output : "result" in event ? event.result : "partialResult" in event ? event.partialResult : undefined;
+  const error = typeof event.error === "string" ? event.error : undefined;
+  return { type, summary: summaryFor({ type, role, tool, phase, input, output, error }), at, role, tool, phase, text, input, output, error, payload: { ...event } };
+}
+
+function summarizeActivity(activity: ReturnType<typeof normalizeActivity>) {
+  const { type, summary, at, role, tool, phase } = activity;
+  return { type, summary, at, role, tool, phase };
+}
+
+function toolFromActivity(event: Record<string, unknown>): string | undefined {
+  for (const key of ["tool", "toolName", "name"]) {
+    const value = event[key];
+    if (typeof value === "string") return value;
+  }
+  return undefined;
+}
+
+function phaseFromType(type: string, event: Record<string, unknown>): string | undefined {
+  const assistantEvent = event.assistantMessageEvent;
+  if (assistantEvent && typeof assistantEvent === "object" && !Array.isArray(assistantEvent)) {
+    const assistantType = (assistantEvent as { type?: unknown }).type;
+    if (typeof assistantType === "string") return assistantType;
+  }
+  if (type.endsWith("_start")) return "started";
+  if (type.endsWith("_started")) return "started";
+  if (type.endsWith("_update")) return "update";
+  if (type.endsWith("_delta")) return "delta";
+  if (type.endsWith("_end")) return "completed";
+  if (type.endsWith("_completed")) return "completed";
+  if (type.endsWith("_failed")) return "failed";
+  return undefined;
+}
+
+function textFromActivity(event: Record<string, unknown>): string | undefined {
+  for (const key of ["text", "body", "content", "delta"]) {
+    const value = event[key];
+    if (typeof value === "string") return value;
+  }
+  const assistantEvent = event.assistantMessageEvent;
+  if (assistantEvent && typeof assistantEvent === "object" && !Array.isArray(assistantEvent)) {
+    for (const key of ["delta", "content"]) {
+      const value = (assistantEvent as Record<string, unknown>)[key];
+      if (typeof value === "string") return value;
+    }
+  }
+  return undefined;
+}
+
+function inputFromActivity(event: Record<string, unknown>): unknown {
+  if ("input" in event) return event.input;
+  if ("args" in event) return event.args;
+  return undefined;
+}
+
+function summaryFor(activity: { type: string; role?: string; tool?: string; phase?: string; input?: unknown; output?: unknown; error?: string }): string {
+  if (activity.error) return `${activity.tool ?? activity.type} failed: ${activity.error}`;
+  if (activity.tool) return `${activity.tool}${inputHint(activity.input)}`;
+  if (activity.type.startsWith("message")) return `${activity.role ?? "assistant"} message${activity.phase ? ` ${activity.phase}` : ""}`;
+  return activity.type;
+}
+
+function inputHint(input: unknown): string {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return "";
+  const path = (input as { path?: unknown }).path;
+  if (typeof path === "string" && path.trim()) return ` ${path.trim()}`;
+  const command = (input as { command?: unknown }).command;
+  if (typeof command === "string" && command.trim()) return ` ${truncateActivityHint(command.trim())}`;
+  return "";
+}
+
+function truncateActivityHint(value: string): string {
+  return value.length <= 80 ? value : `${value.slice(0, 79).trimEnd()}…`;
 }

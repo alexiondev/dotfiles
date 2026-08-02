@@ -73,6 +73,73 @@ test("runtime timeout reaches timed_out", async () => {
   assert.equal(runner.starts[0].handle.cancelCalls, 1);
 });
 
+test("activity exposes ordered transcript events while status and list keep only summaries", async () => {
+  const runner = new FakeRunner();
+  const supervisor = new Supervisor(runner, "/tmp");
+  const accepted = await spawnStarted(supervisor);
+
+  runner.starts[0].events.running({ type: "message_started", role: "assistant" });
+  runner.starts[0].events.running({
+    type: "message_delta",
+    role: "assistant",
+    assistantMessageEvent: { type: "content_delta", delta: "private transcript body" },
+  });
+  runner.starts[0].events.running({ type: "tool_started", tool: "read", input: { path: "secret-notes.md" } });
+  runner.starts[0].events.running({ type: "tool_completed", tool: "read", output: "secret file contents" });
+
+  type ActivityStatus = ReturnType<Supervisor["status"]> & {
+    activityHistory: Array<{ type: string; summary: string }>;
+    currentActivity: { summary: string };
+  };
+  const activity = supervisor.activity(accepted.id);
+  const status = supervisor.status(accepted.id) as ActivityStatus;
+  const listed = supervisor.list().find((item) => item.id === accepted.id) as ActivityStatus | undefined;
+
+  assert.deepEqual(
+    activity.map((event) => event.type),
+    ["queued", "starting", "prompt accepted", "message_started", "message_delta", "tool_started", "tool_completed"],
+  );
+  assert.deepEqual(activity[4], {
+    type: "message_delta",
+    summary: "assistant message content_delta",
+    at: activity[4].at,
+    role: "assistant",
+    tool: undefined,
+    phase: "content_delta",
+    text: "private transcript body",
+    input: undefined,
+    output: undefined,
+    error: undefined,
+    payload: {
+      type: "message_delta",
+      role: "assistant",
+      assistantMessageEvent: { type: "content_delta", delta: "private transcript body" },
+    },
+  });
+  assert.deepEqual(activity[5], {
+    type: "tool_started",
+    summary: "read secret-notes.md",
+    at: activity[5].at,
+    role: undefined,
+    tool: "read",
+    phase: "started",
+    text: undefined,
+    input: { path: "secret-notes.md" },
+    output: undefined,
+    error: undefined,
+    payload: { type: "tool_started", tool: "read", input: { path: "secret-notes.md" } },
+  });
+  assert.equal(activity[6].output, "secret file contents");
+
+  assert.ok(Array.isArray(status.activityHistory), "status should expose structured activityHistory");
+  assert.deepEqual(status.activityHistory.map((event) => event.type), activity.map((event) => event.type));
+  assert.deepEqual(status.activityHistory.map((event) => event.summary), activity.map((event) => event.summary));
+  assert.equal(status.currentActivity.summary, "read");
+  assert.equal(listed?.currentActivity.summary, "read");
+  assert.doesNotMatch(JSON.stringify(status), /private transcript body|secret file contents/u);
+  assert.doesNotMatch(JSON.stringify(listed), /private transcript body|secret file contents/u);
+});
+
 test("process failure reaches failed with diagnostics", async () => {
   const runner = new FakeRunner();
   const supervisor = new Supervisor(runner, "/tmp");

@@ -31,6 +31,27 @@ export interface SpawnAccepted {
   hint: string;
 }
 
+export interface SubagentActivitySummary {
+  type: string;
+  summary: string;
+  at: string;
+  role?: string;
+  tool?: string;
+  phase?: string;
+}
+
+export interface SubagentActivityEvent extends SubagentActivitySummary {
+  text?: string;
+  input?: unknown;
+  output?: unknown;
+  error?: string;
+  payload?: Record<string, unknown>;
+}
+
+export interface SubagentCurrentActivity extends SubagentActivitySummary {}
+
+export type RunnerActivity = string | Record<string, unknown>;
+
 export interface SubagentStatus {
   id: string;
   label: string;
@@ -47,6 +68,8 @@ export interface SubagentStatus {
   elapsedMs: number;
   lastEvent?: string;
   lastEventAt?: string;
+  currentActivity?: SubagentCurrentActivity;
+  activityHistory: SubagentActivitySummary[];
   stopReason?: string;
   resultAvailable: boolean;
   childSession?: string;
@@ -79,12 +102,13 @@ export interface SubagentWaitResult {
 
 export interface ChildRecord {
   status: SubagentStatus;
+  activityEvents: SubagentActivityEvent[];
   result?: string;
 }
 
 export interface RunnerEvents {
   accepted(childSession?: string): void;
-  running(event: string): void;
+  running(event: RunnerActivity): void;
   settling(): void;
   completed(result: string, stopReason?: string): void;
   failed(error: string): void;

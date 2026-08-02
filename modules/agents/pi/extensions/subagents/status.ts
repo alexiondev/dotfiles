@@ -13,7 +13,12 @@ export function toAccepted(status: SubagentStatus): SpawnAccepted {
 }
 
 export function cloneStatus(status: SubagentStatus): SubagentStatus {
-  return { ...status, elapsedMs: elapsedMs(status) };
+  return {
+    ...status,
+    currentActivity: status.currentActivity ? { ...status.currentActivity } : undefined,
+    activityHistory: status.activityHistory.map((event) => ({ ...event })),
+    elapsedMs: elapsedMs(status),
+  };
 }
 
 export function cloneResult(record: ChildRecord): SubagentResult {

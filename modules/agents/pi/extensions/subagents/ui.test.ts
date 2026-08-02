@@ -9,6 +9,7 @@ function status(overrides: Partial<SubagentStatus> & { id: string; label: string
     context: "independent",
     cwd: "/tmp",
     elapsedMs: 0,
+    activityHistory: [],
     resultAvailable: false,
     startedAt: "2026-08-01T00:00:00.000Z",
     tools: "inherit",
@@ -32,6 +33,26 @@ test("compact monitor aggregates visible children by actionable lifecycle group"
     ]),
     ["subagents: queued 1 · running 2 · settling 1 · completed 1 · failed 1 · timed out 1 · cancelled 1"],
   );
+});
+
+test("expanded monitor shows concise current activity summaries instead of raw event types", () => {
+  const rendered = widget([
+    status({
+      id: "sg-reading",
+      label: "Audit guest enablement plan",
+      state: "running",
+      elapsedMs: 12_000,
+      lastEvent: "message_update",
+      currentActivity: {
+        type: "message_update",
+        summary: "read secret-notes.md",
+        at: "2026-08-01T00:00:12.000Z",
+      },
+    }),
+  ], true)().render(240);
+
+  assert.deepEqual(rendered, ["▶ running   12s Audit guest enablement plan last: read secret-notes.md"]);
+  assert.doesNotMatch(rendered.join("\n"), /message_update|private transcript body/u);
 });
 
 test("expanded monitor renders one truncated row per child with state, elapsed time, and activity marker", () => {

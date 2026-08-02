@@ -89,16 +89,17 @@ class RpcChildHandle implements ChildHandle {
     }
 
     if (payload.type === "agent_started") {
-      this.events.running("agent_started");
+      this.events.running(payload as Record<string, unknown>);
       return;
     }
 
     if (payload.type === "agent_settled") {
+      this.events.running(payload as Record<string, unknown>);
       this.finish().catch((error) => this.fail(error instanceof Error ? error.message : String(error)));
       return;
     }
 
-    if (payload.type) this.events.running(payload.type);
+    if (payload.type) this.events.running(payload as Record<string, unknown>);
   }
 
   private async finish() {
