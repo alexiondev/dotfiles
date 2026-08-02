@@ -18,6 +18,8 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
 
 ## Gotchas
 
+- Subagent completion delivery is non-blocking through immediate spawn, milestone notifications, retained terminal entries, and `subagent_list` or `subagent_result` retrieval.
+  `subagent_wait` intentionally blocks the parent tool call until its condition or timeout, so do not use it merely to keep background work alive during an interactive workflow.
 - This host has no `python` or `python3` command on its ordinary `PATH`.
   For ad hoc Python, use Nix explicitly, such as `nix shell nixpkgs#python3 -c python3 <script>`.
 - ADR bodies are immutable records of decisions as they were made, while frontmatter is mutable.
