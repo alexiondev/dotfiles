@@ -83,6 +83,7 @@ in
             "class<chromium.*>" = g "f268";
             "class<[Cc]ode>" = g "f121";
             "class<obsidian>" = g "f02d";
+            "class<[Ss]team>" = g "f1b6";
           };
         };
 

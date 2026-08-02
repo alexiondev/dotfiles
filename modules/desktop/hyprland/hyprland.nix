@@ -112,6 +112,10 @@ in
           blur.enabled = cfg.blur;
         };
 
+        # XWayland clients render at the panel's native resolution instead of
+        # being raster-scaled by the compositor at the fractional monitor scale.
+        xwayland.force_zero_scaling = true;
+
         animations = {
           enabled = true;
           bezier = [ "ease, 0.25, 0.1, 0.25, 1.0" ];

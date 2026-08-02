@@ -83,3 +83,8 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
 - Pi's tool discovery checks `~/.pi/agent/bin` before `PATH`, and downloaded generic Linux binaries there can be unusable on NixOS with the stub-ld error.
   This flake patches Pi to validate local tool binaries before selecting them, so it falls back to usable `fd`/`rg` from `PATH` instead.
   Stale unpatched launchers are the remaining failure mode for broken `@` autocomplete.
+- Nix flake evaluation ignores untracked files in this checkout.
+  Keep a new auto-loaded module staged or committed until it is removed, otherwise `nix flake check` and `nixos-rebuild --flake` evaluate without it and report its options as missing.
+- The current Steam desktop client is an XWayland application.
+  Its CEF windows do not support Ozone and Steam composites them into an SDL surface with X11 extensions, so SDL Wayland selectors do not make the visible client native Wayland.
+  Keep fractional scaling sharp with Hyprland's `xwayland.force_zero_scaling` and Steam's own `STEAM_FORCE_DESKTOPUI_SCALING` instead.

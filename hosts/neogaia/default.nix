@@ -71,6 +71,7 @@
 
   modules.desktop.enable = true;
   modules.desktop.obsidian.enable = true;
+  modules.desktop.steam.enable = true;
 
   time.timeZone = "America/New_York";
   i18n.defaultLocale = "en_GB.UTF-8";
