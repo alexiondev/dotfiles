@@ -41,8 +41,11 @@
   };
 
   modules.ssh.enable = true;
-  modules.ssh.hostKeys.restore = false;
-  modules.ssh.authorizedKeys = config.modules.ssh.workstationKeys;
+  modules.ssh.hostKeys.sopsFile = ../../secrets/pikachu.yaml;
+  modules.ssh.userKey.sopsFile = ../../secrets/pikachu.yaml;
+  modules.ssh.authorizedKeys =
+    config.modules.ssh.workstationKeys
+    ++ config.modules.ssh.serverKeys;
 
   modules.git.enable = true;
   modules.toolkit.enable = true;

@@ -19,6 +19,12 @@ creation_rules:
           - *admin
           - *neogaia
 
+  - path_regex: secrets/pikachu\.yaml$
+    key_groups:
+      - age:
+          - *admin
+          - *pikachu
+
   # Material common to every machine, so it is stored once rather than per host.
   - path_regex: secrets/shared\.yaml$
     key_groups:

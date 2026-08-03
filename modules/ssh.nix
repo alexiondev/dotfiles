@@ -30,7 +30,9 @@ in
 
     serverKeys = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ ];
+      default = [
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINNqJIC6VRXyvrNf3n9su9KdPCikC3CjK/QrCK2reHdB alexion@pikachu"
+      ];
       description = ''
         Client public keys of the machines that serve.
 
