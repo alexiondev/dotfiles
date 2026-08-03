@@ -44,6 +44,17 @@
 
   modules.toolkit.enable = true;
 
+  home-manager.users.${config.user.name}.programs.ssh.settings = {
+    neogaia = {
+      HostName = "10.23.50.146";
+      User = config.user.name;
+    };
+    pikachu = {
+      HostName = "10.23.10.102";
+      User = config.user.name;
+    };
+  };
+
   # The walking-skeleton guest, enabled like any module: proves the guest path
   # end to end through this host's `nix flake check`.
   # Modest caps keep the skeleton guest from starving the laptop.
