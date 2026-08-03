@@ -59,7 +59,10 @@ in
     users.users.${user.name} = {
       isNormalUser = true;
       description = user.description;
-      extraGroups = [ "wheel" ];
+      extraGroups = [
+        "wheel"
+        "storage"
+      ];
     };
 
     # The shared write group.
