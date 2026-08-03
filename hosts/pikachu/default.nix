@@ -1,8 +1,4 @@
-{
-  config,
-  pkgs,
-  ...
-}:
+{ pkgs, ... }:
 # pikachu — AZW ME Pro server.
 # Disk layout is in ./disk.nix.
 # `fileSystems` for the root disk are derived from it.
@@ -43,19 +39,9 @@
   modules.ssh.enable = true;
   modules.ssh.hostKeys.sopsFile = ../../secrets/pikachu.yaml;
   modules.ssh.userKey.sopsFile = ../../secrets/pikachu.yaml;
-  modules.ssh.authorizedKeys =
-    config.modules.ssh.workstationKeys
-    ++ config.modules.ssh.serverKeys;
 
   modules.git.enable = true;
   modules.toolkit.enable = true;
-
-  home-manager.users.${config.user.name}.programs.ssh.settings.git-alexion-dev = {
-    header = "Host git.alexion.dev";
-    HostName = "git.alexion.dev";
-    Port = 2022;
-    User = "gitea";
-  };
 
   environment.systemPackages = with pkgs; [
     pciutils

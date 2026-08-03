@@ -8,121 +8,298 @@ let
   cfg = config.modules.ssh;
   user = config.user.name;
 
+  inherit (lib)
+    concatLists
+    concatStringsSep
+    elem
+    filter
+    genAttrs
+    hasAttr
+    imap0
+    listToAttrs
+    mapAttrs
+    mapAttrsToList
+    mkIf
+    mkMerge
+    mkOption
+    nameValuePair
+    optional
+    optionalAttrs
+    types
+    unique
+    ;
+
   hostKeySecret = type: "ssh-host-${type}-key";
   userKeySecret = "ssh-user-ed25519-key";
 
+  targetType = types.submodule (
+    { name, ... }:
+    {
+      options = {
+        hostName = mkOption {
+          type = types.str;
+          default = name;
+          description = ''
+            The network address OpenSSH connects to for this target.
+          '';
+        };
+
+        user = mkOption {
+          type = types.str;
+          default = config.user.name;
+          description = ''
+            The remote login name OpenSSH uses for this target.
+          '';
+        };
+
+        port = mkOption {
+          type = types.port;
+          default = 22;
+          description = ''
+            The TCP port OpenSSH uses for this target.
+          '';
+        };
+
+        aliases = mkOption {
+          type = types.listOf types.str;
+          default = [ name ];
+          description = ''
+            Host patterns written into the generated OpenSSH client block.
+          '';
+        };
+
+        clientKey = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = ''
+            The public key this target offers when it connects outward.
+            Other machines admit this key according to the host groups below.
+          '';
+        };
+
+        hostKeys = mkOption {
+          type = types.listOf types.str;
+          default = [ ];
+          description = ''
+            The public keys this target presents when it accepts inbound SSH.
+            These keys generate system-wide known-host entries.
+          '';
+        };
+      };
+    }
+  );
+
+  keyWithoutComment = key: concatStringsSep " " (lib.take 2 (lib.splitString " " key));
+
+  targetNamesIn = names: filter (name: hasAttr name cfg.targets) names;
+
+  workstationNames = targetNamesIn cfg.hosts.workstations;
+  serverNames = targetNamesIn cfg.hosts.servers;
+
+  clientKeysFor = names: filter (key: key != null) (map (name: cfg.targets.${name}.clientKey) names);
+
+  currentHost = config.networking.hostName;
+  isServer = elem currentHost cfg.hosts.servers;
+  isWorkstation = elem currentHost cfg.hosts.workstations;
+
+  defaultAuthorizedKeys = lib.flatten (
+    clientKeysFor workstationNames
+    ++ optional isServer (clientKeysFor serverNames)
+  );
+
+  outboundTargetNames =
+    let
+      groupTargets =
+        if isServer then
+          [ "gitea" ] ++ cfg.hosts.servers
+        else if isWorkstation then
+          [ "gitea" ] ++ cfg.hosts.servers ++ cfg.hosts.workstations
+        else
+          [ "gitea" ];
+    in
+    filter (name: name != currentHost) (targetNamesIn groupTargets);
+
+  sshSettingsFor = name:
+    let
+      target = cfg.targets.${name};
+    in
+    {
+      header = "Host ${concatStringsSep " " target.aliases}";
+      HostName = target.hostName;
+      User = target.user;
+    }
+    // optionalAttrs (target.port != 22) { Port = target.port; };
+
+  knownHostNamesFor = target:
+    let
+      names = unique (target.aliases ++ [ target.hostName ]);
+      withPort = name: if target.port == 22 then name else "[${name}]:${toString target.port}";
+    in
+    map withPort names;
+
+  knownHosts = listToAttrs (
+    concatLists (
+      mapAttrsToList (
+        targetName: target:
+        imap0 (i: key:
+          nameValuePair "${targetName}-${toString i}" {
+            hostNames = knownHostNamesFor target;
+            publicKey = keyWithoutComment key;
+          }
+        ) target.hostKeys
+      ) cfg.targets
+    )
+  );
 in
 {
   options.modules.ssh = {
     enable = lib.mkEnableOption "the OpenSSH daemon, with host keys restored from secrets";
 
-    workstationKeys = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = [
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGxQ4kWsBo2OGYIPOkFe0vNEcB3yoJwAu0y9wrdQzALE alexion@neogaia"
-      ];
-      description = ''
-        Client public keys of the machines the operator works from.
+    hosts = {
+      servers = mkOption {
+        type = types.listOf types.str;
+        default = [ "pikachu" ];
+        description = ''
+          Hosts that serve durable services.
+          They admit workstation keys and server keys, and they receive aliases for other servers and the forge.
+        '';
+      };
 
-        Every machine admits these, so any of them reaches the whole fleet.
+      workstations = mkOption {
+        type = types.listOf types.str;
+        default = [ "neogaia" ];
+        description = ''
+          Hosts the operator works from.
+          Their keys are admitted by every host, and they receive aliases for the whole fleet and the forge.
+        '';
+      };
+    };
+
+    targets = mkOption {
+      type = types.attrsOf targetType;
+      default = {
+        gitea = {
+          hostName = "git.alexion.dev";
+          port = 2022;
+          user = "gitea";
+          aliases = [
+            "gitea"
+            "git.alexion.dev"
+          ];
+        };
+
+        neogaia = {
+          hostName = "10.23.50.146";
+          clientKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGxQ4kWsBo2OGYIPOkFe0vNEcB3yoJwAu0y9wrdQzALE alexion@neogaia";
+          hostKeys = [
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJS+wp7K123+4BT6G4f954R6WyrbWveY7VlpoBUf6I5p neogaia"
+            "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCo2wWUKxyAS4J5TqbWf8glDhJvS5XmdRqFhMeJwG3pOB+4AccZ1T8LU7ZN+RjtRi3j2qXBJvIHuzhtQNtmT59TxocvfobYiqOgJpvVO5K6yD8ZoUJs6ziDkIduI9w9mdRIESoi+dBbVu8n24r61cKDVh+jWX+yjzkOcWcOzqDyQhhkjqblZ1WMAdujEMuEPvif1i2LCxStUaZqRGcx09m/ME2fYcaJrpuxxxvX2+CPJNicoo6Rx9i7ZjAoNuvH+jui4KT62DzlQtQtCl2CFUOM0gCPSa+MbNQ9elfHPvGzEcwOIMo2cuy9KURUkQu+sAgaG8S1PEniDDTecskHtuRdmPZawnQGpIhzo919Q6wUgjT8scK4mmSXRWmGmkMt0GNA2tfj5tDks6r5Q8XsYqtWs4rsOEvfmxVSdM771w+fqDBAil99Jsh0ksPK9+Bwgg8cMDzLLFDn8JA5y2G1HocMMom+u5DYKwPXEKnCILkasB8y24+O3PhSu1EuWw277w6EUEXvU03rCf0Ak/ULjxp9a00EGlloEwSmFI7Aub9XHDr87IdbGInEn+PMqyBYADiN+3h6nE2JO+nMa6i/CHdebmT+T7YJvuTKHD9sjFmQsYaghlq03DZrhHcm4hgUvE1dqGojHrhk/WgA3EWTWtK/+BP0Vy2jXaaz+qAx+EGnhQ== neogaia"
+          ];
+        };
+
+        pikachu = {
+          hostName = "10.23.10.102";
+          clientKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINNqJIC6VRXyvrNf3n9su9KdPCikC3CjK/QrCK2reHdB alexion@pikachu";
+          hostKeys = [
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKljRf4pJO+pqEqjpPz08gOYq3g1PpxvE66xVw7uMEnA root@pikachu"
+            "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCy/riwm7dflA3mT+3a0/2CIoS2LbAsK/vn35kOoNeuzn0yhiF+imexP6tkB3S2t+H5ybRzkbbuNZcynFfeCqthFc8kvbdCnt8Diqoeg96fZ6ecvh5QE5yH9op8534EySetZ/exakFLnF+6EiWMuWUW3DFwsc2kcgDJObqSE8gTx/d7JK953MiTFmSJBFyg1RtQ3ZnMT+iCrvY2dyCLQai7VeF8koVKF2c0leAq2Hc75rb/L9md8MoJa64iPiz7hwTCin3xoFyaY/5hNVvyqFd5PivgR69gLdJkuVsUYO2mJzhur8cYmJD+pGjJ0U45hyE9TMrCFjeJHHuvSt3+2kph62wv95jLNk0WmMlwgyunISxENCSVVtNYdBMXhUh8VhEAW17QpVUg9EnPvxOdTKEjrvfOZYASWUa51JKbgBgexVgFbxdjDZR88DZa31AVBts/cx/59gXTUahFXMYLdZgssx+5uibZQWnvCyfUV9WLbfmK1lgL6hzReg1VkQ87iGr6skjtQYemJxRaFNA1+Q5f3kmG3KncuK/594a3qXYP4gC6A2blf8om1YZ4aXXh6f+GFKLjoEw1vvM2rJ+rjzfymwDX+pxVQ9L13OEtVZc9Ez76pOkbm1hqdbL0gY45+0cpxodhWV0wMQJBDXL1MHP8qcs+/vw0GxVK5l1SnWBGlw== root@pikachu"
+          ];
+        };
+      };
+      description = ''
+        SSH targets known to the fleet.
+        The inventory holds connection details plus public keys used for authorization and host verification.
       '';
     };
 
-    serverKeys = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = [
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINNqJIC6VRXyvrNf3n9su9KdPCikC3CjK/QrCK2reHdB alexion@pikachu"
-      ];
+    extraAuthorizedKeys = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
       description = ''
-        Client public keys of the machines that serve.
-
-        Only other servers admit these, so one that is compromised reaches no
-        machine the operator works from.
+        Additional client public keys admitted by this host.
       '';
     };
 
-    authorizedKeys = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = cfg.workstationKeys;
-      defaultText = lib.literalExpression "config.modules.ssh.workstationKeys";
-      description = ''
-        Client public keys this machine admits for the primary user, drawn from
-        the lists above.
-
-        A machine the operator works from takes the workstation keys. One that
-        serves takes both, so servers reach each other. The default admits the
-        workstation keys, since a machine admitting none is unreachable.
-      '';
-    };
-
-    hostKeys.restore = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = ''
-        Restore the host keys from secrets rather than letting the daemon
-        generate its own.
-
-        A machine with its own identity keeps its fingerprint across a reimage
-        by restoring committed keys. A guest carries no host identity, so it
-        turns this off and presents a self-generated key instead.
-      '';
-    };
-
-    hostKeys.sopsFile = lib.mkOption {
-      type = lib.types.nullOr lib.types.path;
+    authorizedKeys = mkOption {
+      type = types.nullOr (types.listOf types.str);
       default = null;
       description = ''
-        Encrypted file holding this host's SSH host private keys, one entry per
-        key type, named `ssh-host-<type>-key`. Required when `restore` is on.
-
-        These are the keys the daemon presents to identify itself to connecting
-        clients, not keys used to authenticate anyone to a remote server.
-        Restoring them from secrets rather than generating them keeps the host's
-        fingerprint across a reimage, so every client's `known_hosts` entry
-        stays valid.
+        Complete override for client public keys admitted by this host.
+        Leave null to derive access from `modules.ssh.hosts` and `modules.ssh.targets`.
       '';
     };
 
-    hostKeys.types = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
+    extraSettings = mkOption {
+      type = types.attrsOf types.anything;
+      default = { };
+      description = ''
+        Additional OpenSSH client settings merged into the generated Home Manager configuration.
+      '';
+    };
+
+    hostKeys.restore = mkOption {
+      type = types.bool;
+      default = true;
+      description = ''
+        Restore the host keys from secrets rather than letting the daemon generate its own.
+        A machine with its own identity keeps its fingerprint across a reimage by restoring committed keys.
+        A guest carries no host identity, so it turns this off and presents a self-generated key instead.
+      '';
+    };
+
+    hostKeys.sopsFile = mkOption {
+      type = types.nullOr types.path;
+      default = null;
+      description = ''
+        Encrypted file holding this host's SSH host private keys, one entry per key type, named `ssh-host-<type>-key`.
+        Required when `restore` is on.
+      '';
+    };
+
+    hostKeys.types = mkOption {
+      type = types.listOf types.str;
       default = [
         "ed25519"
         "rsa"
       ];
       description = ''
-        Key types to restore, naming both the entries read from the encrypted
-        file and the algorithms the daemon offers. Dropping a type a client has
-        already pinned makes the host unrecognisable to it.
+        Key types to restore, naming both the entries read from the encrypted file and the algorithms the daemon offers.
       '';
     };
 
-    userKey.sopsFile = lib.mkOption {
-      type = lib.types.nullOr lib.types.path;
+    userKey.sopsFile = mkOption {
+      type = types.nullOr types.path;
       default = null;
       description = ''
-        Encrypted file holding this machine's SSH client private key, under the
-        entry `ssh-user-ed25519-key`. Left unset on a machine that authenticates
-        to no remote server, such as a guest.
-
-        This is the key the primary user offers to authenticate to a remote
-        server, not a key the daemon presents to identify this machine.
-        It belongs to this machine alone, so withdrawing its access does not
-        re-key any other.
+        Encrypted file holding this machine's SSH client private key, under the entry `ssh-user-ed25519-key`.
+        Left unset on a machine that authenticates to no remote server, such as a guest.
       '';
     };
   };
 
-  config = lib.mkIf cfg.enable (
-    lib.mkMerge [
+  config = mkIf cfg.enable (
+    mkMerge [
       {
         services.openssh.enable = true;
 
-        # The primary user is the only account reachable over SSH.
-        users.users.${user}.openssh.authorizedKeys.keys = cfg.authorizedKeys;
+        users.users.${user}.openssh.authorizedKeys.keys =
+          if cfg.authorizedKeys != null then
+            cfg.authorizedKeys
+          else
+            defaultAuthorizedKeys ++ cfg.extraAuthorizedKeys;
+
+        programs.ssh.knownHosts = knownHosts;
+
+        home-manager.users.${user}.programs.ssh = {
+          enable = true;
+          enableDefaultConfig = false;
+          settings =
+            mapAttrs (name: _: sshSettingsFor name) (genAttrs outboundTargetNames (name: name))
+            // cfg.extraSettings;
+        };
       }
 
-      # A machine with its own identity restores its host keys from secrets.
-      (lib.mkIf cfg.hostKeys.restore {
+      (mkIf cfg.hostKeys.restore {
         assertions = [
           {
             assertion = cfg.hostKeys.sopsFile != null;
@@ -130,42 +307,27 @@ in
           }
         ];
 
-        # The daemon reads its host keys once at startup, so a re-key has to
-        # restart it to take effect.
-        sops.secrets = lib.genAttrs (map hostKeySecret cfg.hostKeys.types) (_: {
+        sops.secrets = genAttrs (map hostKeySecret cfg.hostKeys.types) (_: {
           inherit (cfg.hostKeys) sopsFile;
           mode = "0400";
           restartUnits = [ "sshd.service" ];
         });
 
-        # An empty list is what stops the daemon generating keys of its own.
         services.openssh.hostKeys = [ ];
-        services.openssh.extraConfig = lib.concatMapStrings (
-          type: "HostKey ${config.sops.secrets.${hostKeySecret type}.path}\n"
-        ) cfg.hostKeys.types;
+        services.openssh.extraConfig = concatStringsSep "" (
+          map (type: "HostKey ${config.sops.secrets.${hostKeySecret type}.path}\n") cfg.hostKeys.types
+        );
       })
 
-      # The client key the primary user offers to remote servers, present only on
-      # a machine that has one.
-      (lib.mkIf (cfg.userKey.sopsFile != null) {
-        # The primary user is the only account that authenticates with this key,
-        # and the mode admits no other.
-        # The client rereads it per connection, so no unit restarts on a re-key.
+      (mkIf (cfg.userKey.sopsFile != null) {
         sops.secrets.${userKeySecret} = {
           inherit (cfg.userKey) sopsFile;
           mode = "0400";
           owner = user;
         };
 
-        # The client reads the decrypted key where it is written, so no copy of it
-        # lives in the user's home to drift from the secret.
-        # Declaring no defaults of home-manager's own leaves every other directive
-        # at the one OpenSSH itself ships.
-        home-manager.users.${user}.programs.ssh = {
-          enable = true;
-          enableDefaultConfig = false;
-          settings."*".IdentityFile = config.sops.secrets.${userKeySecret}.path;
-        };
+        home-manager.users.${user}.programs.ssh.settings."*".IdentityFile =
+          config.sops.secrets.${userKeySecret}.path;
       })
     ]
   );

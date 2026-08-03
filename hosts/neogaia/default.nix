@@ -1,5 +1,4 @@
 {
-  config,
   inputs,
   pkgs,
   ...
@@ -39,21 +38,7 @@
   modules.ssh.hostKeys.sopsFile = ../../secrets/neogaia.yaml;
   modules.ssh.userKey.sopsFile = ../../secrets/neogaia.yaml;
 
-  # A machine the operator works from, so it admits the workstation keys alone.
-  modules.ssh.authorizedKeys = config.modules.ssh.workstationKeys;
-
   modules.toolkit.enable = true;
-
-  home-manager.users.${config.user.name}.programs.ssh.settings = {
-    neogaia = {
-      HostName = "10.23.50.146";
-      User = config.user.name;
-    };
-    pikachu = {
-      HostName = "10.23.10.102";
-      User = config.user.name;
-    };
-  };
 
   # The walking-skeleton guest, enabled like any module: proves the guest path
   # end to end through this host's `nix flake check`.
