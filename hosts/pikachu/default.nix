@@ -50,6 +50,13 @@
   modules.git.enable = true;
   modules.toolkit.enable = true;
 
+  home-manager.users.${config.user.name}.programs.ssh.settings.git-alexion-dev = {
+    header = "Host git.alexion.dev";
+    HostName = "git.alexion.dev";
+    Port = 2022;
+    User = "gitea";
+  };
+
   environment.systemPackages = with pkgs; [
     pciutils
     smartmontools
