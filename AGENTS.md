@@ -18,6 +18,8 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
 
 ## Gotchas
 
+- Actual Budget's NixOS service runs `actual-server` with `WorkingDirectory = services.actual.settings.dataDir`, and the `actual-server` CLI wrapper sets `ACTUAL_CONFIG_PATH=./config.json` when that current directory contains `config.json`, overriding the NixOS module's generated config path before the server loads configuration.
+  When migrating old community-script state to the normal upstream `/data` shape, move or rewrite a copied `/data/config.json` so it cannot shadow the declarative module settings.
 - Subagent completion delivery is non-blocking through immediate spawn, milestone notifications, retained terminal entries, and `subagent_list` or `subagent_result` retrieval.
   `subagent_wait` intentionally blocks the parent tool call until its condition or timeout, so do not use it merely to keep background work alive during an interactive workflow.
 - Nixvim's flake input following the root nixpkgs source does not make its Home Manager module reuse the host's `pkgs` instance.
