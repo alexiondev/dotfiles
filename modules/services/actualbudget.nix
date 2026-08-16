@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  my,
   ...
 }:
 let
@@ -30,8 +31,8 @@ in
 
     uid = lib.mkOption {
       type = lib.types.ints.positive;
-      default = 20001;
-      description = "Fixed uid for the Actual Budget service user.";
+      default = my.serviceUid "actualbudget";
+      description = "Stable uid for the Actual Budget service user.";
     };
 
     group = lib.mkOption {

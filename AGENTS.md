@@ -40,8 +40,8 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
   It is deployed on `neogaia` and verified: a commit in a repository outside this checkout is authored `alexion <contact@alexion.dev>` with no override.
   Verify it that way rather than from this checkout, whose `.git/config` carries the same identity and would mask a broken module.
   `~/.gitconfig` (a second global file that outranks the flake-managed `~/.config/git/config`) currently holds only a `tea` credential helper and no `user.*`, so it does not shadow the identity, but it is undeclared and will not survive a reimage.
-- The primary build/verify seam for any Host is `nix flake check`, which builds `checks.x86_64-linux.<host>` (the system toplevel).
-  Cheap targeted checks use `nix eval .#nixosConfigurations.<host>.config...`.
+- The primary build/verify seam is `nix flake check`, which builds project-level checks plus `checks.x86_64-linux.<host>` system toplevels.
+  Cheap targeted host checks use `nix eval .#nixosConfigurations.<host>.config...`.
 - chaotic-nyx must **not** follow our `nixpkgs`, and its packages are built against chaotic's own pinned nixpkgs (its overlay defaults to `onTopOf = "flake-nixpkgs"`, the cache-friendly path).
   That is what lets the `nyx-cache.chaotic.cx` binary cache hit instead of compiling the CachyOS kernel from source.
   The tradeoff is that chaotic packages do not see our `unstable`/`stable` overlays.

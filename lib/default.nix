@@ -13,6 +13,8 @@ let
     mapAttrsToList
     ;
 
+  serviceIdentityRegistry = import ./service-identities.nix { inherit lib; };
+
   # Recursively collect every `.nix` file under `dir` as a flat list, for a
   # module's `imports`.
   collectNixFiles =
@@ -418,4 +420,6 @@ in
     guest
     bridgeName
     ;
+  inherit (serviceIdentityRegistry) serviceUid;
+  serviceIdentities = serviceIdentityRegistry.identities;
 }

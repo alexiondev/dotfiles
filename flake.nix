@@ -98,13 +98,25 @@
           ];
         };
 
-      # `nix flake check` builds each host's toplevel.
-      checks.x86_64-linux = lib.mapAttrs (
-        name: host:
-        if host.config.warnings == [] then
-          host.config.system.build.toplevel
-        else
-          throw "Host ${name} has evaluation warnings:\n${lib.concatStringsSep "\n" host.config.warnings}"
-      ) self.nixosConfigurations;
+      # `nix flake check` builds host toplevels and project-level checks.
+      checks.x86_64-linux =
+        let
+          pkgs = nixpkgs.legacyPackages.x86_64-linux;
+          serviceIdentities = import ./lib/service-identities.nix { inherit lib; };
+          serviceIdentityTestsPass = lib.all (result: result) (lib.attrValues serviceIdentities.tests);
+        in
+        (lib.mapAttrs (
+          name: host:
+          if host.config.warnings == [] then
+            host.config.system.build.toplevel
+          else
+            throw "Host ${name} has evaluation warnings:\n${lib.concatStringsSep "\n" host.config.warnings}"
+        ) self.nixosConfigurations)
+        // {
+          service-identities = pkgs.runCommand "service-identities-check" { } ''
+            ${lib.optionalString (!serviceIdentityTestsPass) "exit 1"}
+            touch $out
+          '';
+        };
     };
 }
