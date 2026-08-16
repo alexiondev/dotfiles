@@ -10,6 +10,7 @@ let
     genAttrs
     flatten
     hasSuffix
+    escapeShellArg
     mapAttrsToList
     ;
 
@@ -133,6 +134,19 @@ let
         TasksMax = cfg.limits.tasksMax;
       };
 
+      createdMounts = lib.filterAttrs (_guestPath: m: m.create != null) cfg.mounts;
+      mountCreateScript = lib.concatStringsSep "\n" (
+        mapAttrsToList (
+          _guestPath: m:
+          let
+            create = m.create;
+          in
+          ''
+            ${config.system.path}/bin/install -d -o ${escapeShellArg (toString create.owner)} -g ${escapeShellArg create.group} -m ${escapeShellArg create.mode} ${escapeShellArg m.hostPath}
+          ''
+        ) createdMounts
+      );
+
       # A networked guest owns its bridged interface through its own networkd, the only stable MAC pin for a nested container.
       # The interface is eth0, the name a nested container gives its bridged veth.
       # It takes the placement MAC, and the static address or DHCP when that is unset.
@@ -217,6 +231,39 @@ let
                   description = ''
                     Mount the path read-only. Read-write by default, since a
                     service must write to the pool data it owns.
+                  '';
+                };
+                create = lib.mkOption {
+                  type = lib.types.nullOr (lib.types.submodule {
+                    options = {
+                      type = lib.mkOption {
+                        type = lib.types.enum [ "directory" ];
+                        default = "directory";
+                        description = "Host path type to create before the guest starts.";
+                      };
+                      owner = lib.mkOption {
+                        type = lib.types.oneOf [
+                          lib.types.str
+                          lib.types.ints.positive
+                        ];
+                        description = "Owner assigned to the created host path.";
+                      };
+                      group = lib.mkOption {
+                        type = lib.types.str;
+                        description = "Group assigned to the created host path.";
+                      };
+                      mode = lib.mkOption {
+                        type = lib.types.str;
+                        example = "0770";
+                        description = "Mode assigned to the created host path.";
+                      };
+                    };
+                  });
+                  default = null;
+                  description = ''
+                    Opt-in host path creation before the guest starts. Existing
+                    paths are left enabled unless this is set, so served storage
+                    roots can still be required to exist explicitly.
                   '';
                 };
               };
@@ -341,7 +388,10 @@ let
         # is up but not after that specific bridge existing.
         systemd.services."container@${machineName}" = lib.mkIf (cfg.backend == "container") (
           lib.mkMerge [
-            { serviceConfig = limitConfig; }
+            {
+              serviceConfig = limitConfig;
+              preStart = lib.mkIf (createdMounts != { }) mountCreateScript;
+            }
             (lib.mkIf networked (
               let
                 bridgeDevice = "sys-subsystem-net-devices-${lib.replaceStrings [ "-" ] [ "\\x2d" ] (bridgeName cfg.vlan)}.device";

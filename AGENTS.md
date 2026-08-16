@@ -18,6 +18,11 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
 
 ## Gotchas
 
+- Guest modules are host-agnostic wiring, while host files own deployment-specific service configuration such as served volumes and host paths.
+  For example, `guests/copyparty.nix` should expose options and translate them into guest mounts/service settings, while `hosts/pikachu/default.nix` chooses `/inbox`, `/media`, and their backing paths.
+- `sops.secrets.<name>.owner` must name a user known on the decrypting host.
+  For guest-only service users, do not set the owner to the guest uid unless the host also declares that user.
+  Use a host-visible owner plus a shared group mode when an identity-mapped guest service can read through its group.
 - Actual Budget's NixOS service runs `actual-server` with `WorkingDirectory = services.actual.settings.dataDir`, and the `actual-server` CLI wrapper sets `ACTUAL_CONFIG_PATH=./config.json` when that current directory contains `config.json`, overriding the NixOS module's generated config path before the server loads configuration.
   When migrating old community-script state to the normal upstream `/data` shape, move or rewrite a copied `/data/config.json` so it cannot shadow the declarative module settings.
 - Subagent completion delivery is non-blocking through immediate spawn, milestone notifications, retained terminal entries, and `subagent_list` or `subagent_result` retrieval.
@@ -78,10 +83,10 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
 - `home.sessionVariables` do **not** reach the Hyprland session, since UWSM does not source `hm-session-vars.sh`.
   The cursor is therefore set through Hyprland's own `env = KEY,VALUE` in `modules/desktop/hyprland/hyprland.nix`, sourced from `config.stylix.cursor`.
   Bibata ships XCursor format only (no `hyprcursor/` dir), rendered through Hyprland's XCursor fallback, so `XCURSOR_*` and `HYPRCURSOR_*` naming the same theme are both safe.
-- `neogaia`, the repo's only host, is a wifi laptop with a btrfs root and no ZFS pools, so it cannot honestly carry `modules.network`, `modules.zfs`, or a networked/pool-mounted guest.
+- `neogaia` is a wifi laptop with a btrfs root and no ZFS pools, so it cannot honestly carry `modules.network`, `modules.zfs`, or a networked/pool-mounted guest.
   Enabling networkd takes over its DNS, its CachyOS `zfs-kernel` build is marked broken, and it has no bridge or pool to attach to.
   Verify these against it ad hoc through `nixosConfigurations.neogaia.extendModules` (forcing a ZFS-capable `boot.kernelPackages` for the zfs case) plus `nix eval` of the derived values, never by committing the enablement.
-  A committed guest therefore leaves `vlan`, `mounts`, and `secrets` unset, and the standing enablement waits for the first wired server host with real storage.
+  Committed networked and pool-mounted guests belong on a wired storage host such as `pikachu`, not on `neogaia`.
 - Herdr key names for shifted punctuation are not interchangeable with the physical base key plus `shift`.
   The tab rename binding must use the produced literal, such as `prefix+<`, rather than `prefix+shift+comma`.
 - Flake-managed Pi extension, prompt, and skill directories may still be written directly for throwaway development or local experiments.

@@ -81,6 +81,35 @@
     dataPath = "/pikachu/data/actualbudget";
   };
 
+  guests.copyparty = {
+    enable = true;
+    vlan = 20;
+    mac = "02:23:20:39:23:01";
+    statePath = "/pikachu/data/copyparty";
+    volumes = {
+      "/inbox" = {
+        hostPath = "/pikachu/__inbox";
+        path = "/srv/inbox";
+        access.A = [ "alexion" ];
+        flags = [
+          "d2d"
+          "d2t"
+          "dthumb"
+        ];
+      };
+      "/media" = {
+        hostPath = "/pikachu/media";
+        path = "/srv/media";
+        access.A = [ "alexion" ];
+        flags = [
+          "d2d"
+          "d2t"
+          "dthumb"
+        ];
+      };
+    };
+  };
+
   environment.systemPackages = with pkgs; [
     pciutils
     smartmontools
