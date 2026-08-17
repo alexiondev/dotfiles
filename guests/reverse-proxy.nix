@@ -5,6 +5,7 @@
   ...
 }:
 let
+  giteaSshBackend = "10.23.20.45:2022";
   legacyBackend = "http://10.23.20.32";
   legacyHosts = [
     "games.alexion.dev"
@@ -35,6 +36,15 @@ in
           enable = true;
           routes = config.modules.reverse-proxy.routes // legacyRoutes;
         };
+
+        networking.firewall.allowedTCPPorts = [ 2022 ];
+
+        services.nginx.streamConfig = ''
+          server {
+            listen 2022;
+            proxy_pass ${giteaSshBackend};
+          }
+        '';
       };
     })
   ];
