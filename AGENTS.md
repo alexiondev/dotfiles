@@ -99,6 +99,5 @@ The domain model (Host, Module, Skeleton, Auto-loader, Enable convention, overla
 - The current Steam desktop client is an XWayland application.
   Its CEF windows do not support Ozone and Steam composites them into an SDL surface with X11 extensions, so SDL Wayland selectors do not make the visible client native Wayland.
   Keep fractional scaling sharp with Hyprland's `xwayland.force_zero_scaling` and Steam's own `STEAM_FORCE_DESKTOPUI_SCALING` instead.
-- AdGuard's LAN wildcard rewrite for `*.alexion.dev` points names at the new reverse-proxy guest.
-  That affects non-HTTP ports too: `git.alexion.dev:2022` resolves to the reverse-proxy guest on LAN, so Git SSH times out unless the reverse-proxy guest also handles the Gitea SSH TCP stream or AdGuard has a more specific exception.
-  A temporary command workaround is `GIT_SSH_COMMAND='ssh -o HostName=10.23.20.45 -o HostKeyAlias=[git.alexion.dev]:2022' git fetch origin main`.
+- AdGuard's LAN wildcard rewrite for `*.alexion.dev` points names at the reverse-proxy guest, including non-HTTP ports.
+  Keep `git.alexion.dev:2022` working by proxying that TCP stream through the reverse-proxy guest to Gitea.

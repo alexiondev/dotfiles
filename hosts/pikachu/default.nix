@@ -97,6 +97,11 @@
     vlan = 20;
     mac = "02:23:20:39:23:01";
     statePath = "/pikachu/data/copyparty";
+    reverseProxy = {
+      enable = true;
+      host = "files.alexion.dev";
+      backend = "http://10.23.20.126:3923";
+    };
     volumes = {
       "/inbox" = {
         hostPath = "/pikachu/__inbox";
