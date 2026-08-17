@@ -173,6 +173,46 @@
               touch $out
             '';
 
+          reverse-proxy-fleet-routes =
+            let
+              routeHost =
+                lib.nixosSystem {
+                  system = "x86_64-linux";
+                  specialArgs.my = self.lib;
+                  modules = [
+                    ./modules/reverse-proxy.nix
+                    {
+                      modules.reverse-proxy.routes.app = {
+                        host = "worker.alexion.dev";
+                        backend = "http://10.23.20.126:3923";
+                      };
+                    }
+                  ];
+                };
+              fleetRoutes = self.lib.reverseProxyRoutes.collectFleetRoutes {
+                inherit routeHost;
+                pikachu = self.nixosConfigurations.pikachu;
+              };
+              testConfig =
+                (self.nixosConfigurations.pikachu.extendModules {
+                  specialArgs.reverseProxyFleetRoutes = fleetRoutes;
+                }).config;
+              vhosts = testConfig.containers.reverse-proxy.config.services.nginx.virtualHosts;
+            in
+            pkgs.runCommand "reverse-proxy-fleet-routes-check" { } ''
+              ${
+                lib.optionalString (
+                  !(
+                    fleetRoutes ? routeHost-app
+                    && fleetRoutes ? pikachu-actualbudget
+                    && vhosts."worker.alexion.dev".locations."/".proxyPass == "http://10.23.20.126:3923"
+                    && vhosts."budget.alexion.dev".locations."/".proxyPass == "http://10.23.20.42:5006"
+                  )
+                ) "exit 1"
+              }
+              touch $out
+            '';
+
           reverse-proxy-secondary-path-requires-root =
             let
               testConfig =

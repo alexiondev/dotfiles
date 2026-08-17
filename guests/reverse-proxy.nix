@@ -2,6 +2,7 @@
   config,
   lib,
   my,
+  reverseProxyFleetRoutes ? config.modules.reverse-proxy.routes,
   ...
 }:
 let
@@ -34,7 +35,7 @@ in
       interior = {
         modules.reverse-proxy = {
           enable = true;
-          routes = config.modules.reverse-proxy.routes // legacyRoutes;
+          routes = reverseProxyFleetRoutes // legacyRoutes;
         };
 
         networking.firewall.allowedTCPPorts = [ 2022 ];

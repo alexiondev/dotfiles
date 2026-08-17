@@ -64,9 +64,18 @@ let
       websockets
       ;
   };
+
+  collectFleetRoutes =
+    hosts:
+    lib.concatMapAttrs (
+      hostName: host:
+      lib.mapAttrs' (
+        routeName: route: lib.nameValuePair "${hostName}-${routeName}" route
+      ) host.config.modules.reverse-proxy.routes
+    ) hosts;
 in
 {
-  inherit mkRouteOptions routeFields;
+  inherit collectFleetRoutes mkRouteOptions routeFields;
 
   routeType = lib.types.submodule (
     { name, ... }:

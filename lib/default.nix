@@ -34,8 +34,9 @@ let
     );
 
   specialArgs = {
-    inherit inputs;
+    inherit inputs self;
     my = self.lib;
+    reverseProxyFleetRoutes = self.lib.reverseProxyRoutes.collectFleetRoutes self.nixosConfigurations;
   };
 
   bridgeName = id: "br-vlan${toString id}";
