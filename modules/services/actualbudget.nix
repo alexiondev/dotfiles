@@ -40,6 +40,7 @@ in
       default = "storage";
       description = "Group account that owns Actual Budget's writable state.";
     };
+
   };
 
   config = lib.mkIf cfg.enable {

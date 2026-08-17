@@ -3,6 +3,7 @@
   self,
   specialArgs,
   bridgeName,
+  reverseProxyRoutes,
 }:
 let
   inherit (lib) escapeShellArg mapAttrsToList;
@@ -129,6 +130,10 @@ let
             The guest's static address, in CIDR form, on its VLAN. Left null, the
             guest takes its address by DHCP, keeping IP management at the router.
           '';
+        };
+        reverseProxy = reverseProxyRoutes.mkRouteOptions {
+          subject = "guest route";
+          enableDefault = false;
         };
         mounts = lib.mkOption {
           type = lib.types.attrsOf (
@@ -272,6 +277,10 @@ let
 
       config = lib.mkIf cfg.enable {
         sops.secrets = lib.genAttrs cfg.secrets (_: { });
+
+        modules.reverse-proxy.routes.${machineName} = lib.mkIf cfg.reverseProxy.enable (
+          reverseProxyRoutes.routeFields cfg.reverseProxy
+        );
 
         assertions = [
           {

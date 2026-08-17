@@ -14,6 +14,8 @@ let
     ;
 
   serviceIdentityRegistry = import ./service-identities.nix { inherit lib; };
+  reverseProxyRoutes = import ./reverse-proxy-routes.nix { inherit lib; };
+
   collectNixFiles =
     dir:
     flatten (
@@ -44,6 +46,7 @@ let
       self
       specialArgs
       bridgeName
+      reverseProxyRoutes
       ;
   };
 
@@ -81,6 +84,7 @@ in
     mkHost
     mkHosts
     bridgeName
+    reverseProxyRoutes
     ;
 
   inherit (guests) deriveMac guest;

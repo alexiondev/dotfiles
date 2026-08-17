@@ -79,6 +79,17 @@
     vlan = 20;
     mac = "BC:24:11:C1:CD:28";
     dataPath = "/pikachu/data/actualbudget";
+    reverseProxy = {
+      enable = true;
+      host = "budget.alexion.dev";
+      backend = "http://10.23.20.42:5006";
+    };
+  };
+
+  guests.reverse-proxy = {
+    enable = true;
+    vlan = 20;
+    mac = "02:98:64:5a:07:4f";
   };
 
   guests.copyparty = {

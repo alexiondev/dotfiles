@@ -117,6 +117,92 @@
             ${lib.optionalString (!serviceIdentityTestsPass) "exit 1"}
             touch $out
           '';
+
+          reverse-proxy-basic-route =
+            let
+              testConfig =
+                (lib.nixosSystem {
+                  system = "x86_64-linux";
+                  specialArgs.my = self.lib;
+                  modules = [
+                    ./modules/reverse-proxy.nix
+                    {
+                      modules.reverse-proxy = {
+                        enable = true;
+                        routes."budget.alexion.dev" = {
+                          path = "/";
+                          backend = "http://10.23.20.42:5006";
+                        };
+                      };
+                    }
+                  ];
+                }).config;
+              vhost = testConfig.services.nginx.virtualHosts."budget.alexion.dev";
+            in
+            pkgs.runCommand "reverse-proxy-basic-route-check" { } ''
+              ${
+                lib.optionalString (
+                  !(vhost.forceSSL && vhost.enableACME && vhost.locations."/".proxyPass == "http://10.23.20.42:5006")
+                ) "exit 1"
+              }
+              touch $out
+            '';
+
+          reverse-proxy-actualbudget-guest-route =
+            let
+              testConfig =
+                (self.nixosConfigurations.pikachu.extendModules {
+                  modules = [
+                    {
+                      guests.actualbudget.reverseProxy = {
+                        enable = true;
+                        host = "budget.alexion.dev";
+                        backend = "http://10.23.20.42:5006";
+                      };
+                    }
+                  ];
+                }).config;
+              route = testConfig.modules.reverse-proxy.routes.actualbudget;
+            in
+            pkgs.runCommand "reverse-proxy-actualbudget-guest-route-check" { } ''
+              ${
+                lib.optionalString (
+                  !(route.host == "budget.alexion.dev" && route.backend == "http://10.23.20.42:5006")
+                ) "exit 1"
+              }
+              touch $out
+            '';
+
+          reverse-proxy-secondary-path-requires-root =
+            let
+              testConfig =
+                (lib.nixosSystem {
+                  system = "x86_64-linux";
+                  specialArgs.my = self.lib;
+                  modules = [
+                    ./modules/reverse-proxy.nix
+                    {
+                      modules.reverse-proxy = {
+                        enable = true;
+                        routes.raichu-files = {
+                          host = "files.alexion.dev";
+                          path = "/raichu";
+                          backend = "http://10.23.20.10:3923";
+                        };
+                      };
+                    }
+                  ];
+                }).config;
+              hasFailedRootAssertion = lib.any (
+                assertion:
+                assertion.assertion == false
+                && assertion.message == "modules.reverse-proxy.routes for files.alexion.dev must include a primary / route."
+              ) testConfig.assertions;
+            in
+            pkgs.runCommand "reverse-proxy-secondary-path-requires-root-check" { } ''
+              ${lib.optionalString (!hasFailedRootAssertion) "exit 1"}
+              touch $out
+            '';
         };
     };
 }
