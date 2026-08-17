@@ -43,6 +43,10 @@ in
           enable = true;
           inherit (cfg) accountName stateDir;
           passwordFile = "/run/secrets/${cfg.passwordSecret}";
+          reverseProxy = {
+            enable = cfg.reverseProxy.enable;
+            inherit (cfg.reverseProxy) trustedSources;
+          };
           volumes = lib.mapAttrs (_urlPath: volume: {
             inherit (volume) path access flags;
           }) cfg.volumes;
@@ -75,6 +79,12 @@ in
       default = null;
       example = "/srv/copyparty";
       description = "Host path bind-mounted as Copyparty's state directory.";
+    };
+
+    reverseProxy.trustedSources = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "IP ranges that may supply Copyparty's forwarded client IP header.";
     };
 
     volumes = lib.mkOption {

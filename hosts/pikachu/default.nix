@@ -101,6 +101,7 @@
       enable = true;
       host = "files.alexion.dev";
       backend = "http://10.23.20.126:3923";
+      trustedSources = [ "10.23.20.109/32" ];
     };
     volumes = {
       "/inbox" = {
