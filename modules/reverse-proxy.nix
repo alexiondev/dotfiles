@@ -72,6 +72,13 @@ in
 
     services.nginx = {
       enable = true;
+      commonHttpConfig = ''
+        server {
+          listen 0.0.0.0:443 ssl default_server;
+          listen [::0]:443 ssl default_server;
+          ssl_reject_handshake on;
+        }
+      '';
       recommendedGzipSettings = true;
       recommendedOptimisation = true;
       recommendedProxySettings = true;
