@@ -43,6 +43,28 @@ in
       '';
     };
 
+    endpoint = {
+      address = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        example = "10.23.50.146";
+        description = ''
+          Expected IP address assigned outside NixOS for this host's network
+          endpoint. Left null, this host contributes no host endpoint to the
+          fleet endpoint registry.
+        '';
+      };
+    };
+
+    endpoints = lib.mkOption {
+      type = lib.types.attrsOf my.networkEndpoints.endpointType;
+      default = { };
+      description = ''
+        Network endpoint declarations contributed by placed workloads on this
+        host, keyed by their local stable endpoint name.
+      '';
+    };
+
     management = {
       vlan = lib.mkOption {
         type = lib.types.nullOr (lib.types.ints.between 1 4094);

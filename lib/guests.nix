@@ -131,6 +131,18 @@ let
             guest takes its address by DHCP, keeping IP management at the router.
           '';
         };
+        endpoint = {
+          address = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+            example = "10.23.20.126";
+            description = ''
+              Expected IP address assigned outside NixOS for this guest's
+              network endpoint. Left null, this guest contributes no endpoint to
+              the fleet endpoint registry.
+            '';
+          };
+        };
         reverseProxy = reverseProxyRoutes.mkRouteOptions {
           subject = "guest route";
           enableDefault = false;
@@ -277,6 +289,10 @@ let
 
       config = lib.mkIf cfg.enable {
         sops.secrets = lib.genAttrs cfg.secrets (_: { });
+
+        modules.network.endpoints.${machineName} = lib.mkIf (cfg.endpoint.address != null) {
+          inherit (cfg.endpoint) address;
+        };
 
         modules.reverse-proxy.routes.${machineName} = lib.mkIf cfg.reverseProxy.enable (
           reverseProxyRoutes.routeFields cfg.reverseProxy

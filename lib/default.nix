@@ -14,6 +14,7 @@ let
     ;
 
   serviceIdentityRegistry = import ./service-identities.nix { inherit lib; };
+  networkEndpoints = import ./network-endpoints.nix { inherit lib; };
   reverseProxyRoutes = import ./reverse-proxy-routes.nix { inherit lib; };
 
   collectNixFiles =
@@ -36,6 +37,7 @@ let
   specialArgs = {
     inherit inputs self;
     my = self.lib;
+    networkFleetEndpoints = self.lib.networkEndpoints.collectFleetEndpoints self.nixosConfigurations;
     reverseProxyFleetRoutes = self.lib.reverseProxyRoutes.collectFleetRoutes self.nixosConfigurations;
   };
 
@@ -85,6 +87,7 @@ in
     mkHost
     mkHosts
     bridgeName
+    networkEndpoints
     reverseProxyRoutes
     ;
 

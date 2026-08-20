@@ -173,6 +173,57 @@
               touch $out
             '';
 
+          network-endpoint-fleet-registry =
+            let
+              hostEndpointConfig =
+                lib.nixosSystem {
+                  system = "x86_64-linux";
+                  specialArgs.my = self.lib;
+                  modules = [
+                    ./modules/network.nix
+                    {
+                      modules.network.endpoint.address = "10.23.50.146";
+                    }
+                  ];
+                };
+              guestEndpointConfig =
+                lib.nixosSystem {
+                  system = "x86_64-linux";
+                  specialArgs.my = self.lib;
+                  modules = [
+                    inputs.sops-nix.nixosModules.sops
+                    ./modules/network.nix
+                    ./modules/reverse-proxy.nix
+                    (self.lib.guest { name = "copyparty"; })
+                    {
+                      modules.network.vlans = [ 20 ];
+                      guests.copyparty = {
+                        enable = true;
+                        vlan = 20;
+                        endpoint.address = "10.23.20.126";
+                      };
+                    }
+                  ];
+                };
+              fleetEndpoints = self.lib.networkEndpoints.collectFleetEndpoints {
+                neogaia = hostEndpointConfig;
+                pikachu = guestEndpointConfig;
+              };
+            in
+            pkgs.runCommand "network-endpoint-fleet-registry-check" { } ''
+              ${
+                lib.optionalString (
+                  !(
+                    fleetEndpoints.neogaia.address == "10.23.50.146"
+                    && fleetEndpoints."pikachu-copyparty".address == "10.23.20.126"
+                    && !(fleetEndpoints ? pikachu)
+                    && guestEndpointConfig.config.containers.copyparty.config.systemd.network.networks."20-eth0".networkConfig.DHCP == "yes"
+                  )
+                ) "exit 1"
+              }
+              touch $out
+            '';
+
           reverse-proxy-fleet-routes =
             let
               routeHost =
