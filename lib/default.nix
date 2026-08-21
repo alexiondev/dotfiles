@@ -34,12 +34,15 @@ let
       ) (builtins.readDir dir)
     );
 
-  specialArgs = {
-    inherit inputs self;
-    my = self.lib;
-    networkFleetEndpoints = self.lib.networkEndpoints.collectFleetEndpoints self.nixosConfigurations;
-    reverseProxyFleetRoutes = self.lib.reverseProxyRoutes.collectFleetRoutes self.nixosConfigurations;
-  };
+  specialArgs =
+    let
+      networkFleetEndpoints = self.lib.networkEndpoints.collectFleetEndpoints self.nixosConfigurations;
+    in
+    {
+      inherit inputs networkFleetEndpoints self;
+      my = self.lib;
+      reverseProxyFleetRoutes = self.lib.reverseProxyRoutes.collectFleetRoutes self.nixosConfigurations networkFleetEndpoints;
+    };
 
   bridgeName = id: "br-vlan${toString id}";
 

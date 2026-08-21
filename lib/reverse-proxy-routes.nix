@@ -37,8 +37,28 @@ let
       };
 
       backend = lib.mkOption {
-        type = lib.types.str;
+        type = lib.types.nullOr lib.types.str;
+        default = null;
         description = "Full HTTP backend URL that receives proxied traffic.";
+      };
+
+      endpoint = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Fleet network endpoint key used to derive the backend URL.";
+      };
+
+      port = lib.mkOption {
+        type = lib.types.nullOr (lib.types.ints.between 1 65535);
+        default = null;
+        example = 3923;
+        description = "Backend TCP port used with the fleet network endpoint.";
+      };
+
+      scheme = lib.mkOption {
+        type = lib.types.str;
+        default = "http";
+        description = "Backend URL scheme used with the fleet network endpoint.";
       };
 
       tls = lib.mkOption {
@@ -60,22 +80,45 @@ let
       aliases
       path
       backend
+      endpoint
+      port
+      scheme
       tls
       websockets
       ;
   };
 
+  endpointBackend = endpoints: route:
+    let
+      endpoint = endpoints.${route.endpoint} or (
+        throw "Unknown reverse-proxy endpoint `${route.endpoint}`. Known endpoints: ${lib.concatStringsSep ", " (lib.attrNames endpoints)}"
+      );
+    in
+    "${route.scheme}://${endpoint.address}:${toString route.port}";
+
+  resolvedRouteFields = endpoints: route:
+    let
+      routeWithBackend =
+        if route.backend != null then
+          route
+        else if route.endpoint != null && route.port != null then
+          route // { backend = endpointBackend endpoints route; }
+        else
+          throw "Reverse-proxy route `${route.host}${route.path}` needs either backend or endpoint plus port.";
+    in
+    routeFields routeWithBackend;
+
   collectFleetRoutes =
-    hosts:
+    hosts: endpoints:
     lib.concatMapAttrs (
       hostName: host:
       lib.mapAttrs' (
-        routeName: route: lib.nameValuePair "${hostName}-${routeName}" route
+        routeName: route: lib.nameValuePair "${hostName}-${routeName}" (resolvedRouteFields endpoints route)
       ) host.config.modules.reverse-proxy.routes
     ) hosts;
 in
 {
-  inherit collectFleetRoutes mkRouteOptions routeFields;
+  inherit collectFleetRoutes mkRouteOptions resolvedRouteFields routeFields;
 
   routeType = lib.types.submodule (
     { name, ... }:

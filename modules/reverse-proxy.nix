@@ -20,6 +20,8 @@ let
     in
     lib.length paths != lib.length (lib.unique paths);
 
+  hasUnresolvedBackend = route: route.backend == null;
+
   mkLocation = route: {
     proxyPass = route.backend;
     proxyWebsockets = route.websockets;
@@ -34,7 +36,9 @@ let
       enableACME = rootRoute.tls;
       serverAliases = rootRoute.aliases;
       locations = lib.listToAttrs (
-        map (route: lib.nameValuePair route.path (mkLocation route)) routes
+        map (route: lib.nameValuePair route.path (mkLocation route)) (
+          builtins.filter (route: route.backend != null) routes
+        )
       );
     };
 in
@@ -58,7 +62,11 @@ in
       ++ lib.mapAttrsToList (host: routes: {
         assertion = !hasDuplicatePaths routes;
         message = "modules.reverse-proxy.routes for ${host} must not declare the same path more than once.";
-      }) routesByHost;
+      }) routesByHost
+      ++ map (route: {
+        assertion = !hasUnresolvedBackend route;
+        message = "modules.reverse-proxy.routes for ${route.host}${route.path} must resolve to a backend URL before actualization.";
+      }) (builtins.filter hasUnresolvedBackend (lib.attrValues enabledRoutes));
 
     networking.firewall.allowedTCPPorts = [
       80

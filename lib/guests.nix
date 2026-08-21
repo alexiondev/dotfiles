@@ -295,7 +295,12 @@ let
         };
 
         modules.reverse-proxy.routes.${machineName} = lib.mkIf cfg.reverseProxy.enable (
-          reverseProxyRoutes.routeFields cfg.reverseProxy
+          reverseProxyRoutes.routeFields (
+            cfg.reverseProxy
+            // lib.optionalAttrs (cfg.reverseProxy.backend == null && cfg.reverseProxy.endpoint == null) {
+              endpoint = "${config.networking.hostName}-${machineName}";
+            }
+          )
         );
 
         assertions = [

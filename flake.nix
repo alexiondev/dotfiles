@@ -240,10 +240,13 @@
                     }
                   ];
                 };
+              endpoints = self.lib.networkEndpoints.collectFleetEndpoints {
+                pikachu = self.nixosConfigurations.pikachu;
+              };
               fleetRoutes = self.lib.reverseProxyRoutes.collectFleetRoutes {
                 inherit routeHost;
                 pikachu = self.nixosConfigurations.pikachu;
-              };
+              } endpoints;
               testConfig =
                 (self.nixosConfigurations.pikachu.extendModules {
                   specialArgs.reverseProxyFleetRoutes = fleetRoutes;
@@ -258,6 +261,96 @@
                     && fleetRoutes ? pikachu-actualbudget
                     && vhosts."worker.alexion.dev".locations."/".proxyPass == "http://10.23.20.126:3923"
                     && vhosts."budget.alexion.dev".locations."/".proxyPass == "http://10.23.20.42:5006"
+                  )
+                ) "exit 1"
+              }
+              touch $out
+            '';
+
+          reverse-proxy-endpoint-backends =
+            let
+              endpointHost =
+                lib.nixosSystem {
+                  system = "x86_64-linux";
+                  specialArgs.my = self.lib;
+                  modules = [
+                    ./modules/network.nix
+                    {
+                      modules.network.endpoint.address = "10.23.50.146";
+                    }
+                  ];
+                };
+              routeHost =
+                lib.nixosSystem {
+                  system = "x86_64-linux";
+                  specialArgs.my = self.lib;
+                  modules = [
+                    ./modules/reverse-proxy.nix
+                    {
+                      modules.reverse-proxy.routes.app = {
+                        host = "worker.alexion.dev";
+                        endpoint = "worker";
+                        port = 8080;
+                      };
+                    }
+                  ];
+                };
+              guestRouteHost =
+                lib.nixosSystem {
+                  system = "x86_64-linux";
+                  specialArgs.my = self.lib;
+                  modules = [
+                    inputs.sops-nix.nixosModules.sops
+                    ./modules/network.nix
+                    ./modules/reverse-proxy.nix
+                    (self.lib.guest { name = "files"; })
+                    {
+                      networking.hostName = "pikachu";
+                      modules.network.vlans = [ 20 ];
+                      guests.files = {
+                        enable = true;
+                        vlan = 20;
+                        endpoint.address = "10.23.20.126";
+                        reverseProxy = {
+                          enable = true;
+                          host = "files.alexion.dev";
+                          port = 3923;
+                        };
+                      };
+                    }
+                  ];
+                };
+              endpoints = self.lib.networkEndpoints.collectFleetEndpoints {
+                worker = endpointHost;
+                pikachu = guestRouteHost;
+              };
+              fleetRoutes = self.lib.reverseProxyRoutes.collectFleetRoutes {
+                inherit routeHost;
+                pikachu = guestRouteHost;
+              } endpoints;
+              testConfig =
+                (lib.nixosSystem {
+                  system = "x86_64-linux";
+                  specialArgs.my = self.lib;
+                  modules = [
+                    ./modules/reverse-proxy.nix
+                    {
+                      modules.reverse-proxy = {
+                        enable = true;
+                        routes = fleetRoutes;
+                      };
+                    }
+                  ];
+                }).config;
+              vhosts = testConfig.services.nginx.virtualHosts;
+            in
+            pkgs.runCommand "reverse-proxy-endpoint-backends-check" { } ''
+              ${
+                lib.optionalString (
+                  !(
+                    vhosts."worker.alexion.dev".locations."/".proxyPass == "http://10.23.50.146:8080"
+                    && fleetRoutes."pikachu-files".endpoint == "pikachu-files"
+                    && vhosts."files.alexion.dev".locations."/".proxyPass == "http://10.23.20.126:3923"
                   )
                 ) "exit 1"
               }
