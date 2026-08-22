@@ -150,24 +150,24 @@
 
           reverse-proxy-actualbudget-guest-route =
             let
-              testConfig =
-                (self.nixosConfigurations.pikachu.extendModules {
-                  modules = [
-                    {
-                      guests.actualbudget.reverseProxy = {
-                        enable = true;
-                        host = "budget.alexion.dev";
-                        backend = "http://10.23.20.42:5006";
-                      };
-                    }
-                  ];
-                }).config;
+              testConfig = self.nixosConfigurations.pikachu.config;
               route = testConfig.modules.reverse-proxy.routes.actualbudget;
+              vhost = testConfig.containers.reverse-proxy.config.services.nginx.virtualHosts."budget.alexion.dev";
             in
             pkgs.runCommand "reverse-proxy-actualbudget-guest-route-check" { } ''
               ${
                 lib.optionalString (
-                  !(route.host == "budget.alexion.dev" && route.backend == "http://10.23.20.42:5006")
+                  !(
+                    route.host == "budget.alexion.dev"
+                    && route.backend == null
+                    && route.endpoint == "pikachu-actualbudget"
+                    && route.port == 5006
+                    && route.tls
+                    && route.aliases == [ ]
+                    && route.path == "/"
+                    && !route.websockets
+                    && vhost.locations."/".proxyPass == "http://10.23.20.42:5006"
+                  )
                 ) "exit 1"
               }
               touch $out
@@ -261,6 +261,7 @@
                     && fleetRoutes ? pikachu-actualbudget
                     && vhosts."worker.alexion.dev".locations."/".proxyPass == "http://10.23.20.126:3923"
                     && vhosts."budget.alexion.dev".locations."/".proxyPass == "http://10.23.20.42:5006"
+                    && vhosts."files.alexion.dev".locations."/".proxyPass == "http://10.23.20.126:3923"
                   )
                 ) "exit 1"
               }

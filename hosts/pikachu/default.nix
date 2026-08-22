@@ -79,10 +79,11 @@
     vlan = 20;
     mac = "BC:24:11:C1:CD:28";
     dataPath = "/pikachu/data/actualbudget";
+    endpoint.address = "10.23.20.42";
     reverseProxy = {
       enable = true;
       host = "budget.alexion.dev";
-      backend = "http://10.23.20.42:5006";
+      port = 5006;
     };
   };
 
@@ -97,10 +98,11 @@
     vlan = 20;
     mac = "02:23:20:39:23:01";
     statePath = "/pikachu/data/copyparty";
+    endpoint.address = "10.23.20.126";
     reverseProxy = {
       enable = true;
       host = "files.alexion.dev";
-      backend = "http://10.23.20.126:3923";
+      port = 3923;
     };
     volumes = {
       "/inbox" = {
