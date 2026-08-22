@@ -48,6 +48,14 @@ let
     ''}
   '';
 
+  renderTrustedSource = source: "  xff-src: ${source}";
+
+  renderedReverseProxy = lib.optionalString cfg.reverseProxy.enable ''
+      rproxy: 1
+      xff-hdr: x-forwarded-for
+    ${lib.concatStringsSep "\n" (map renderTrustedSource cfg.reverseProxy.trustedSources)}
+  '';
+
   renderedVolumes = lib.concatStringsSep "\n" (lib.mapAttrsToList renderVolume cfg.volumes);
 
   configScript = pkgs.writeShellScript "copyparty-config" ''
@@ -68,7 +76,7 @@ let
       ses-db: ${cfg.stateDir}/sessions.db
       chpw-db: ${cfg.stateDir}/chpw.json
       shr-db: ${cfg.stateDir}/shares.db
-
+    ${renderedReverseProxy}
     [accounts]
       ${cfg.accountName}: $password
 
@@ -128,6 +136,16 @@ in
       default = { };
       description = "Copyparty volumes keyed by their URL path.";
     };
+
+    reverseProxy = {
+      enable = lib.mkEnableOption "reverse-proxy trust settings for Copyparty";
+
+      trustedSources = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        description = "IP ranges that may supply Copyparty's forwarded client IP header.";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -135,6 +153,10 @@ in
       {
         assertion = cfg.volumes != { };
         message = "modules.services.copyparty.volumes must declare at least one served volume.";
+      }
+      {
+        assertion = !cfg.reverseProxy.enable || cfg.reverseProxy.trustedSources != [ ];
+        message = "modules.services.copyparty.reverseProxy.trustedSources must name at least one trusted proxy source when reverse-proxy support is enabled.";
       }
     ];
 

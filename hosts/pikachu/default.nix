@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 # pikachu — AZW ME Pro server.
 # Disk layout is in ./disk.nix.
 # `fileSystems` for the root disk are derived from it.
@@ -91,6 +91,7 @@
     enable = true;
     vlan = 20;
     mac = "02:98:64:5a:07:4f";
+    endpoint.address = "10.23.20.109";
   };
 
   guests.copyparty = {
@@ -103,6 +104,7 @@
       enable = true;
       host = "files.alexion.dev";
       port = 3923;
+      trustedSources = [ "${config.modules.network.endpoints."reverse-proxy".address}/32" ];
     };
     volumes = {
       "/inbox" = {

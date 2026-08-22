@@ -118,6 +118,79 @@
             touch $out
           '';
 
+          copyparty-reverse-proxy-trust-config =
+            let
+              pikachuConfig = self.nixosConfigurations.pikachu.config;
+              serviceConfig = pikachuConfig.containers.copyparty.config.systemd.services.copyparty.serviceConfig;
+              configScript = builtins.readFile serviceConfig.ExecStartPre;
+              plainConfig =
+                (lib.nixosSystem {
+                  system = "x86_64-linux";
+                  specialArgs.my = self.lib;
+                  modules = [
+                    ./modules/services/copyparty.nix
+                    {
+                      modules.services.copyparty = {
+                        enable = true;
+                        passwordFile = "/run/password";
+                        volumes."/" = {
+                          path = "/srv/files";
+                          access.A = [ "alexion" ];
+                        };
+                      };
+                    }
+                  ];
+                }).config;
+              plainScript = builtins.readFile plainConfig.systemd.services.copyparty.serviceConfig.ExecStartPre;
+            in
+            pkgs.runCommand "copyparty-reverse-proxy-trust-config-check" { } ''
+              ${
+                lib.optionalString (
+                  !(
+                    lib.hasInfix "  rproxy: 1" configScript
+                    && lib.hasInfix "  xff-hdr: x-forwarded-for" configScript
+                    && lib.hasInfix "  xff-src: 10.23.20.109/32" configScript
+                    && !(lib.hasInfix "rproxy" plainScript)
+                    && !(lib.hasInfix "xff-hdr" plainScript)
+                    && !(lib.hasInfix "xff-src" plainScript)
+                  )
+                ) "exit 1"
+              }
+              touch $out
+            '';
+
+          copyparty-reverse-proxy-trust-requires-source =
+            let
+              testConfig =
+                (lib.nixosSystem {
+                  system = "x86_64-linux";
+                  specialArgs.my = self.lib;
+                  modules = [
+                    ./modules/services/copyparty.nix
+                    {
+                      modules.services.copyparty = {
+                        enable = true;
+                        passwordFile = "/run/password";
+                        reverseProxy.enable = true;
+                        volumes."/" = {
+                          path = "/srv/files";
+                          access.A = [ "alexion" ];
+                        };
+                      };
+                    }
+                  ];
+                }).config;
+              hasFailedTrustedSourcesAssertion = lib.any (
+                assertion:
+                assertion.assertion == false
+                && assertion.message == "modules.services.copyparty.reverseProxy.trustedSources must name at least one trusted proxy source when reverse-proxy support is enabled."
+              ) testConfig.assertions;
+            in
+            pkgs.runCommand "copyparty-reverse-proxy-trust-requires-source-check" { } ''
+              ${lib.optionalString (!hasFailedTrustedSourcesAssertion) "exit 1"}
+              touch $out
+            '';
+
           reverse-proxy-basic-route =
             let
               testConfig =
